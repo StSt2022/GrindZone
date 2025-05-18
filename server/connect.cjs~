@@ -11,7 +11,7 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Підключення до MongoDB
+// Підключення до MongoDB Atlas
 const uri = process.env.ATLAS_URI;
 const client = new MongoClient(uri);
 let db;
@@ -19,44 +19,38 @@ let db;
 async function connectToMongo() {
     try {
         await client.connect();
-        console.log('Connected to MongoDB');
-        db = client.db('your_database'); // Заміни на ім'я твоєї бази даних
+        console.log('Connected to MongoDB Atlas');
+        db = client.db('grindzone'); // Ім’я твоєї бази
     } catch (error) {
         console.error('MongoDB connection error:', error);
-        process.exit(1); // Зупиняємо сервер, якщо не вдалося підключитися
+        process.exit(1);
     }
 }
 
-// Запускаємо підключення
-connectToMongo().catch(console.error);
+connectToMongo();
 
 // API-ендпоінт для реєстрації
 app.post('/signup', async (req, res) => {
     try {
         const { name, email, password, allowExtraEmails } = req.body;
 
-        // Перевірка, чи всі поля заповнені
         if (!name || !email || !password) {
             return res.status(400).json({ message: 'Усі поля обов’язкові' });
         }
 
-        // Перевірка, чи користувач уже існує
         const usersCollection = db.collection('users');
         const existingUser = await usersCollection.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ message: 'Користувач із такою поштою вже існує' });
         }
 
-        // Хешування пароля
         const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Створення нового користувача з порожньою колекцією
         const newUser = {
             name,
             email,
             password: hashedPassword,
             allowExtraEmails: allowExtraEmails || false,
-            collection: [], // Початкова порожня колекція
+            collection: [], // Порожня колекція
             createdAt: new Date(),
         };
 
@@ -73,7 +67,7 @@ app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
 
-// Обробка завершення роботи для закриття MongoDB
+// Обробка завершення роботи
 process.on('SIGTERM', async () => {
     console.log('Shutting down server...');
     await client.close();

@@ -1,8 +1,12 @@
+// server/connect.cjs
 const express = require('express');
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
-require('dotenv').config({ path: './config.env' });
+const dotenv = require('dotenv');
+
+// Load environment variables
+dotenv.config({ path: './server/config.env' }); // Adjust path if config.env is elsewhere
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -11,16 +15,21 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Підключення до MongoDB Atlas
-const uri = process.env.ATLAS_URI;
-const client = new MongoClient(uri);
+// Verify ATLAS_URI is loaded
+if (!process.env.ATLAS_URI) {
+    console.error('Error: ATLAS_URI is not defined in config.env');
+    process.exit(1);
+}
+
+// Connect to MongoDB Atlas
+const client = new MongoClient(process.env.ATLAS_URI);
 let db;
 
 async function connectToMongo() {
     try {
         await client.connect();
         console.log('Connected to MongoDB Atlas');
-        db = client.db('grindzone'); // Ім’я твоєї бази
+        db = client.db('grindzone'); // Your database name
     } catch (error) {
         console.error('MongoDB connection error:', error);
         process.exit(1);
@@ -29,7 +38,7 @@ async function connectToMongo() {
 
 connectToMongo();
 
-// API-ендпоінт для реєстрації
+// Signup endpoint
 app.post('/signup', async (req, res) => {
     try {
         const { name, email, password, allowExtraEmails } = req.body;
@@ -50,7 +59,7 @@ app.post('/signup', async (req, res) => {
             email,
             password: hashedPassword,
             allowExtraEmails: allowExtraEmails || false,
-            collection: [], // Порожня колекція
+            collection: [], // Empty collection
             createdAt: new Date(),
         };
 
@@ -62,12 +71,12 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-// Запуск сервера
+// Start server
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
 
-// Обробка завершення роботи
+// Handle shutdown
 process.on('SIGTERM', async () => {
     console.log('Shutting down server...');
     await client.close();
