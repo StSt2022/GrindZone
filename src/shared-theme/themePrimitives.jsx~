@@ -1,0 +1,136 @@
+import { createTheme, alpha } from '@mui/material/styles';
+
+const defaultTheme = createTheme();
+
+export const brand = {
+  50: 'hsl(210, 100%, 95%)', 100: 'hsl(210, 100%, 92%)', 200: 'hsl(210, 100%, 80%)',
+  300: 'hsl(210, 100%, 65%)', 400: 'hsl(210, 98%, 48%)', 500: 'hsl(210, 98%, 42%)',
+  600: 'hsl(210, 98%, 55%)', 700: 'hsl(210, 100%, 35%)', 800: 'hsl(210, 100%, 16%)',
+  900: 'hsl(210, 100%, 21%)',
+};
+
+export const purple = {
+  50: '#f3e7ff', 100: '#e0c6ff', 200: '#c67eff', 300: '#a96cff',
+  400: '#8c52e0', 500: '#8A2BE2', 600: '#6a0dad', 700: '#500a80',
+  800: '#38075c', 900: '#220438',
+};
+
+export const gray = {
+  50: 'hsl(220, 35%, 97%)', 100: 'hsl(220, 30%, 94%)', 200: 'hsl(220, 20%, 88%)',
+  300: 'hsl(220, 20%, 80%)', 400: 'hsl(220, 20%, 65%)', 500: 'hsl(220, 20%, 42%)',
+  600: 'hsl(220, 20%, 35%)', 700: 'hsl(220, 20%, 25%)', 800: 'hsl(220, 30%, 6%)',
+  900: 'hsl(220, 35%, 3%)',
+};
+
+export const green = {
+  50: 'hsl(120, 80%, 98%)', 100: 'hsl(120, 75%, 94%)', 200: 'hsl(120, 75%, 87%)',
+  300: 'hsl(120, 61%, 77%)', 400: 'hsl(120, 44%, 53%)', 500: 'hsl(120, 59%, 30%)',
+  600: 'hsl(120, 70%, 25%)', 700: 'hsl(120, 75%, 16%)', 800: 'hsl(120, 84%, 10%)',
+  900: 'hsl(120, 87%, 6%)',
+};
+
+export const orange = {
+  50: 'hsl(45, 100%, 97%)', 100: 'hsl(45, 92%, 90%)', 200: 'hsl(45, 94%, 80%)',
+  300: 'hsl(45, 90%, 65%)', 400: 'hsl(45, 90%, 40%)', 500: 'hsl(45, 90%, 35%)',
+  600: 'hsl(45, 91%, 25%)', 700: 'hsl(45, 94%, 20%)', 800: 'hsl(45, 95%, 16%)',
+  900: 'hsl(45, 93%, 12%)',
+};
+
+export const red = {
+  50: 'hsl(0, 100%, 97%)', 100: 'hsl(0, 92%, 90%)', 200: 'hsl(0, 94%, 80%)',
+  300: 'hsl(0, 90%, 65%)', 400: 'hsl(0, 90%, 40%)', 500: 'hsl(0, 90%, 30%)',
+  600: 'hsl(0, 91%, 25%)', 700: 'hsl(0, 94%, 18%)', 800: 'hsl(0, 95%, 12%)',
+  900: 'hsl(0, 93%, 6%)',
+};
+
+export const getDesignTokens = (mode) => {
+  const customShadows = [...defaultTheme.shadows];
+  customShadows[1] =
+      mode === 'dark'
+          ? '0 8px 25px rgba(138, 43, 226, 0.12), 0 3px 10px rgba(138, 43, 226, 0.08)'
+          : 'hsla(220, 30%, 5%, 0.07) 0px 4px 16px 0px, hsla(220, 25%, 10%, 0.07) 0px 8px 16px -5px';
+
+  const lightPalette = {
+    mode: 'light',
+    primary: { main: purple[300], light: purple[200], dark: purple[500], contrastText: '#ffffff' },
+    secondary: { main: orange[400], light: orange[300], dark: orange[600], contrastText: '#ffffff' },
+    info: { main: brand[400], light: brand[200], dark: brand[700], contrastText: gray[800] },
+    warning: { main: orange[400], light: orange[300], dark: orange[800], contrastText: gray[800] },
+    error: { main: red[400], light: red[300], dark: red[800], contrastText: '#ffffff' },
+    success: { main: green[400], light: green[300], dark: green[800], contrastText: gray[800] },
+    grey: { ...gray },
+    divider: alpha(gray[300], 0.4),
+    background: { default: 'hsl(0, 0%, 99%)', paper: 'hsl(220, 35%, 97%)' },
+    text: { primary: gray[800], secondary: gray[600], disabled: alpha(gray[600], 0.5), warning: orange[500] },
+    action: {
+      active: purple[400], hover: alpha(purple[300], 0.08), selected: alpha(purple[300], 0.16),
+      disabled: alpha(gray[500], 0.3), disabledBackground: alpha(gray[300], 0.2),
+    },
+    baseShadow: 'hsla(220, 30%, 5%, 0.07) 0px 4px 16px 0px, hsla(220, 25%, 10%, 0.07) 0px 8px 16px -5px',
+  };
+
+  const darkPalette = {
+    mode: 'dark',
+    primary: { main: purple[300], light: purple[200], dark: purple[500], contrastText: '#ffffff' },
+    secondary: { main: orange[500], light: orange[400], dark: orange[700], contrastText: '#000000' },
+    info: { main: brand[500], light: brand[300], dark: brand[700], contrastText: '#ffffff' },
+    warning: { main: orange[500], light: orange[400], dark: orange[700], contrastText: '#000000' },
+    error: { main: red[500], light: red[400], dark: red[700], contrastText: '#ffffff' },
+    success: { main: green[500], light: green[400], dark: green[700], contrastText: '#000000' },
+    grey: { ...gray },
+    divider: alpha(purple[500], 0.25),
+    background: { default: 'rgba(10, 5, 18, 1)', paper: 'rgba(25, 15, 40, 0.85)' },
+    text: {
+      primary: 'rgba(230, 220, 255, 0.95)', secondary: 'rgba(230, 220, 255, 0.7)',
+      disabled: 'rgba(230, 220, 255, 0.5)', warning: orange[300],
+    },
+    action: {
+      active: purple[200], hover: alpha(purple[200], 0.15), selected: alpha(purple[200], 0.25),
+      disabled: 'rgba(230, 220, 255, 0.3)', disabledBackground: 'rgba(230, 220, 255, 0.12)',
+    },
+    baseShadow: '0 8px 25px rgba(138, 43, 226, 0.12), 0 3px 10px rgba(138, 43, 226, 0.08)',
+  };
+
+  const currentPalette = mode === 'dark' ? darkPalette : lightPalette;
+
+  return {
+    palette: currentPalette,
+    typography: {
+      fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+      h1: { fontSize: defaultTheme.typography.pxToRem(48), fontWeight: 700, lineHeight: 1.2, letterSpacing: -0.5 },
+      h2: { fontSize: defaultTheme.typography.pxToRem(36), fontWeight: 700, lineHeight: 1.2 },
+      h3: { fontSize: defaultTheme.typography.pxToRem(30), fontWeight: 600, lineHeight: 1.2 },
+      h4: { fontSize: defaultTheme.typography.pxToRem(24), fontWeight: 700, lineHeight: 1.5 },
+      h5: { fontSize: defaultTheme.typography.pxToRem(20), fontWeight: 700 },
+      h6: { fontSize: defaultTheme.typography.pxToRem(18), fontWeight: 700 },
+      subtitle1: { fontSize: defaultTheme.typography.pxToRem(18), fontWeight: 500 },
+      subtitle2: { fontSize: defaultTheme.typography.pxToRem(14), fontWeight: 500 },
+      body1: { fontSize: defaultTheme.typography.pxToRem(16), lineHeight: 1.6 },
+      body2: { fontSize: defaultTheme.typography.pxToRem(14), lineHeight: 1.5 },
+      caption: { fontSize: defaultTheme.typography.pxToRem(12), fontWeight: 400, color: currentPalette.text.secondary },
+      button: { textTransform: 'none', fontWeight: 600 }
+    },
+    shape: {
+      borderRadius: 12,
+    },
+    shadows: customShadows,
+  };
+};
+
+const lightThemePrimitives = getDesignTokens('light');
+const darkThemePrimitives = getDesignTokens('dark');
+
+export const colorSchemes = {
+  light: { palette: lightThemePrimitives.palette },
+  dark: { palette: darkThemePrimitives.palette },
+};
+
+export const typography = lightThemePrimitives.typography;
+export const shape = lightThemePrimitives.shape;
+
+const defaultShadows = [
+  'none',
+  'var(--template-palette-baseShadow)',
+  ...defaultTheme.shadows.slice(2),
+];
+export const shadows = defaultShadows;
