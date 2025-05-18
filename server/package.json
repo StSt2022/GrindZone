@@ -1,0 +1,16 @@
+{
+  "name": "grindzone-backend",
+  "version": "1.0.0",
+  "main": "connect.cjs",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node connect.cjs"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongodb": "^6.16.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0"
+  }
+}
