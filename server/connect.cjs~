@@ -2,25 +2,31 @@ const express = require('express');
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
-require('dotenv').config({ path: './config.env' });
+const dotenv = require('dotenv');
+const { OAuth2Client } = require('google-auth-library');
+const clientGoogle = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+dotenv.config({ path: './server/config.env' });
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Підключення до MongoDB Atlas
-const uri = process.env.ATLAS_URI;
-const client = new MongoClient(uri);
+if (!process.env.ATLAS_URI) {
+    console.error('Error: ATLAS_URI is not defined in config.env');
+    process.exit(1);
+}
+
+const client = new MongoClient(process.env.ATLAS_URI);
 let db;
 
 async function connectToMongo() {
     try {
         await client.connect();
         console.log('Connected to MongoDB Atlas');
-        db = client.db('grindzone'); // Ім’я твоєї бази
+        db = client.db('grindzone'); // Your database name
     } catch (error) {
         console.error('MongoDB connection error:', error);
         process.exit(1);
@@ -29,7 +35,6 @@ async function connectToMongo() {
 
 connectToMongo();
 
-// API-ендпоінт для реєстрації
 app.post('/signup', async (req, res) => {
     try {
         const { name, email, password, allowExtraEmails } = req.body;
@@ -50,7 +55,7 @@ app.post('/signup', async (req, res) => {
             email,
             password: hashedPassword,
             allowExtraEmails: allowExtraEmails || false,
-            collection: [], // Порожня колекція
+            collection: [],
             createdAt: new Date(),
         };
 
@@ -62,12 +67,10 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-// Запуск сервера
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
 
-// Обробка завершення роботи
 process.on('SIGTERM', async () => {
     console.log('Shutting down server...');
     await client.close();

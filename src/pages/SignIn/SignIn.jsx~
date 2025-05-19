@@ -136,7 +136,7 @@ export default function SignIn(props) {
         <SignInContainer direction="column" justifyContent="center">
           <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
           {/* alignItems: 'flex-start' для картки, щоб контент починався зліва */}
-          <Card variant="outlined" sx={{ alignItems: 'flex-' }}>
+          <Card variant="outlined" sx={{ alignItems: 'center' }}>
             <Typography
                 variant="h5" // Зменшено розмір (було h4)
                 component="div"

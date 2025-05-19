@@ -15,7 +15,9 @@ import MuiCard from '@mui/material/Card';
 import { styled, useTheme, alpha } from '@mui/material/styles'; // Додано alpha, якщо потрібно
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
-import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx'; // SitemarkIcon видалено
+import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx';
+import { useState } from 'react';
+import { useEffect } from 'react';
 
 const StyledLink = styled(RouterLink)(({ theme }) => ({ // Змінено Link на RouterLink
   color: theme.palette.primary.main,
@@ -52,13 +54,13 @@ const Card = styled(MuiCard)(({ theme }) => ({
   flexDirection: 'column',
   alignSelf: 'center',
   width: '100%',
-  padding: theme.spacing(3), // Зменшено загальний padding картки
-  gap: theme.spacing(1.5),   // Зменшено проміжки між елементами в картці
+  padding: theme.spacing(3),
+  gap: theme.spacing(1.5),
   margin: 'auto',
-  boxShadow: // Залишаємо ваші оригінальні тіні
+  boxShadow:
       'hsla(220, 30%, 5%, 0.05) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.05) 0px 15px 35px -5px',
   [theme.breakpoints.up('sm')]: {
-    width: '450px', // Залишено, можна змінити на maxWidth, якщо потрібно
+    width: '450px',
     padding: theme.spacing(3),
   },
   ...theme.applyStyles('dark', {
@@ -68,13 +70,12 @@ const Card = styled(MuiCard)(({ theme }) => ({
 }));
 
 const SignUpContainer = styled(Stack)(({ theme }) => ({
-  height: 'calc((1 - var(--template-frame-height, 0)) * 100dvh)',
-  minHeight: '100%',
+  position: 'relative',
+  minHeight: 'calc((1 - var(--template-frame-height, 0)) * 100dvh)',
   padding: theme.spacing(2),
   [theme.breakpoints.up('sm')]: {
     padding: theme.spacing(4),
   },
-  // Залишаємо ваші оригінальні фони
   '&::before': {
     content: '""',
     display: 'block',
@@ -92,6 +93,7 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
 }));
 
 export default function SignUp(props) {
+  const [submitError, setSubmitError] = useState(null);
   const theme = useTheme(); // Додано для доступу до теми
   const [emailError, setEmailError] = React.useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
@@ -99,6 +101,15 @@ export default function SignUp(props) {
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('');
   const [nameError, setNameError] = React.useState(false);
   const [nameErrorMessage, setNameErrorMessage] = React.useState('');
+
+  useEffect(() => {
+    window.gapi.load('auth2', () => {
+      window.gapi.auth2.init({
+        client_id: '1003673495994-bnvt6eep44n2pruvabp7fmm7s02gu5o5.apps.googleusercontent.com',
+        scope: 'email profile',
+      });
+    });
+  }, []);
 
   const validateInputs = () => {
     const emailInput = document.getElementById('email');
@@ -137,53 +148,103 @@ export default function SignUp(props) {
     return isValid;
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault(); // Завжди запобігаємо стандартній відправці
-    if (!validateInputs()) { // Викликаємо валідацію перед відправкою
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!validateInputs()) {
       return;
     }
-    // if (nameError || emailError || passwordError) { // Ця перевірка тепер всередині validateInputs
-    //   event.preventDefault();
-    //   return;
-    // }
+
     const data = new FormData(event.currentTarget);
-    console.log({
+    const userData = {
       name: data.get('name'),
-      // lastName: data.get('lastName'), // Поле lastName відсутнє у формі
       email: data.get('email'),
       password: data.get('password'),
-    });
+      allowExtraEmails: data.get('allowExtraEmails') === 'on',
+    };
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Помилка при реєстрації');
+      }
+
+      const result = await response.json();
+      console.log('Користувач зареєстрований:', result);
+      window.location.href = '/signin';
+    } catch (error) {
+      setSubmitError(error.message);
+      console.error('Помилка:', error);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    const auth2 = window.gapi.auth2.getAuth2Instance();
+    try {
+      const googleUser = await auth2.signIn();
+      const profile = googleUser.getBasicProfile();
+      const idToken = googleUser.getAuthResponse().id_token;
+
+      const userData = {
+        name: profile.getName(),
+        email: profile.getEmail(),
+        googleId: profile.getId(),
+        idToken: idToken,
+      };
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/signup/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Помилка при реєстрації через Google');
+      }
+
+      const result = await response.json();
+      console.log('Користувач зареєстрований через Google:', result);
+      window.location.href = '/signin';
+    } catch (error) {
+      setSubmitError(error.message);
+      console.error('Помилка Google Sign-In:', error);
+    }
   };
 
   return (
       <AppTheme {...props}>
         <CssBaseline enableColorScheme />
-        <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
-        <SignUpContainer direction="column" justifyContent="center"> {/* Змінено justifyContent */}
-          {/* alignItems: 'flex-start' для картки, щоб контент починався зліва */}
+        <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1 }} />
+        <SignUpContainer direction="column" justifyContent="center">
           <Card variant="outlined" sx={{ alignItems: 'center' }}>
-            {/* <SitemarkIcon /> Замінено на Typography */}
             <Typography
-                variant="h5" // Зменшено розмір
+                variant="h5"
                 component="div"
                 sx={{
                   fontWeight: 700,
-                  letterSpacing: '.15rem', // Зменшено letterSpacing
+                  letterSpacing: '.15rem',
                   color: theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.main,
                   textDecoration: 'none',
-                  mb: 1, // Зменшено відступ знизу
+                  mb: 1,
                 }}
             >
               GRINDZONE
             </Typography>
             <Typography
-                component="h1" // Головний заголовок сторінки
+                component="h1"
                 variant="h4"
                 sx={{
                   width: '100%',
-                  fontSize: 'clamp(1.8rem, 8vw, 2rem)', // Трохи зменшено
-                  // textAlign: 'left', // Якщо потрібно
-                  mb: 2, // Відступ перед формою
+                  fontSize: 'clamp(1.8rem, 8vw, 2rem)',
+                  mb: 2,
                 }}
             >
               Реєстрація
@@ -191,12 +252,12 @@ export default function SignUp(props) {
             <Box
                 component="form"
                 onSubmit={handleSubmit}
-                noValidate // Додав noValidate, оскільки валідація кастомна
+                noValidate
                 sx={{
                   display: 'flex',
                   flexDirection: 'column',
                   width: '100%',
-                  gap: 1.5, // Зменшено проміжки у формі
+                  gap: 1.5,
                 }}
             >
               <FormControl>
@@ -211,7 +272,7 @@ export default function SignUp(props) {
                     error={nameError}
                     helperText={nameErrorMessage}
                     color={nameError ? 'error' : 'primary'}
-                    size="small" // Зменшує висоту поля
+                    size="small"
                 />
               </FormControl>
               <FormControl>
@@ -226,7 +287,7 @@ export default function SignUp(props) {
                     variant="outlined"
                     error={emailError}
                     helperText={emailErrorMessage}
-                    color={emailError ? 'error' : 'primary'} // Змінено з passwordError на emailError
+                    color={emailError ? 'error' : 'primary'}
                     size="small"
                 />
               </FormControl>
@@ -248,28 +309,35 @@ export default function SignUp(props) {
                 />
               </FormControl>
               <FormControlLabel
-                  control={<Checkbox value="allowExtraEmails" color="primary" size="small"/>} // Зменшено розмір чекбоксу
+                  control={<Checkbox value="allowExtraEmails" color="primary" size="small" />}
                   label="Я хочу отримувати оновлення електронною поштою."
               />
+              {submitError && (
+                  <Typography
+                      variant="body2"
+                      sx={{ color: 'error.main', textAlign: 'center', mt: 1 }}
+                  >
+                    {submitError}
+                  </Typography>
+              )}
               <Button
                   type="submit"
                   fullWidth
                   variant="contained"
-                  color="primary" // Використовує колір з теми
-                  //   onClick={validateInputs} // Тепер викликається з handleSubmit
-                  sx={{ mt: 1, py: 1.2 }} // Зменшив вертикальний padding
+                  color="primary"
+                  sx={{ mt: 1, py: 1.2 }}
               >
                 Зареєструватися
               </Button>
             </Box>
-            <Divider sx={{width: '100%', my: 1.5}}> {/* Розширив Divider */}
+            <Divider sx={{ width: '100%', my: 1.5 }}>
               <Typography sx={{ color: 'text.secondary' }}>або</Typography>
             </Divider>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, width: '100%' }}> {/* width: 100% */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, width: '100%' }}>
               <Button
                   fullWidth
                   variant="outlined"
-                  color="primary" // Використовує колір з теми
+                  color="primary"
                   onClick={() => alert('Реєстрація через Google')}
                   startIcon={<GoogleIcon />}
               >
@@ -278,13 +346,13 @@ export default function SignUp(props) {
               <Button
                   fullWidth
                   variant="outlined"
-                  color="primary" // Використовує колір з теми
+                  color="primary"
                   onClick={() => alert('Незабаром')}
                   startIcon={<FacebookIcon />}
               >
                 Реєстрація через Facebook
               </Button>
-              <Typography sx={{ textAlign: 'center', pt: 1 }}> {/* Додав невеликий відступ */}
+              <Typography sx={{ textAlign: 'center', pt: 1 }}>
                 Вже маєте обліковий запис?{' '}
                 <StyledLink to="/signin">
                   Увійти
