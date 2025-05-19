@@ -10,8 +10,23 @@ dotenv.config({ path: './server/config.env' });
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+const clientGoogle = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+app.use(cors({
+    origin: ['http://localhost:5173', 'https://your-app.netlify.app'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true,
+}));
+
 app.use(express.json());
+
+app.options('*', cors({
+    origin: ['http://localhost:5173', 'https://your-app.netlify.app'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true,
+}));
 
 if (!process.env.ATLAS_URI) {
     console.error('Error: ATLAS_URI is not defined in config.env');
@@ -25,7 +40,7 @@ async function connectToMongo() {
     try {
         await client.connect();
         console.log('Connected to MongoDB Atlas');
-        db = client.db('grindzone'); // Your database name
+        db = client.db('grindzone');
     } catch (error) {
         console.error('MongoDB connection error:', error);
         process.exit(1);

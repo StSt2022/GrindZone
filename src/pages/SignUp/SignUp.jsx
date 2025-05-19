@@ -16,7 +16,8 @@ import { styled, useTheme, alpha } from '@mui/material/styles';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
 import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx';
-import { useState, useEffect } from 'react';
+import { useState /*, useEffect */ } from 'react'; // Закоментували useEffect, якщо він був тільки для Google
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const StyledLink = styled(RouterLink)(({ theme }) => ({
   color: theme.palette.primary.main,
@@ -101,59 +102,6 @@ export default function SignUp(props) {
   const [nameError, setNameError] = React.useState(false);
   const [nameErrorMessage, setNameErrorMessage] = React.useState('');
 
-  useEffect(() => {
-    if (window.google) {
-      try {
-        window.google.accounts.id.initialize({
-          client_id: '1003673495994-bnvt6eep44n2pruvabp7fmm7s02gu5o5.apps.googleusercontent.com',
-          callback: async (response) => {
-            try {
-              const userResponse = await fetch(
-                  'https://oauth2.googleapis.com/tokeninfo?id_token=' + response.credential
-              );
-              const userDataFromGoogle = await userResponse.json();
-
-              if (!userResponse.ok) {
-                throw new Error('Помилка верифікації токена Google');
-              }
-
-              const userData = {
-                name: userDataFromGoogle.name,
-                email: userDataFromGoogle.email,
-                googleId: userDataFromGoogle.sub,
-                idToken: response.credential,
-              };
-
-              const signupResponse = await fetch(`${import.meta.env.VITE_API_URL}/signup/google`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userData),
-              });
-
-              if (!signupResponse.ok) {
-                const errorData = await signupResponse.json();
-                throw new Error(errorData.message || 'Помилка при реєстрації через Google');
-              }
-
-              const result = await signupResponse.json();
-              console.log('Користувач зареєстрований через Google:', result);
-              window.location.href = '/signin';
-            } catch (error) {
-              setSubmitError(error.message);
-              console.error('Помилка обробки Google Sign-In:', error);
-            }
-          },
-        });
-        console.log('Google Identity Services initialized');
-      } catch (error) {
-        console.error('Error initializing Google Identity Services:', error);
-        setSubmitError('Помилка ініціалізації Google Sign-In.');
-      }
-    } else {
-      setSubmitError('Google API не завантажено.');
-    }
-  }, []);
-
   const validateInputs = () => {
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
@@ -193,6 +141,7 @@ export default function SignUp(props) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setSubmitError(null); // Скидаємо попередню помилку
     if (!validateInputs()) {
       return;
     }
@@ -221,25 +170,73 @@ export default function SignUp(props) {
 
       const result = await response.json();
       console.log('Користувач зареєстрований:', result);
-      window.location.href = '/signin';
+      window.location.href = '/signin'; // Або краще використовувати useNavigate з react-router-dom
     } catch (error) {
       setSubmitError(error.message);
       console.error('Помилка:', error);
     }
   };
 
-  const handleGoogleSignIn = () => {
-    if (window.google) {
-      try {
-        window.google.accounts.id.prompt();
-      } catch (error) {
-        console.error('Error prompting Google Sign-In:', error);
-        setSubmitError('Помилка запуску Google Sign-In.');
+  const handleGoogleSignIn = async () => {
+    setSubmitError(null); // Скидаємо попередню помилку
+    try {
+      if (!navigator.credentials || !navigator.credentials.get) {
+        setSubmitError("FedCM не підтримується цим браузером або контекстом.");
+        console.error("FedCM API is not available.");
+        return;
       }
-    } else {
-      setSubmitError('Google Sign-In API не доступне.');
+
+      console.log("Attempting FedCM get with Google");
+      const credential = await navigator.credentials.get({
+        fed: {
+          providers: [{
+            configURL: "https://accounts.google.com/gsi/fedcm.json",
+            clientId: GOOGLE_CLIENT_ID, // Використовуємо змінну
+            // nonce: "YOUR_NONCE_STRING" // Додайте, якщо використовуєте nonce на бекенді
+          }]
+        }
+      });
+
+      console.log("FedCM credential received:", credential);
+
+      if (credential && credential.token) {
+        // Відправляємо токен на бекенд для верифікації
+        const signupResponse = await fetch(`${import.meta.env.VITE_API_URL}/auth/google/fedcm`, { // Новий ендпоінт
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: credential.token }), // Надсилаємо токен
+        });
+
+        if (!signupResponse.ok) {
+          const errorData = await signupResponse.json();
+          throw new Error(errorData.message || 'Помилка при реєстрації через Google');
+        }
+
+        const result = await signupResponse.json();
+        console.log('Користувач зареєстрований/увійшов через Google FedCM:', result);
+        window.location.href = '/'; // Або на сторінку профілю, або кудись після успішного входу
+        // Якщо це сторінка реєстрації, і користувач вже існував, можна перенаправити на /signin
+        // або просто виконати вхід і перенаправити на головну.
+      } else {
+        setSubmitError("Не вдалося отримати токен від Google через FedCM.");
+      }
+    } catch (error) {
+      // Поширені помилки FedCM:
+      // AbortError: користувач закрив діалог або інша відміна
+      // TypeError: неправильна конфігурація
+      // DOMException (NotFoundError, NotAllowedError, etc.)
+      console.error("Помилка FedCM Google Sign-In:", error);
+      if (error.name === 'AbortError') {
+        setSubmitError("Вхід через Google було скасовано.");
+      } else if (error.message.includes("The request is not allowed by the user agent")) {
+        setSubmitError("Запит на вхід через Google заблоковано. Перевірте налаштування браузера (наприклад, сторонні куки).");
+      }
+      else {
+        setSubmitError(error.message || "Невідома помилка під час входу через Google.");
+      }
     }
   };
+
 
   return (
       <AppTheme {...props}>
@@ -282,6 +279,7 @@ export default function SignUp(props) {
                   gap: 1.5,
                 }}
             >
+              {/* ... Ваші поля форми ... */}
               <FormControl>
                 <FormLabel htmlFor="name">Повне ім'я</FormLabel>
                 <TextField
@@ -360,7 +358,7 @@ export default function SignUp(props) {
                   fullWidth
                   variant="outlined"
                   color="primary"
-                  onClick={handleGoogleSignIn}
+                  onClick={handleGoogleSignIn} // <--- Викликаємо нову функцію
                   startIcon={<GoogleIcon />}
               >
                 Реєстрація через Google
