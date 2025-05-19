@@ -103,12 +103,27 @@ export default function SignUp(props) {
   const [nameErrorMessage, setNameErrorMessage] = React.useState('');
 
   useEffect(() => {
-    window.gapi.load('auth2', () => {
-      window.gapi.auth2.init({
-        client_id: '1003673495994-bnvt6eep44n2pruvabp7fmm7s02gu5o5.apps.googleusercontent.com',
-        scope: 'email profile',
+    const loadGapi = () => {
+      if (!window.gapi) {
+        setSubmitError('Google API не завантажено. Перевірте підключення до мережі.');
+        return;
+      }
+      window.gapi.load('auth2', () => {
+        window.gapi.auth2
+            .init({
+              client_id: '1003673495994-bnvt6eep44n2pruvabp7fmm7s02gu5o5.apps.googleusercontent.com',
+              scope: 'email profile',
+            })
+            .then(() => {
+              console.log('Google Auth2 initialized successfully');
+            })
+            .catch((err) => {
+              console.error('Error initializing Google Auth2:', err);
+              setSubmitError('Помилка ініціалізації Google Sign-In. Спробуйте ще раз.');
+            });
       });
-    });
+    };
+    loadGapi();
   }, []);
 
   const validateInputs = () => {
@@ -186,33 +201,42 @@ export default function SignUp(props) {
   };
 
   const handleGoogleSignIn = async () => {
-    const auth2 = window.gapi.auth2.getAuth2Instance();
+    if (!window.gapi || !window.gapi.auth2) {
+      setSubmitError('Google Sign-In API не ініціалізовано. Спробуйте перезавантажити сторінку.');
+      return;
+    }
+
     try {
-      const googleUser = await auth2.signIn();
-      const profile = googleUser.getBasicProfile();
-      const idToken = googleUser.getAuthResponse().id_token;
+      const auth2 = window.gapi.auth2.getAuth2Instance();
+      if (!auth2.isSignedIn.get()) {
+        const googleUser = await auth2.signIn();
+        const profile = googleUser.getBasicProfile();
+        const idToken = googleUser.getAuthResponse().id_token;
 
-      const userData = {
-        name: profile.getName(),
-        email: profile.getEmail(),
-        googleId: profile.getId(),
-        idToken: idToken,
-      };
+        const userData = {
+          name: profile.getName(),
+          email: profile.getEmail(),
+          googleId: profile.getId(),
+          idToken: idToken,
+        };
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/signup/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
-      });
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/signup/google`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Помилка при реєстрації через Google');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Помилка при реєстрації через Google');
+        }
+
+        const result = await response.json();
+        console.log('Користувач зареєстрований через Google:', result);
+        window.location.href = '/signin';
+      } else {
+        setSubmitError('Ви вже ввійшли через Google.');
       }
-
-      const result = await response.json();
-      console.log('Користувач зареєстрований через Google:', result);
-      window.location.href = '/signin';
     } catch (error) {
       setSubmitError(error.message);
       console.error('Помилка Google Sign-In:', error);
@@ -338,7 +362,7 @@ export default function SignUp(props) {
                   fullWidth
                   variant="outlined"
                   color="primary"
-                  onClick={() => alert('Реєстрація через Google')}
+                  onClick={handleGoogleSignIn}
                   startIcon={<GoogleIcon />}
               >
                 Реєстрація через Google

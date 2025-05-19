@@ -7,19 +7,18 @@ import Divider from '@mui/material/Divider';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormLabel from '@mui/material/FormLabel';
 import FormControl from '@mui/material/FormControl';
-import { Link as RouterLink } from 'react-router-dom'; // Перейменовано
+import { Link as RouterLink } from 'react-router-dom';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import MuiCard from '@mui/material/Card';
-import { styled, useTheme, alpha } from '@mui/material/styles'; // Додано alpha, якщо потрібно
+import { styled, useTheme, alpha } from '@mui/material/styles';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
 import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx';
-import { useState } from 'react';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
-const StyledLink = styled(RouterLink)(({ theme }) => ({ // Змінено Link на RouterLink
+const StyledLink = styled(RouterLink)(({ theme }) => ({
   color: theme.palette.primary.main,
   fontWeight: 500,
   position: 'relative',
@@ -39,7 +38,7 @@ const StyledLink = styled(RouterLink)(({ theme }) => ({ // Змінено Link �
     transition: 'width 0.3s ease',
   },
   '&:hover': {
-    backgroundColor: alpha(theme.palette.primary.main, 0.1), // Використовуємо alpha
+    backgroundColor: alpha(theme.palette.primary.main, 0.1),
     '&::after': {
       width: '80%',
     },
@@ -94,7 +93,7 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
 
 export default function SignUp(props) {
   const [submitError, setSubmitError] = useState(null);
-  const theme = useTheme(); // Додано для доступу до теми
+  const theme = useTheme();
   const [emailError, setEmailError] = React.useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
   const [passwordError, setPasswordError] = React.useState(false);
@@ -103,18 +102,62 @@ export default function SignUp(props) {
   const [nameErrorMessage, setNameErrorMessage] = React.useState('');
 
   useEffect(() => {
-    window.gapi.load('auth2', () => {
-      window.gapi.auth2.init({
-        client_id: '1003673495994-bnvt6eep44n2pruvabp7fmm7s02gu5o5.apps.googleusercontent.com',
-        scope: 'email profile',
-      });
-    });
+    if (window.google) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: '1003673495994-bnvt6eep44n2pruvabp7fmm7s02gu5o5.apps.googleusercontent.com',
+          callback: async (response) => {
+            try {
+              const userResponse = await fetch(
+                  'https://oauth2.googleapis.com/tokeninfo?id_token=' + response.credential
+              );
+              const userDataFromGoogle = await userResponse.json();
+
+              if (!userResponse.ok) {
+                throw new Error('Помилка верифікації токена Google');
+              }
+
+              const userData = {
+                name: userDataFromGoogle.name,
+                email: userDataFromGoogle.email,
+                googleId: userDataFromGoogle.sub,
+                idToken: response.credential,
+              };
+
+              const signupResponse = await fetch(`${import.meta.env.VITE_API_URL}/signup/google`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData),
+              });
+
+              if (!signupResponse.ok) {
+                const errorData = await signupResponse.json();
+                throw new Error(errorData.message || 'Помилка при реєстрації через Google');
+              }
+
+              const result = await signupResponse.json();
+              console.log('Користувач зареєстрований через Google:', result);
+              window.location.href = '/signin';
+            } catch (error) {
+              setSubmitError(error.message);
+              console.error('Помилка обробки Google Sign-In:', error);
+            }
+          },
+        });
+        console.log('Google Identity Services initialized');
+      } catch (error) {
+        console.error('Error initializing Google Identity Services:', error);
+        setSubmitError('Помилка ініціалізації Google Sign-In.');
+      }
+    } else {
+      setSubmitError('Google API не завантажено.');
+    }
   }, []);
 
   const validateInputs = () => {
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
-    const nameInput = document.getElementById('name'); // Змінив ім'я змінної
+    const nameInput = document.getElementById('name');
 
     let isValid = true;
 
@@ -138,7 +181,7 @@ export default function SignUp(props) {
 
     if (!nameInput.value || nameInput.value.length < 1) {
       setNameError(true);
-      setNameErrorMessage("Ім'я обов'язкове."); // Прибрав апостроф, що міг викликати помилку
+      setNameErrorMessage('Ім\'я обов\'язкове.');
       isValid = false;
     } else {
       setNameError(false);
@@ -185,37 +228,16 @@ export default function SignUp(props) {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    const auth2 = window.gapi.auth2.getAuth2Instance();
-    try {
-      const googleUser = await auth2.signIn();
-      const profile = googleUser.getBasicProfile();
-      const idToken = googleUser.getAuthResponse().id_token;
-
-      const userData = {
-        name: profile.getName(),
-        email: profile.getEmail(),
-        googleId: profile.getId(),
-        idToken: idToken,
-      };
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/signup/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Помилка при реєстрації через Google');
+  const handleGoogleSignIn = () => {
+    if (window.google) {
+      try {
+        window.google.accounts.id.prompt();
+      } catch (error) {
+        console.error('Error prompting Google Sign-In:', error);
+        setSubmitError('Помилка запуску Google Sign-In.');
       }
-
-      const result = await response.json();
-      console.log('Користувач зареєстрований через Google:', result);
-      window.location.href = '/signin';
-    } catch (error) {
-      setSubmitError(error.message);
-      console.error('Помилка Google Sign-In:', error);
+    } else {
+      setSubmitError('Google Sign-In API не доступне.');
     }
   };
 

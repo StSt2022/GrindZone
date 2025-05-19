@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { OAuth2Client } = require('google-auth-library');
-const clientGoogle = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 dotenv.config({ path: './server/config.env' });
 
@@ -64,6 +63,46 @@ app.post('/signup', async (req, res) => {
     } catch (error) {
         console.error('Error during signup:', error);
         res.status(500).json({ message: 'Помилка сервера' });
+    }
+});
+
+app.post('/signup/google', async (req, res) => {
+    try {
+        const { name, email, googleId, idToken } = req.body;
+
+        if (!name || !email || !googleId || !idToken) {
+            return res.status(400).json({ message: 'Усі поля від Google є обов’язковими' });
+        }
+
+        const ticket = await clientGoogle.verifyIdToken({
+            idToken: idToken,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        if (payload['sub'] !== googleId) {
+            return res.status(401).json({ message: 'Невірний Google ID' });
+        }
+
+        const usersCollection = db.collection('users');
+        const existingUser = await usersCollection.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Користувач із такою поштою вже існує' });
+        }
+
+        const newUser = {
+            name,
+            email,
+            googleId,
+            allowExtraEmails: false,
+            collection: [],
+            createdAt: new Date(),
+        };
+
+        const result = await usersCollection.insertOne(newUser);
+        res.status(201).json({ message: 'Користувач успішно створений через Google', userId: result.insertedId });
+    } catch (error) {
+        console.error('Error during Google signup:', error);
+        res.status(500).json({ message: 'Помилка сервера при реєстрації через Google' });
     }
 });
 
