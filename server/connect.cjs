@@ -5,46 +5,34 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const { OAuth2Client } = require('google-auth-library');
 
-// Завантажуємо змінні середовища
-// Переконайтеся, що шлях до config.env правильний відносно місця запуску сервера
-dotenv.config({ path: './server/config.env' }); // Якщо server.js у корені, то шлях може бути './config.env'
+dotenv.config({ path: './server/config.env' });
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Ініціалізація Google OAuth2 клієнта
-// GOOGLE_CLIENT_ID має бути тим самим Web Client ID, який використовується на фронтенді
 if (!process.env.GOOGLE_CLIENT_ID) {
     console.error('Error: GOOGLE_CLIENT_ID is not defined in config.env');
-    // process.exit(1); // Можна розкоментувати, якщо це критично для запуску
 }
 const clientGoogle = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// Налаштування CORS
-// Замініть 'https://your-app.netlify.app' на реальну URL вашого фронтенду
-// та 'http://localhost:5173' на ваш локальний порт розробки фронтенду.
 const allowedOrigins = [
-    'http://localhost:5173', // Для локальної розробки
-    'https://your-app.netlify.app', // Для продакшену на Netlify
-    // Додайте інші домени, якщо потрібно
+    'http://localhost:5173',
+    'https://your-app.netlify.app' // Видалена зайва кома
 ];
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Дозволити запити без origin (наприклад, curl, Postman) або якщо origin є в списку
         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
         }
     },
-    methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'], // Додайте методи, які використовуєте
-    allowedHeaders: ['Content-Type', 'Authorization'],    // Додайте заголовки, які використовуєте
-    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
 }));
 
-// Middleware для обробки pre-flight OPTIONS запитів
-// Важливо для "непростих" запитів (наприклад, POST з Content-Type: application/json)
 app.options('*', cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
@@ -55,20 +43,16 @@ app.options('*', cors({
     },
     methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
+    credentials: true
 }));
 
-
-// Middleware для парсингу JSON тіла запитів
 app.use(express.json());
 
-// Перевірка ATLAS_URI
 if (!process.env.ATLAS_URI) {
     console.error('Error: ATLAS_URI is not defined in config.env');
     process.exit(1);
 }
 
-// Підключення до MongoDB
 const clientMongo = new MongoClient(process.env.ATLAS_URI);
 let db;
 
@@ -76,7 +60,7 @@ async function connectToMongo() {
     try {
         await clientMongo.connect();
         console.log('Connected to MongoDB Atlas');
-        db = clientMongo.db('grindzone'); // Вкажіть назву вашої БД
+        db = clientMongo.db('grindzone');
     } catch (error) {
         console.error('MongoDB connection error:', error);
         process.exit(1);
@@ -85,7 +69,6 @@ async function connectToMongo() {
 
 connectToMongo();
 
-// Ендпоінт для традиційної реєстрації (email/пароль)
 app.post('/signup', async (req, res) => {
     try {
         const { name, email, password, allowExtraEmails } = req.body;
@@ -93,7 +76,6 @@ app.post('/signup', async (req, res) => {
         if (!name || !email || !password) {
             return res.status(400).json({ message: 'Усі поля обов’язкові' });
         }
-        // Можна додати валідацію формату email та довжини пароля тут
 
         const usersCollection = db.collection('users');
         const existingUser = await usersCollection.findOne({ email });
@@ -105,15 +87,14 @@ app.post('/signup', async (req, res) => {
         const newUser = {
             name,
             email,
-            password: hashedPassword, // Зберігаємо хешований пароль
-            googleId: null, // Поле для Google ID, якщо користувач зареєструється пізніше через Google
+            password: hashedPassword,
+            googleId: null,
             allowExtraEmails: allowExtraEmails || false,
-            collection: [], // Переконайтеся, що це поле потрібне і має правильну структуру
-            createdAt: new Date(),
+            collection: [],
+            createdAt: new Date()
         };
 
         const result = await usersCollection.insertOne(newUser);
-        // Не повертаємо пароль у відповіді
         res.status(201).json({
             message: 'Користувач успішно створений',
             userId: result.insertedId,
@@ -126,7 +107,6 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-// Ендпоінт для обробки токена від Google FedCM (або Google Sign-In)
 app.post('/auth/google/fedcm', async (req, res) => {
     try {
         const { token } = req.body;
@@ -142,14 +122,13 @@ app.post('/auth/google/fedcm', async (req, res) => {
 
         const ticket = await clientGoogle.verifyIdToken({
             idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID,
+            audience: process.env.GOOGLE_CLIENT_ID
         });
         const payload = ticket.getPayload();
 
         const email = payload.email;
         const name = payload.name;
         const googleId = payload.sub;
-        // const emailVerified = payload.email_verified;
 
         if (!email) {
             return res.status(400).json({ message: 'Не вдалося отримати email від Google.' });
@@ -159,45 +138,36 @@ app.post('/auth/google/fedcm', async (req, res) => {
         let user = await usersCollection.findOne({ email });
 
         if (user) {
-            // Користувач вже існує
             if (!user.googleId) {
-                // Якщо користувач зареєструвався з email/паролем, а тепер через Google,
-                // пов'язуємо акаунт, додавши googleId.
-                // Можна також оновити ім'я, якщо воно з Google актуальніше.
                 await usersCollection.updateOne(
                     { email },
                     { $set: { googleId: googleId, name: user.name || name } }
                 );
-                user = await usersCollection.findOne({ email }); // Оновлюємо дані користувача
+                user = await usersCollection.findOne({ email });
             }
-            // TODO: Генерувати та надсилати JWT для сесії
             res.status(200).json({
                 message: 'Користувач успішно увійшов через Google',
                 userId: user._id,
                 email: user.email,
                 name: user.name
-                // jwtToken: "згенерований_токен"
             });
         } else {
-            // Новий користувач через Google
             const newUser = {
-                name: name || email.split('@')[0], // Якщо ім'я не прийшло, використовуємо частину email
+                name: name || email.split('@')[0],
                 email,
                 googleId,
-                password: null, // Пароль не потрібен для Google-акаунтів
-                allowExtraEmails: payload.email_verified || false, // Можна використовувати email_verified
+                password: null,
+                allowExtraEmails: payload.email_verified || false,
                 collection: [],
-                createdAt: new Date(),
+                createdAt: new Date()
             };
             const result = await usersCollection.insertOne(newUser);
-            const createdUser = await usersCollection.findOne({_id: result.insertedId});
-            // TODO: Генерувати та надсилати JWT для сесії
+            const createdUser = await usersCollection.findOne({ _id: result.insertedId });
             res.status(201).json({
                 message: 'Користувач успішно створений через Google',
                 userId: result.insertedId,
                 email: createdUser.email,
                 name: createdUser.name
-                // jwtToken: "згенерований_токен"
             });
         }
 
@@ -218,13 +188,11 @@ app.post('/auth/google/fedcm', async (req, res) => {
     }
 });
 
-// Запуск сервера
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
 
-// Обробка SIGTERM для коректного закриття з'єднання з БД (важливо для Render та інших платформ)
-process.on('SIGINT', async () => { // Також SIGINT для локальної зупинки Ctrl+C
+process.on('SIGINT', async () => {
     console.log('SIGINT received. Shutting down gracefully...');
     await clientMongo.close();
     console.log('MongoDB connection closed.');

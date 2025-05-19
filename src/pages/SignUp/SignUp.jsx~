@@ -17,6 +17,7 @@ import AppTheme from '../../shared-theme/AppTheme.jsx';
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
 import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx';
 import { useState /*, useEffect */ } from 'react'; // Закоментували useEffect, якщо він був тільки для Google
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const StyledLink = styled(RouterLink)(({ theme }) => ({
   color: theme.palette.primary.main,
