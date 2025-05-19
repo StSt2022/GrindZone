@@ -16,7 +16,8 @@ import { styled, useTheme, alpha } from '@mui/material/styles';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
 import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx';
-import { useState /*, useEffect */ } from 'react'; // Закоментували useEffect, якщо він був тільки для Google
+import { useState, useEffect } from 'react';
+
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const StyledLink = styled(RouterLink)(({ theme }) => ({
@@ -102,6 +103,55 @@ export default function SignUp(props) {
   const [nameError, setNameError] = React.useState(false);
   const [nameErrorMessage, setNameErrorMessage] = React.useState('');
 
+  useEffect(() => {
+    // Ініціалізація GIS як резервного методу
+    if (window.google) {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGISCallback,
+      });
+      console.log('Google Identity Services initialized');
+    }
+  }, []);
+
+  const handleGISCallback = async (response) => {
+    try {
+      const userResponse = await fetch(
+          'https://oauth2.googleapis.com/tokeninfo?id_token=' + response.credential
+      );
+      const userDataFromGoogle = await userResponse.json();
+
+      if (!userResponse.ok) {
+        throw new Error('Помилка верифікації токена Google');
+      }
+
+      const userData = {
+        name: userDataFromGoogle.name,
+        email: userDataFromGoogle.email,
+        googleId: userDataFromGoogle.sub,
+        idToken: response.credential,
+      };
+
+      const signupResponse = await fetch(`${import.meta.env.VITE_API_URL}/signup/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+      });
+
+      if (!signupResponse.ok) {
+        const errorData = await signupResponse.json();
+        throw new Error(errorData.message || 'Помилка при реєстрації через Google');
+      }
+
+      const result = await signupResponse.json();
+      console.log('Користувач зареєстрований через GIS:', result);
+      window.location.href = '/';
+    } catch (error) {
+      setSubmitError(error.message);
+      console.error('Помилка GIS:', error);
+    }
+  };
+
   const validateInputs = () => {
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
@@ -129,7 +179,7 @@ export default function SignUp(props) {
 
     if (!nameInput.value || nameInput.value.length < 1) {
       setNameError(true);
-      setNameErrorMessage('Ім\'я обов\'язкове.');
+      setNameErrorMessage("Ім'я обов'язкове.");
       isValid = false;
     } else {
       setNameError(false);
@@ -141,7 +191,7 @@ export default function SignUp(props) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setSubmitError(null); // Скидаємо попередню помилку
+    setSubmitError(null);
     if (!validateInputs()) {
       return;
     }
@@ -170,7 +220,7 @@ export default function SignUp(props) {
 
       const result = await response.json();
       console.log('Користувач зареєстрований:', result);
-      window.location.href = '/signin'; // Або краще використовувати useNavigate з react-router-dom
+      window.location.href = '/signin';
     } catch (error) {
       setSubmitError(error.message);
       console.error('Помилка:', error);
@@ -181,29 +231,29 @@ export default function SignUp(props) {
     setSubmitError(null);
     try {
       if (!navigator.credentials || !navigator.credentials.get) {
-        setSubmitError("FedCM не підтримується цим браузером або контекстом.");
-        console.error("FedCM API is not available.");
-        return;
+        console.log("FedCM API is not available, falling back to GIS");
+        return await fallbackToGIS();
       }
 
       console.log("Attempting FedCM get with Google");
       const credential = await navigator.credentials.get({
-        fed: {
-          providers: [{
-            configURL: "https://accounts.google.com/gsi/fedcm.json",
-            clientId: GOOGLE_CLIENT_ID,
-          }]
-        }
+        federated: {
+          providers: [
+            {
+              configURL: "https://accounts.google.com/gsi/fedcm.json",
+              clientId: GOOGLE_CLIENT_ID,
+            },
+          ],
+        },
       });
 
       console.log("FedCM credential received:", credential);
 
       if (credential && credential.token) {
-        // Відправляємо токен на бекенд для верифікації
-        const signupResponse = await fetch(`${import.meta.env.VITE_API_URL}/auth/google/fedcm`, { // Новий ендпоінт
+        const signupResponse = await fetch(`${import.meta.env.VITE_API_URL}/auth/google/fedcm`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: credential.token }), // Надсилаємо токен
+          body: JSON.stringify({ token: credential.token }),
         });
 
         if (!signupResponse.ok) {
@@ -213,29 +263,38 @@ export default function SignUp(props) {
 
         const result = await signupResponse.json();
         console.log('Користувач зареєстрований/увійшов через Google FedCM:', result);
-        window.location.href = '/'; // Або на сторінку профілю, або кудись після успішного входу
-        // Якщо це сторінка реєстрації, і користувач вже існував, можна перенаправити на /signin
-        // або просто виконати вхід і перенаправити на головну.
+        window.location.href = '/';
       } else {
-        setSubmitError("Не вдалося отримати токен від Google через FedCM.");
+        console.log("FedCM returned null, falling back to GIS");
+        await fallbackToGIS();
       }
     } catch (error) {
-      // Поширені помилки FedCM:
-      // AbortError: користувач закрив діалог або інша відміна
-      // TypeError: неправильна конфігурація
-      // DOMException (NotFoundError, NotAllowedError, etc.)
       console.error("Помилка FedCM Google Sign-In:", error);
       if (error.name === 'AbortError') {
         setSubmitError("Вхід через Google було скасовано.");
       } else if (error.message.includes("The request is not allowed by the user agent")) {
         setSubmitError("Запит на вхід через Google заблоковано. Перевірте налаштування браузера (наприклад, сторонні куки).");
-      }
-      else {
+      } else {
         setSubmitError(error.message || "Невідома помилка під час входу через Google.");
+        console.log("Falling back to GIS due to error");
+        await fallbackToGIS();
       }
     }
   };
 
+  const fallbackToGIS = async () => {
+    if (!window.google) {
+      setSubmitError("Google Identity Services не доступне. Перевірте підключення скрипта.");
+      return;
+    }
+
+    try {
+      window.google.accounts.id.prompt();
+    } catch (error) {
+      console.error('Помилка GIS fallback:', error);
+      setSubmitError('Не вдалося увійти через альтернативний метод: ' + error.message);
+    }
+  };
 
   return (
       <AppTheme {...props}>
@@ -278,7 +337,6 @@ export default function SignUp(props) {
                   gap: 1.5,
                 }}
             >
-              {/* ... Ваші поля форми ... */}
               <FormControl>
                 <FormLabel htmlFor="name">Повне ім'я</FormLabel>
                 <TextField
@@ -357,7 +415,7 @@ export default function SignUp(props) {
                   fullWidth
                   variant="outlined"
                   color="primary"
-                  onClick={handleGoogleSignIn} // <--- Викликаємо нову функцію
+                  onClick={handleGoogleSignIn}
                   startIcon={<GoogleIcon />}
               >
                 Реєстрація через Google
@@ -373,9 +431,7 @@ export default function SignUp(props) {
               </Button>
               <Typography sx={{ textAlign: 'center', pt: 1 }}>
                 Вже маєте обліковий запис?{' '}
-                <StyledLink to="/signin">
-                  Увійти
-                </StyledLink>
+                <StyledLink to="/signin">Увійти</StyledLink>
               </Typography>
             </Box>
           </Card>

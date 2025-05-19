@@ -178,7 +178,7 @@ export default function SignUp(props) {
   };
 
   const handleGoogleSignIn = async () => {
-    setSubmitError(null); // Скидаємо попередню помилку
+    setSubmitError(null);
     try {
       if (!navigator.credentials || !navigator.credentials.get) {
         setSubmitError("FedCM не підтримується цим браузером або контекстом.");
@@ -191,8 +191,7 @@ export default function SignUp(props) {
         fed: {
           providers: [{
             configURL: "https://accounts.google.com/gsi/fedcm.json",
-            clientId: GOOGLE_CLIENT_ID, // Використовуємо змінну
-            // nonce: "YOUR_NONCE_STRING" // Додайте, якщо використовуєте nonce на бекенді
+            clientId: GOOGLE_CLIENT_ID,
           }]
         }
       });

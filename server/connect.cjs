@@ -17,7 +17,7 @@ const clientGoogle = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const allowedOrigins = [
     'http://localhost:5173',
-    'https://your-app.netlify.app' // Видалена зайва кома
+    'https://your-app.netlify.app'
 ];
 
 app.use(cors({
@@ -107,6 +107,78 @@ app.post('/signup', async (req, res) => {
     }
 });
 
+// Новий ендпоінт для Google Sign-In (GIS)
+app.post('/signup/google', async (req, res) => {
+    try {
+        const { name, email, googleId, idToken } = req.body;
+
+        if (!name || !email || !googleId || !idToken) {
+            return res.status(400).json({ message: 'Усі поля від Google є обов’язковими' });
+        }
+
+        const ticket = await clientGoogle.verifyIdToken({
+            idToken: idToken,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+        const payload = ticket.getPayload();
+
+        if (payload['sub'] !== googleId) {
+            return res.status(401).json({ message: 'Невірний Google ID' });
+        }
+
+        const usersCollection = db.collection('users');
+        let user = await usersCollection.findOne({ email });
+
+        if (user) {
+            if (!user.googleId) {
+                await usersCollection.updateOne(
+                    { email },
+                    { $set: { googleId: googleId, name: user.name || name } }
+                );
+                user = await usersCollection.findOne({ email });
+            }
+            res.status(200).json({
+                message: 'Користувач успішно увійшов через Google',
+                userId: user._id,
+                email: user.email,
+                name: user.name
+            });
+        } else {
+            const newUser = {
+                name: name || email.split('@')[0],
+                email,
+                googleId,
+                password: null,
+                allowExtraEmails: payload.email_verified || false,
+                collection: [],
+                createdAt: new Date()
+            };
+            const result = await usersCollection.insertOne(newUser);
+            const createdUser = await usersCollection.findOne({ _id: result.insertedId });
+            res.status(201).json({
+                message: 'Користувач успішно створений через Google',
+                userId: result.insertedId,
+                email: createdUser.email,
+                name: createdUser.name
+            });
+        }
+    } catch (error) {
+        console.error('Error during Google signup:', error);
+        if (error.message) {
+            if (error.message.includes("Token used too late") ||
+                error.message.includes("Invalid ID token") ||
+                error.message.includes("Invalid token signature")) {
+                return res.status(401).json({ message: 'Недійсний або прострочений токен Google' });
+            }
+            if (error.message.includes("Wrong recipient") || error.message.includes("audience")) {
+                console.error("AUDIENCE MISMATCH: Ensure GOOGLE_CLIENT_ID on server matches the one used by the client for token generation.");
+                return res.status(401).json({ message: "Помилка конфігурації Google Client ID на сервері." });
+            }
+        }
+        res.status(500).json({ message: 'Помилка сервера при реєстрації через Google' });
+    }
+});
+
 app.post('/auth/google/fedcm', async (req, res) => {
     try {
         const { token } = req.body;
@@ -170,7 +242,6 @@ app.post('/auth/google/fedcm', async (req, res) => {
                 name: createdUser.name
             });
         }
-
     } catch (error) {
         console.error('Error during Google FedCM/Sign-In auth:', error);
         if (error.message) {
