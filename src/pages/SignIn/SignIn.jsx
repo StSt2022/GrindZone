@@ -16,9 +16,9 @@ import { styled, useTheme, alpha } from '@mui/material/styles';
 import ForgotPassword from './components/ForgotPassword.jsx';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
-import { FacebookIcon } from './components/CustomIcons.jsx';
-import {  useCallback } from 'react'; // Видалено useEffect
-import { GoogleLogin } from '@react-oauth/google'; // Додано імпорт
+import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx';
+import {  useCallback } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -225,7 +225,7 @@ export default function SignIn(props) {
                   onSuccess={(credentialResponse) => {
                     console.log("SignIn: GoogleLogin component success:", credentialResponse);
                     if (credentialResponse.credential) {
-                      sendIdTokenToBackend(credentialResponse.credential, "GoogleLogin Button/OneTap");
+                      sendIdTokenToBackend(credentialResponse.credential, "GoogleLogin Button");
                     } else {
                       setSubmitError("Не вдалося отримати ID токен від Google.");
                       console.error("SignIn: GoogleLogin - No credential.");
@@ -235,7 +235,7 @@ export default function SignIn(props) {
                     console.error('SignIn: GoogleLogin component error');
                     setSubmitError('Помилка входу через Google. Спробуйте ще раз або перевірте налаштування браузера.');
                   }}
-                  useOneTap={true}
+                  useOneTap={false}
                   text="signin_with"
                   shape="rectangular"
                   theme="outline"
