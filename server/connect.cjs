@@ -242,6 +242,42 @@ app.post('/auth/google/fedcm', async (req, res) => {
     }
 });
 
+app.post('/signin', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Електронна пошта і пароль обов’язкові' });
+        }
+
+        const usersCollection = db.collection('users');
+        const user = await usersCollection.findOne({ email });
+
+        if (!user) {
+            return res.status(401).json({ message: 'Користувач із такою поштою не існує' });
+        }
+
+        if (!user.password) {
+            return res.status(401).json({ message: 'Цей користувач зареєстрований через Google. Використовуйте вхід через Google.' });
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Неправильний пароль' });
+        }
+
+        res.status(200).json({
+            message: 'Успішний вхід',
+            userId: user._id,
+            name: user.name,
+            email: user.email,
+        });
+    } catch (error) {
+        console.error('Error during signin:', error);
+        res.status(500).json({ message: 'Помилка сервера під час входу' });
+    }
+});
+
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
