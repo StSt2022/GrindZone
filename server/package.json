@@ -4,7 +4,6 @@
   "main": "connect.cjs",
   "type": "commonjs",
   "scripts": {
-    "build": "react-scripts build",
     "start": "node connect.cjs"
   },
   "dependencies": {
