@@ -16,9 +16,8 @@ import { styled, useTheme, alpha } from '@mui/material/styles';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
 import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx';
-import { useState, useEffect } from 'react';
-
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+import { useState } from 'react';
+import { useGoogleLogin } from '@react-oauth/google';
 
 const StyledLink = styled(RouterLink)(({ theme }) => ({
   color: theme.palette.primary.main,
@@ -103,62 +102,62 @@ export default function SignUp(props) {
   const [nameError, setNameError] = React.useState(false);
   const [nameErrorMessage, setNameErrorMessage] = React.useState('');
 
-  useEffect(() => {
-    // Ініціалізація GIS як резервного методу
-    if (window.google) {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleGISCallback,
-      });
-      console.log('Google Identity Services initialized');
-    }
-  }, []);
-
-  const handleGISCallback = async (response) => {
+  const handleGoogleSignInSuccess = async (tokenResponse) => {
+    setSubmitError(null);
     try {
-      const userResponse = await fetch(
-          'https://oauth2.googleapis.com/tokeninfo?id_token=' + response.credential
-      );
-      const userDataFromGoogle = await userResponse.json();
-
-      if (!userResponse.ok) {
-        throw new Error('Помилка верифікації токена Google');
-      }
-
-      const userData = {
-        name: userDataFromGoogle.name,
-        email: userDataFromGoogle.email,
-        googleId: userDataFromGoogle.sub,
-        idToken: response.credential,
-      };
-
-      const signupResponse = await fetch(`${import.meta.env.VITE_API_URL}/signup/google`, {
+      const signupResponse = await fetch(`${import.meta.env.VITE_API_URL}/auth/google/fedcm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
+        body: JSON.stringify({ token: tokenResponse.access_token }), // Використовуємо access_token якщо flow: 'implicit', або id_token якщо по-іншому
+        // Для /auth/google/fedcm, ймовірно, потрібен id_token. Якщо useGoogleLogin повертає id_token, використовуйте його.
+        // Якщо `@react-oauth/google` повертає об'єкт credentialResponse з полем `credential` (id_token) для onSuccess, то:
+        // body: JSON.stringify({ token: tokenResponse.credential }),
       });
 
       if (!signupResponse.ok) {
         const errorData = await signupResponse.json();
-        throw new Error(errorData.message || 'Помилка при реєстрації через Google');
+        throw new Error(errorData.message || 'Помилка при реєстрації/вході через Google');
       }
 
       const result = await signupResponse.json();
-      console.log('Користувач зареєстрований через GIS:', result);
+      console.log('Користувач зареєстрований/увійшов через Google:', result);
       window.location.href = '/';
     } catch (error) {
       setSubmitError(error.message);
-      console.error('Помилка GIS:', error);
+      console.error('Помилка відправки токена на бекенд:', error);
     }
   };
+
+  const handleGoogleSignInError = (error) => {
+    console.error('Google Sign-In Failed:', error);
+    let errorMessage = "Не вдалося увійти через Google.";
+    if (error && error.type === 'popup_closed') {
+      errorMessage = "Вікно входу через Google було закрито.";
+    } else if (error && error.error === 'idpiframe_initialization_failed') {
+      errorMessage = "Помилка ініціалізації Google. Перевірте, чи не блокуються сторонні куки.";
+    }
+    setSubmitError(errorMessage);
+  };
+
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: handleGoogleSignInSuccess, // credentialResponse об'єкт, який містить id_token
+    onError: handleGoogleSignInError,
+    // Можливо, вам не потрібен `flow: 'implicit'`, якщо ви отримуєте id_token.
+    // Якщо вам потрібен auth code, тоді flow: 'auth-code' і інша логіка на бекенді.
+    // За замовчуванням, onSuccess повертає об'єкт, який містить id_token, який ви можете відправити на бекенд.
+    // Перевірте, що саме повертає onSuccess у вашому випадку.
+    // Якщо onSuccess повертає об'єкт `credentialResponse` з полем `credential` (це ID-токен),
+    // то в `handleGoogleSignInSuccess` потрібно буде використовувати `tokenResponse.credential`.
+    // Якщо ж `useGoogleLogin` з вашими налаштуваннями повертає access_token, а ваш бекенд очікує id_token, це буде проблема.
+    // Для ендпоінта /auth/google/fedcm, який очікує id_token, стандартний onSuccess від GoogleLogin компонента (не хука) працює добре.
+    // Для useGoogleLogin, переконайтеся, що ви отримуєте ID токен.
+  });
 
   const validateInputs = () => {
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const nameInput = document.getElementById('name');
-
     let isValid = true;
-
     if (!emailInput.value || !/\S+@\S+\.\S+/.test(emailInput.value)) {
       setEmailError(true);
       setEmailErrorMessage('Будь ласка, введіть дійсну електронну адресу.');
@@ -167,7 +166,6 @@ export default function SignUp(props) {
       setEmailError(false);
       setEmailErrorMessage('');
     }
-
     if (!passwordInput.value || passwordInput.value.length < 6) {
       setPasswordError(true);
       setPasswordErrorMessage('Пароль повинен містити щонайменше 6 символів.');
@@ -176,7 +174,6 @@ export default function SignUp(props) {
       setPasswordError(false);
       setPasswordErrorMessage('');
     }
-
     if (!nameInput.value || nameInput.value.length < 1) {
       setNameError(true);
       setNameErrorMessage("Ім'я обов'язкове.");
@@ -185,7 +182,6 @@ export default function SignUp(props) {
       setNameError(false);
       setNameErrorMessage('');
     }
-
     return isValid;
   };
 
@@ -195,7 +191,6 @@ export default function SignUp(props) {
     if (!validateInputs()) {
       return;
     }
-
     const data = new FormData(event.currentTarget);
     const userData = {
       name: data.get('name'),
@@ -203,96 +198,22 @@ export default function SignUp(props) {
       password: data.get('password'),
       allowExtraEmails: data.get('allowExtraEmails') === 'on',
     };
-
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/signup`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Помилка при реєстрації');
       }
-
       const result = await response.json();
       console.log('Користувач зареєстрований:', result);
       window.location.href = '/signin';
     } catch (error) {
       setSubmitError(error.message);
       console.error('Помилка:', error);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setSubmitError(null);
-    try {
-      if (!navigator.credentials || !navigator.credentials.get) {
-        console.log("FedCM API is not available, falling back to GIS");
-        return await fallbackToGIS();
-      }
-
-      console.log("Attempting FedCM get with Google");
-      const credential = await navigator.credentials.get({
-        federated: {
-          providers: [
-            {
-              configURL: "https://accounts.google.com/gsi/fedcm.json",
-              clientId: GOOGLE_CLIENT_ID,
-            },
-          ],
-        },
-      });
-
-      console.log("FedCM credential received:", credential);
-
-      if (credential && credential.token) {
-        const signupResponse = await fetch(`${import.meta.env.VITE_API_URL}/auth/google/fedcm`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: credential.token }),
-        });
-
-        if (!signupResponse.ok) {
-          const errorData = await signupResponse.json();
-          throw new Error(errorData.message || 'Помилка при реєстрації через Google');
-        }
-
-        const result = await signupResponse.json();
-        console.log('Користувач зареєстрований/увійшов через Google FedCM:', result);
-        window.location.href = '/';
-      } else {
-        console.log("FedCM returned null, falling back to GIS");
-        await fallbackToGIS();
-      }
-    } catch (error) {
-      console.error("Помилка FedCM Google Sign-In:", error);
-      if (error.name === 'AbortError') {
-        setSubmitError("Вхід через Google було скасовано.");
-      } else if (error.message.includes("The request is not allowed by the user agent")) {
-        setSubmitError("Запит на вхід через Google заблоковано. Перевірте налаштування браузера (наприклад, сторонні куки).");
-      } else {
-        setSubmitError(error.message || "Невідома помилка під час входу через Google.");
-        console.log("Falling back to GIS due to error");
-        await fallbackToGIS();
-      }
-    }
-  };
-
-  const fallbackToGIS = async () => {
-    if (!window.google) {
-      setSubmitError("Google Identity Services не доступне. Перевірте підключення скрипта.");
-      return;
-    }
-
-    try {
-      window.google.accounts.id.prompt();
-    } catch (error) {
-      console.error('Помилка GIS fallback:', error);
-      setSubmitError('Не вдалося увійти через альтернативний метод: ' + error.message);
     }
   };
 
@@ -415,7 +336,7 @@ export default function SignUp(props) {
                   fullWidth
                   variant="outlined"
                   color="primary"
-                  onClick={handleGoogleSignIn}
+                  onClick={() => loginWithGoogle()}
                   startIcon={<GoogleIcon />}
               >
                 Реєстрація через Google

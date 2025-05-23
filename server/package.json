@@ -4,7 +4,6 @@
   "main": "connect.cjs",
   "type": "commonjs",
   "scripts": {
-    "build": "vite build",
     "start": "node connect.cjs"
   },
   "dependencies": {

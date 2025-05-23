@@ -6,7 +6,7 @@ const dotenv = require('dotenv');
 const { OAuth2Client } = require('google-auth-library');
 const path = require('path'); // Додаємо path
 
-dotenv.config({ path: './server/config.env' });
+dotenv.config({ path: path.join(__dirname, 'config.env') });
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -18,7 +18,7 @@ const clientGoogle = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const allowedOrigins = [
     'http://localhost:5173',
-    'https://your-app.netlify.app', // Замініть на ваш продакшен URL
+    'https://grindzone.onrender.com'
 ];
 
 app.use(

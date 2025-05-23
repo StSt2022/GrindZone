@@ -318,14 +318,6 @@ export default function SignIn(props) {
             >
               Вхід
             </Typography>
-            {submitError && (
-                <Typography
-                    variant="body2"
-                    sx={{ color: 'error.main', textAlign: 'center', mt: 1 }}
-                >
-                  {submitError}
-                </Typography>
-            )}
             <Box
                 component="form"
                 onSubmit={handleSubmit}
@@ -379,6 +371,23 @@ export default function SignIn(props) {
                   control={<Checkbox value="remember" color="primary" size="small" />}
                   label="Запам'ятати мене"
               />
+              {submitError && (
+                  <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'error.main',
+                        textAlign: 'center',
+                        bgcolor: theme => alpha(theme.palette.error.main, 0.1),
+                        p: 1.5,
+                        borderRadius: 1,
+                        border: theme => `1px solid ${theme.palette.error.main}20`,
+                        mb: 1.5,
+                        mt: 1
+                      }}
+                  >
+                    {submitError}
+                  </Typography>
+              )}
               <ForgotPassword open={open} handleClose={handleClose} />
               <Button
                   type="submit"
