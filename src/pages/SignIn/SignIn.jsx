@@ -16,8 +16,8 @@ import { styled, useTheme, alpha } from '@mui/material/styles';
 import ForgotPassword from './components/ForgotPassword.jsx';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
-import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx';
-import { useCallback } from 'react';
+import { FacebookIcon } from './components/CustomIcons.jsx';
+import {  useCallback } from 'react'; // Видалено useEffect
 import { GoogleLogin } from '@react-oauth/google'; // Додано імпорт
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -221,34 +221,28 @@ export default function SignIn(props) {
             </Box>
             <Divider sx={{ width: '100%', my: 1.5 }}>або</Divider>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, width: '100%' }}>
-              <Box sx={{ width: '100%' }}>
-                <GoogleLogin
-                    onSuccess={(credentialResponse) => {
-                      if (credentialResponse.credential) {
-                        sendIdTokenToBackend(credentialResponse.credential, "GoogleLogin");
-                      }
-                    }}
-                    onError={() => setSubmitError('Помилка входу через Google')}
-                    useOneTap={false}
-                    render={({ onClick }) => (
-                        <Button
-                            fullWidth
-                            variant="outlined"
-                            color="primary"
-                            onClick={onClick}
-                            startIcon={<GoogleIcon />}
-                            sx={{
-                              textTransform: 'none',
-                              py: 1.2,
-                              fontSize: '0.9375rem',
-                              fontWeight: 500
-                            }}
-                        >
-                          Увійти через Google
-                        </Button>
-                    )}
-                />
-              </Box>
+              <GoogleLogin
+                  onSuccess={(credentialResponse) => {
+                    console.log("SignIn: GoogleLogin component success:", credentialResponse);
+                    if (credentialResponse.credential) {
+                      sendIdTokenToBackend(credentialResponse.credential, "GoogleLogin Button/OneTap");
+                    } else {
+                      setSubmitError("Не вдалося отримати ID токен від Google.");
+                      console.error("SignIn: GoogleLogin - No credential.");
+                    }
+                  }}
+                  onError={() => {
+                    console.error('SignIn: GoogleLogin component error');
+                    setSubmitError('Помилка входу через Google. Спробуйте ще раз або перевірте налаштування браузера.');
+                  }}
+                  useOneTap={true}
+                  text="signin_with"
+                  shape="rectangular"
+                  theme="outline"
+                  size="large"
+                  containerProps={{ style: { width: '100%' } }}
+                  logo_alignment="left"
+              />
               <Button fullWidth variant="outlined" color="primary" onClick={() => alert('Незабаром')} startIcon={<FacebookIcon />}> Вхід через Facebook </Button>
               <Typography sx={{ textAlign: 'center', pt: 1 }}> Не маєте облікового запису?{' '} <StyledLink to="/signup">Зареєструватися</StyledLink> </Typography>
             </Box>

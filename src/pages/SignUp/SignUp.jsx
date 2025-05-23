@@ -15,9 +15,9 @@ import MuiCard from '@mui/material/Card';
 import { styled, useTheme, alpha } from '@mui/material/styles';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
-import { FacebookIcon } from './components/CustomIcons.jsx';
+import { FacebookIcon, GoogleIcon } from './components/CustomIcons.jsx';
 import { useState } from 'react';
-import { GoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin } from '@react-oauth/google';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -104,22 +104,22 @@ export default function SignUp(props) {
   const [nameError, setNameError] = React.useState(false);
   const [nameErrorMessage, setNameErrorMessage] = React.useState('');
 
+  // Використаємо хук useGoogleLogin для явного логіну
+  const googleLogin = useGoogleLogin({
+    onSuccess: handleGoogleSignInSuccess,
+    onError: handleGoogleSignInError,
+    flow: 'auth-code', // Використовуємо auth-code flow для явного логіну
+  });
+
   const handleGoogleSignInSuccess = async (credentialResponse) => {
     setSubmitError(null);
-    console.log("GoogleLogin component success:", credentialResponse);
-
-    if (!credentialResponse.credential) {
-      const errorMessage = "Не вдалося отримати ID токен від Google.";
-      setSubmitError(errorMessage);
-      console.error("SignUp: GoogleLogin - No credential in response.", credentialResponse);
-      return;
-    }
+    console.log('Google Sign-In Success:', credentialResponse);
 
     try {
       const response = await fetch(`${API_URL}/auth/google/fedcm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: credentialResponse.credential }), // <--- ВИКОРИСТОВУЄМО ID TOKEN
+        body: JSON.stringify({ token: credentialResponse.code }), // Використовуємо code замість credential
       });
 
       if (!response.ok) {
@@ -138,7 +138,7 @@ export default function SignUp(props) {
   };
 
   const handleGoogleSignInError = () => {
-    console.error('GoogleLogin component error');
+    console.error('Google Sign-In Error');
     setSubmitError('Помилка входу через Google. Спробуйте ще раз або перевірте налаштування браузера.');
   };
 
@@ -147,20 +147,26 @@ export default function SignUp(props) {
     const passwordInput = document.getElementById('password');
     const nameInput = document.getElementById('name');
     let isValid = true;
-    setEmailError(false); setEmailErrorMessage('');
-    setPasswordError(false); setPasswordErrorMessage('');
-    setNameError(false); setNameErrorMessage('');
+    setEmailError(false);
+    setEmailErrorMessage('');
+    setPasswordError(false);
+    setPasswordErrorMessage('');
+    setNameError(false);
+    setNameErrorMessage('');
 
     if (!emailInput.value || !/\S+@\S+\.\S+/.test(emailInput.value)) {
-      setEmailError(true); setEmailErrorMessage('Будь ласка, введіть дійсну електронну адресу.');
+      setEmailError(true);
+      setEmailErrorMessage('Будь ласка, введіть дійсну електронну адресу.');
       isValid = false;
     }
     if (!passwordInput.value || passwordInput.value.length < 6) {
-      setPasswordError(true); setPasswordErrorMessage('Пароль повинен містити щонайменше 6 символів.');
+      setPasswordError(true);
+      setPasswordErrorMessage('Пароль повинен містити щонайменше 6 символів.');
       isValid = false;
     }
     if (!nameInput.value || nameInput.value.trim().length < 1) {
-      setNameError(true); setNameErrorMessage("Ім'я обов'язкове.");
+      setNameError(true);
+      setNameErrorMessage("Ім'я обов'язкове.");
       isValid = false;
     }
     return isValid;
@@ -202,44 +208,125 @@ export default function SignUp(props) {
         <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1 }} />
         <SignUpContainer direction="column" justifyContent="center">
           <Card variant="outlined" sx={{ alignItems: 'center' }}>
-            <Typography variant="h5" component="div" sx={{ fontWeight: 700, letterSpacing: '.15rem', color: theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.main, textDecoration: 'none', mb: 1 }}>
+            <Typography
+                variant="h5"
+                component="div"
+                sx={{
+                  fontWeight: 700,
+                  letterSpacing: '.15rem',
+                  color: theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.main,
+                  textDecoration: 'none',
+                  mb: 1,
+                }}
+            >
               GRINDZONE
             </Typography>
-            <Typography component="h1" variant="h4" sx={{ width: '100%', fontSize: 'clamp(1.8rem, 8vw, 2rem)', mb: 2 }}>
+            <Typography
+                component="h1"
+                variant="h4"
+                sx={{ width: '100%', fontSize: 'clamp(1.8rem, 8vw, 2rem)', mb: 2 }}
+            >
               Реєстрація
             </Typography>
-            <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 1.5 }}>
+            <Box
+                component="form"
+                onSubmit={handleSubmit}
+                noValidate
+                sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 1.5 }}
+            >
               <FormControl>
                 <FormLabel htmlFor="name">Повне ім'я</FormLabel>
-                <TextField autoComplete="name" name="name" required fullWidth id="name" placeholder="Іван Петренко" error={nameError} helperText={nameErrorMessage} color={nameError ? 'error' : 'primary'} size="small"/>
+                <TextField
+                    autoComplete="name"
+                    name="name"
+                    required
+                    fullWidth
+                    id="name"
+                    placeholder="Іван Петренко"
+                    error={nameError}
+                    helperText={nameErrorMessage}
+                    color={nameError ? 'error' : 'primary'}
+                    size="small"
+                />
               </FormControl>
               <FormControl>
                 <FormLabel htmlFor="email">Електронна пошта</FormLabel>
-                <TextField required fullWidth id="email" placeholder="your@email.com" name="email" autoComplete="email" variant="outlined" error={emailError} helperText={emailErrorMessage} color={emailError ? 'error' : 'primary'} size="small"/>
+                <TextField
+                    required
+                    fullWidth
+                    id="email"
+                    placeholder="your@email.com"
+                    name="email"
+                    autoComplete="email"
+                    variant="outlined"
+                    error={emailError}
+                    helperText={emailErrorMessage}
+                    color={emailError ? 'error' : 'primary'}
+                    size="small"
+                />
               </FormControl>
               <FormControl>
                 <FormLabel htmlFor="password">Пароль</FormLabel>
-                <TextField required fullWidth name="password" placeholder="••••••" type="password" id="password" autoComplete="new-password" variant="outlined" error={passwordError} helperText={passwordErrorMessage} color={passwordError ? 'error' : 'primary'} size="small"/>
+                <TextField
+                    required
+                    fullWidth
+                    name="password"
+                    placeholder="••••••"
+                    type="password"
+                    id="password"
+                    autoComplete="new-password"
+                    variant="outlined"
+                    error={passwordError}
+                    helperText={passwordErrorMessage}
+                    color={passwordError ? 'error' : 'primary'}
+                    size="small"
+                />
               </FormControl>
-              <FormControlLabel control={<Checkbox value="allowExtraEmails" color="primary" size="small" />} label="Я хочу отримувати оновлення електронною поштою."/>
-              {submitError && (<Typography variant="body2" sx={{ color: 'error.main', textAlign: 'center', mt: 1 }}> {submitError} </Typography>)}
-              <Button type="submit" fullWidth variant="contained" color="primary" sx={{ mt: 1, py: 1.2 }}> Зареєструватися </Button>
-            </Box>
-            <Divider sx={{ width: '100%', my: 1.5 }}> <Typography sx={{ color: 'text.secondary' }}>або</Typography> </Divider>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, width: '100%' }}>
-              <GoogleLogin
-                  onSuccess={handleGoogleSignInSuccess}
-                  onError={handleGoogleSignInError}
-                  useOneTap={true}
-                  text="signup_with"
-                  shape="rectangular"
-                  theme="outline"
-                  size="large"
-                  containerProps={{ style: { width: '100%' } }}
-                  logo_alignment="left"
+              <FormControlLabel
+                  control={<Checkbox value="allowExtraEmails" color="primary" size="small" />}
+                  label="Я хочу отримувати оновлення електронною поштою."
               />
-              <Button fullWidth variant="outlined" color="primary" onClick={() => alert('Незабаром')} startIcon={<FacebookIcon />}> Реєстрація через Facebook </Button>
-              <Typography sx={{ textAlign: 'center', pt: 1 }}> Вже маєте обліковий запис?{' '} <StyledLink to="/signin">Увійти</StyledLink> </Typography>
+              {submitError && (
+                  <Typography variant="body2" sx={{ color: 'error.main', textAlign: 'center', mt: 1 }}>
+                    {submitError}
+                  </Typography>
+              )}
+              <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                  sx={{ mt: 1, py: 1.2 }}
+              >
+                Зареєструватися
+              </Button>
+            </Box>
+            <Divider sx={{ width: '100%', my: 1.5 }}>
+              <Typography sx={{ color: 'text.secondary' }}>або</Typography>
+            </Divider>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, width: '100%' }}>
+              <Button
+                  fullWidth
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => googleLogin()} // Викликаємо Google Sign-In
+                  startIcon={<GoogleIcon />}
+              >
+                Реєстрація через Google
+              </Button>
+              <Button
+                  fullWidth
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => alert('Незабаром')}
+                  startIcon={<FacebookIcon />}
+              >
+                Реєстрація через Facebook
+              </Button>
+              <Typography sx={{ textAlign: 'center', pt: 1 }}>
+                Вже маєте обліковий запис?{' '}
+                <StyledLink to="/signin">Увійти</StyledLink>
+              </Typography>
             </Box>
           </Card>
         </SignUpContainer>
