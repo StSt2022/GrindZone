@@ -16,8 +16,8 @@ import { styled, useTheme, alpha } from '@mui/material/styles';
 import ForgotPassword from './components/ForgotPassword.jsx';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
-import { FacebookIcon } from './components/CustomIcons.jsx';
-import {  useCallback } from 'react'; // Видалено useEffect
+import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx';
+import { useCallback } from 'react';
 import { GoogleLogin } from '@react-oauth/google'; // Додано імпорт
 
 const API_URL = import.meta.env.VITE_API_URL;
