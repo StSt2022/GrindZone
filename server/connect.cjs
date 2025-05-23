@@ -36,7 +36,7 @@ app.options('*', cors());
 app.use(express.json());
 
 // Статичні файли (для SPA)
-app.use(express.static(path.join(__dirname, '../client/dist'))); // Додаємо статичні файли
+app.use(express.static(path.join(__dirname, '../dist')));
 
 if (!process.env.ATLAS_URI) {
     console.error('Error: ATLAS_URI is not defined in config.env');
@@ -273,9 +273,13 @@ app.post('/signin', async (req, res) => {
     }
 });
 
-// Обробка всіх GET-запитів для SPA
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
+    res.sendFile(path.join(__dirname, '../dist/index.html'), (err) => {
+        if (err) {
+            console.error(`Error sending file: ${path.join(__dirname, '../dist/index.html')}`, err);
+            res.status(500).send("Error serving the application's main page.");
+        }
+    });
 });
 
 app.listen(port, () => {
