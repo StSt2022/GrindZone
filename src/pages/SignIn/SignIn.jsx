@@ -223,11 +223,7 @@ export default function SignIn(props) {
                 <TextField error={passwordError} helperText={passwordErrorMessage} name="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••" type="password" id="password" autoComplete="current-password" required fullWidth variant="outlined" size="small" color={passwordError ? 'error' : 'primary'} />
               </FormControl>
               <FormControlLabel control={<Checkbox value="remember" color="primary" size="small" />} label="Запам'ятати мене" />
-              {submitError && (
-                  <Typography variant="body2" sx={{ color: 'error.main', textAlign: 'center', bgcolor: theme => alpha(theme.palette.error.main, 0.1), p: 1.5, borderRadius: 1, border: theme => `1px solid ${theme.palette.error.main}20`, mb: 1.5, mt: 1 }}>
-                    {submitError}
-                  </Typography>
-              )}
+              {submitError && (<Typography variant="body2" sx={{ color: 'error.main', textAlign: 'center', mt: 1 }}> {submitError} </Typography>)}
               <ForgotPassword open={open} handleClose={handleClose} />
               <Button type="submit" fullWidth variant="contained" color="primary" sx={{ mt: 1, py: 1.2 }}> Увійти </Button>
               <RouterLink component="button" type="button" onClick={handleClickOpen} style={{ color: theme.palette.primary.main, backgroundColor: 'transparent', border: 'none', padding: theme.spacing(0.5, 0), cursor: 'pointer', alignSelf: 'center', textDecoration: 'underline', fontSize: theme.typography.caption.fontSize, fontFamily: theme.typography.fontFamily, marginTop: theme.spacing(0.5) }}>
