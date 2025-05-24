@@ -112,6 +112,17 @@ app.post('/signup', async (req, res) => {
 app.post('/auth/google/code', async (req, res) => {
     const { code } = req.body;
 
+    console.log('--- Google Auth Code Exchange ---');
+    console.log('Received code from frontend:', code);
+    console.log('process.env.GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
+    console.log('process.env.GOOGLE_REDIRECT_URI from environment:', process.env.GOOGLE_REDIRECT_URI);
+    const authUrl = oAuth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: ['profile', 'email'],
+        prompt: 'consent'
+    });
+    console.log('Generated auth URL (shows actual redirect_uri):', authUrl);
+
     if (!code) {
         return res.status(400).json({ message: 'Authorization code не надано' });
     }
