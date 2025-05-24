@@ -4,17 +4,31 @@ const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { OAuth2Client } = require('google-auth-library');
-const path = require('path'); // Додаємо path
+const path = require('path');
 
 dotenv.config({ path: path.join(__dirname, 'config.env') });
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-if (!process.env.GOOGLE_CLIENT_ID) {
-    console.error('Error: GOOGLE_CLIENT_ID is not defined in config.env');
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI; // Може знадобитися для getToken
+
+if (!GOOGLE_CLIENT_ID) {
+    console.error('Error: GOOGLE_CLIENT_ID is not defined in environment variables');
+    process.exit(1);
 }
-const clientGoogle = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+if (!GOOGLE_CLIENT_SECRET) {
+    console.error('Error: GOOGLE_CLIENT_SECRET is not defined in environment variables');
+    process.exit(1);
+}
+
+const oAuth2Client = new OAuth2Client(
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_REDIRECT_URI
+);
 
 const allowedOrigins = [
     'http://localhost:5173',
@@ -32,14 +46,11 @@ app.use(
 );
 
 app.options('*', cors());
-
 app.use(express.json());
-
-// Статичні файли (для SPA)
 app.use(express.static(path.join(__dirname, '../dist')));
 
 if (!process.env.ATLAS_URI) {
-    console.error('Error: ATLAS_URI is not defined in config.env');
+    console.error('Error: ATLAS_URI is not defined in environment variables');
     process.exit(1);
 }
 
@@ -59,7 +70,6 @@ async function connectToMongo() {
 
 connectToMongo();
 
-// Ваші існуючі ендпоінти (/signup, /signup/google, /auth/google/fedcm, /signin)
 app.post('/signup', async (req, res) => {
     try {
         const { name, email, password, allowExtraEmails } = req.body;
@@ -94,24 +104,41 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-app.post('/signup/google', async (req, res) => {
+app.post('/auth/google/code', async (req, res) => {
+    const { code } = req.body;
+
+    if (!code) {
+        return res.status(400).json({ message: 'Authorization code не надано' });
+    }
+
     try {
-        const { name, email, googleId, idToken } = req.body;
-        if (!name || !email || !googleId || !idToken) {
-            return res.status(400).json({ message: 'Усі поля від Google є обов’язковими' });
+        const { tokens } = await oAuth2Client.getToken(code);
+
+        if (!tokens.id_token) {
+            console.error('Failed to retrieve ID token from Google with the provided code.');
+            return res.status(500).json({ message: 'Не вдалося отримати ID token від Google' });
         }
-        const ticket = await clientGoogle.verifyIdToken({
-            idToken: idToken,
-            audience: process.env.GOOGLE_CLIENT_ID,
+
+        const ticket = await oAuth2Client.verifyIdToken({
+            idToken: tokens.id_token,
+            audience: GOOGLE_CLIENT_ID,
         });
         const payload = ticket.getPayload();
-        if (payload['sub'] !== googleId) {
-            return res.status(401).json({ message: 'Невірний Google ID' });
+
+        const email = payload.email;
+        const name = payload.name || payload.given_name || email.split('@')[0];
+        const googleId = payload.sub;
+        const emailVerified = payload.email_verified || false;
+
+        if (!email || !googleId) {
+            return res.status(400).json({ message: 'Не вдалося отримати необхідні дані користувача від Google' });
         }
+
         const usersCollection = db.collection('users');
         let user = await usersCollection.findOne({ email });
+
         if (user) {
-            if (!user.googleId) {
+            if (!user.googleId || user.googleId !== googleId) {
                 await usersCollection.updateOne(
                     { email },
                     { $set: { googleId: googleId, name: user.name || name } }
@@ -126,16 +153,17 @@ app.post('/signup/google', async (req, res) => {
             });
         } else {
             const newUser = {
-                name: name || email.split('@')[0],
+                name: name,
                 email,
                 googleId,
                 password: null,
-                allowExtraEmails: payload.email_verified || false,
+                allowExtraEmails: emailVerified,
                 collection: [],
                 createdAt: new Date(),
             };
             const result = await usersCollection.insertOne(newUser);
             const createdUser = await usersCollection.findOne({ _id: result.insertedId });
+
             res.status(201).json({
                 message: 'Користувач успішно створений через Google',
                 userId: result.insertedId,
@@ -144,102 +172,24 @@ app.post('/signup/google', async (req, res) => {
             });
         }
     } catch (error) {
-        console.error('Error during Google signup:', error);
-        if (error.message) {
-            if (
-                error.message.includes('Token used too late') ||
-                error.message.includes('Invalid ID token') ||
-                error.message.includes('Invalid token signature')
-            ) {
-                return res.status(401).json({ message: 'Недійсний або прострочений токен Google' });
+        console.error('Error during Google Auth Code exchange or user processing:', error);
+        if (error.response && error.response.data) {
+            const googleError = error.response.data.error;
+            const errorDescription = error.response.data.error_description;
+            if (googleError === 'invalid_grant' || googleError === 'redirect_uri_mismatch') {
+                return res.status(400).json({ message: `Помилка авторизації Google: ${errorDescription || googleError}` });
             }
-            if (error.message.includes('Wrong recipient') || error.message.includes('audience')) {
-                console.error(
-                    'AUDIENCE MISMATCH: Ensure GOOGLE_CLIENT_ID on server matches the one used by the client.'
-                );
-                return res.status(401).json({ message: 'Помилка конфігурації Google Client ID.' });
-            }
+            return res.status(500).json({ message: `Помилка Google API: ${googleError} - ${errorDescription || 'невідома помилка'}` });
         }
-        res.status(500).json({ message: 'Помилка сервера при реєстрації через Google' });
+        res.status(500).json({ message: 'Помилка сервера при автентифікації через Google Authorization Code' });
     }
 });
 
-app.post('/auth/google/fedcm', async (req, res) => {
-    try {
-        const { token } = req.body;
-        if (!token) {
-            return res.status(400).json({ message: 'Токен не надано' });
-        }
-        if (!clientGoogle) {
-            console.error('Google client not initialized. Check GOOGLE_CLIENT_ID.');
-            return res.status(500).json({ message: 'Серверна помилка конфігурації Google.' });
-        }
-        const ticket = await clientGoogle.verifyIdToken({
-            idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
-        const payload = ticket.getPayload();
-        const email = payload.email;
-        const name = payload.name;
-        const googleId = payload.sub;
-        if (!email) {
-            return res.status(400).json({ message: 'Не вдалося отримати email від Google.' });
-        }
-        const usersCollection = db.collection('users');
-        let user = await usersCollection.findOne({ email });
-        if (user) {
-            if (!user.googleId) {
-                await usersCollection.updateOne(
-                    { email },
-                    { $set: { googleId: googleId, name: user.name || name } }
-                );
-                user = await usersCollection.findOne({ email });
-            }
-            res.status(200).json({
-                message: 'Користувач успішно увійшов через Google',
-                userId: user._id,
-                email: user.email,
-                name: user.name,
-            });
-        } else {
-            const newUser = {
-                name: name || email.split('@')[0],
-                email,
-                googleId,
-                password: null,
-                allowExtraEmails: payload.email_verified || false,
-                collection: [],
-                createdAt: new Date(),
-            };
-            const result = await usersCollection.insertOne(newUser);
-            const createdUser = await usersCollection.findOne({ _id: result.insertedId });
-            res.status(201).json({
-                message: 'Користувач успішно створений через Google',
-                userId: result.insertedId,
-                email: createdUser.email,
-                name: createdUser.name,
-            });
-        }
-    } catch (error) {
-        console.error('Error during Google FedCM/Sign-In auth:', error);
-        if (error.message) {
-            if (
-                error.message.includes('Token used too late') ||
-                error.message.includes('Invalid ID token') ||
-                error.message.includes('Invalid token signature')
-            ) {
-                return res.status(401).json({ message: 'Недійсний або прострочений токен Google' });
-            }
-            if (error.message.includes('Wrong recipient') || error.message.includes('audience')) {
-                console.error(
-                    'AUDIENCE MISMATCH: Ensure GOOGLE_CLIENT_ID on server matches the one used by the client.'
-                );
-                return res.status(401).json({ message: 'Помилка конфігурації Google Client ID.' });
-            }
-        }
-        res.status(500).json({ message: 'Помилка сервера при автентифікації через Google' });
-    }
-});
+
+/* Закоментовуємо старі ендпоінти, які приймали ID токен напряму
+app.post('/signup/google', async (req, res) => { ... });
+app.post('/auth/google/fedcm', async (req, res) => { ... });
+*/
 
 app.post('/signin', async (req, res) => {
     try {
@@ -252,11 +202,18 @@ app.post('/signin', async (req, res) => {
         if (!user) {
             return res.status(401).json({ message: 'Користувач із такою поштою не існує' });
         }
-        if (!user.password) {
+        if (user.googleId && !user.password) { // Якщо зареєстрований через Google і не має пароля
             return res.status(401).json({
-                message: 'Цей користувач зареєстрований через Google. Використовуйте вхід через Google.',
+                message: 'Цей обліковий запис пов’язаний з Google. Будь ласка, увійдіть через Google.',
             });
         }
+        if (!user.password && !user.googleId) { // Незрозумілий стан, але обробимо
+            return res.status(401).json({ message: 'Неможливо увійти. Зверніться до підтримки.' });
+        }
+        if(!user.password && user.googleId) { // Специфічно для тих, хто тільки через Google
+            return res.status(401).json({ message: 'Цей користувач зареєстрований через Google. Використовуйте вхід через Google.' });
+        }
+
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             return res.status(401).json({ message: 'Неправильний пароль' });
@@ -277,7 +234,9 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'), (err) => {
         if (err) {
             console.error(`Error sending file: ${path.join(__dirname, '../dist/index.html')}`, err);
-            res.status(500).send("Error serving the application's main page.");
+            if (!res.headersSent) {
+                res.status(500).send("Error serving the application's main page.");
+            }
         }
     });
 });
@@ -288,14 +247,14 @@ app.listen(port, () => {
 
 process.on('SIGINT', async () => {
     console.log('SIGINT received. Shutting down gracefully...');
-    await clientMongo.close();
+    if (clientMongo) await clientMongo.close();
     console.log('MongoDB connection closed.');
     process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
     console.log('SIGTERM received. Shutting down gracefully...');
-    await clientMongo.close();
+    if (clientMongo) await clientMongo.close();
     console.log('MongoDB connection closed.');
     process.exit(0);
 });

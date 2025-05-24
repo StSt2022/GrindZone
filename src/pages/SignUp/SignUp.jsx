@@ -16,8 +16,8 @@ import { styled, useTheme, alpha } from '@mui/material/styles';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
 import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx';
-import { useState } from 'react';
-import { GoogleLogin } from '@react-oauth/google';
+import { useState, useCallback } from 'react';
+import { useGoogleLogin } from '@react-oauth/google';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -104,43 +104,48 @@ export default function SignUp(props) {
   const [nameError, setNameError] = React.useState(false);
   const [nameErrorMessage, setNameErrorMessage] = React.useState('');
 
-  const handleGoogleSignInSuccess = async (credentialResponse) => {
+  const handleGoogleAuthCodeResponse = useCallback(async (codeResponse) => {
     setSubmitError(null);
-    console.log("GoogleLogin component success:", credentialResponse);
+    console.log("Google Auth Code Response:", codeResponse);
 
-    if (!credentialResponse.credential) {
-      const errorMessage = "Не вдалося отримати ID токен від Google.";
-      setSubmitError(errorMessage);
-      console.error("SignUp: GoogleLogin - No credential in response.", credentialResponse);
-      return;
-    }
+    if (codeResponse.code) {
+      try {
+        const response = await fetch(`${API_URL}/auth/google/code`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ code: codeResponse.code }),
+        });
 
-    try {
-      const response = await fetch(`${API_URL}/auth/google/fedcm`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: credentialResponse.credential }),
-      });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || `Помилка сервера (${response.status})`);
+        }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        const backendErrorMessage = errorData.message || `Помилка сервера (${response.status})`;
-        throw new Error(backendErrorMessage);
+        const result = await response.json();
+        console.log('Користувач успішно автентифікований через Google (auth code):', result);
+        window.location.href = '/';
+      } catch (error) {
+        console.error('Помилка відправки auth code або обробки на бекенді:', error);
+        setSubmitError(error.message || 'Сталася помилка під час входу через Google.');
       }
-
-      const result = await response.json();
-      console.log('Користувач зареєстрований/увійшов через Google:', result);
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Помилка відправки токена або обробки на бекенді:', error);
-      setSubmitError(error.message || 'Сталася помилка під час входу через Google.');
+    } else {
+      setSubmitError("Не вдалося отримати authorization code від Google.");
+      console.error("Google Auth Code response missing 'code'.", codeResponse);
     }
-  };
+  }, []);
 
-  const handleGoogleSignInError = () => {
-    console.error('GoogleLogin component error');
-    setSubmitError('Помилка входу через Google. Спробуйте ще раз або перевірте налаштування браузера.');
-  };
+  const handleGoogleLoginError = useCallback((error) => {
+    console.error('useGoogleLogin (auth-code) error:', error);
+    setSubmitError('Помилка ініціації входу через Google.');
+  }, []);
+
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: handleGoogleAuthCodeResponse,
+    onError: handleGoogleLoginError,
+    flow: 'auth-code',
+  });
 
   const validateInputs = () => {
     const emailInput = document.getElementById('email');
@@ -227,17 +232,15 @@ export default function SignUp(props) {
             </Box>
             <Divider sx={{ width: '100%', my: 1.5 }}> <Typography sx={{ color: 'text.secondary' }}>або</Typography> </Divider>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, width: '100%' }}>
-              <GoogleLogin
-                  onSuccess={handleGoogleSignInSuccess}
-                  onError={handleGoogleSignInError}
-                  useOneTap={false}
-                  text="signup_with"
-                  shape="rectangular"
-                  theme="outline"
-                  size="large"
-                  containerProps={{ style: { width: '100%' } }}
-                  logo_alignment="left"
-              />
+              <Button
+                  fullWidth
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => loginWithGoogle()}
+                  startIcon={<GoogleIcon />}
+              >
+                Реєстрація через Google
+              </Button>
               <Button fullWidth variant="outlined" color="primary" onClick={() => alert('Незабаром')} startIcon={<FacebookIcon />}> Реєстрація через Facebook </Button>
               <Typography sx={{ textAlign: 'center', pt: 1 }}> Вже маєте обліковий запис?{' '} <StyledLink to="/signin">Увійти</StyledLink> </Typography>
             </Box>

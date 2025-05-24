@@ -17,8 +17,8 @@ import ForgotPassword from './components/ForgotPassword.jsx';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
 import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx';
-import {  useCallback } from 'react';
-import { GoogleLogin } from '@react-oauth/google';
+import { useCallback } from 'react';
+import { useGoogleLogin } from '@react-oauth/google';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -109,33 +109,48 @@ export default function SignIn(props) {
   const handleClickOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  const sendIdTokenToBackend = useCallback(async (idToken, source) => {
-    if (!idToken) {
-      console.error(`SignIn (${source}): ID Token is missing.`);
-      setSubmitError("Не вдалося отримати ID токен від Google.");
-      return;
-    }
+  const handleGoogleAuthCodeResponse = useCallback(async (codeResponse) => {
     setSubmitError(null);
-    try {
-      const response = await fetch(`${API_URL}/auth/google/fedcm`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: idToken }),
-      });
+    console.log("Google Auth Code Response (SignIn):", codeResponse);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Помилка сервера (${response.status})`);
+    if (codeResponse.code) {
+      try {
+        const response = await fetch(`${API_URL}/auth/google/code`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ code: codeResponse.code }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || `Помилка сервера (${response.status})`);
+        }
+
+        const result = await response.json();
+        console.log('Користувач успішно увійшов через Google (auth code - SignIn):', result);
+        window.location.href = '/';
+      } catch (error) {
+        console.error('Помилка відправки auth code або обробки на бекенді (SignIn):', error);
+        setSubmitError(error.message || 'Сталася помилка під час входу через Google.');
       }
-      const result = await response.json();
-      console.log(`SignIn: User authenticated via ${source}:`, result);
-      window.location.href = '/';
-    } catch (error) {
-      console.error(`SignIn: Error sending ID token from ${source} to backend:`, error);
-      setSubmitError(error.message || "Помилка під час обробки входу через Google.");
+    } else {
+      setSubmitError("Не вдалося отримати authorization code від Google (SignIn).");
+      console.error("Google Auth Code response missing 'code' (SignIn).", codeResponse);
     }
   }, []);
 
+  const handleGoogleLoginError = useCallback((error) => {
+    console.error('useGoogleLogin (auth-code) error (SignIn):', error);
+    setSubmitError('Помилка ініціації входу через Google.');
+  }, []);
+
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: handleGoogleAuthCodeResponse,
+    onError: handleGoogleLoginError,
+    flow: 'auth-code',
+  });
 
   const validateInputs = () => {
     let isValid = true;
@@ -221,28 +236,15 @@ export default function SignIn(props) {
             </Box>
             <Divider sx={{ width: '100%', my: 1.5 }}>або</Divider>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, width: '100%' }}>
-              <GoogleLogin
-                  onSuccess={(credentialResponse) => {
-                    console.log("SignIn: GoogleLogin component success:", credentialResponse);
-                    if (credentialResponse.credential) {
-                      sendIdTokenToBackend(credentialResponse.credential, "GoogleLogin Button");
-                    } else {
-                      setSubmitError("Не вдалося отримати ID токен від Google.");
-                      console.error("SignIn: GoogleLogin - No credential.");
-                    }
-                  }}
-                  onError={() => {
-                    console.error('SignIn: GoogleLogin component error');
-                    setSubmitError('Помилка входу через Google. Спробуйте ще раз або перевірте налаштування браузера.');
-                  }}
-                  useOneTap={false}
-                  text="signin_with"
-                  shape="rectangular"
-                  theme="outline"
-                  size="large"
-                  containerProps={{ style: { width: '100%' } }}
-                  logo_alignment="left"
-              />
+              <Button
+                  fullWidth
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => loginWithGoogle()}
+                  startIcon={<GoogleIcon />}
+              >
+                Вхід через Google
+              </Button>
               <Button fullWidth variant="outlined" color="primary" onClick={() => alert('Незабаром')} startIcon={<FacebookIcon />}> Вхід через Facebook </Button>
               <Typography sx={{ textAlign: 'center', pt: 1 }}> Не маєте облікового запису?{' '} <StyledLink to="/signup">Зареєструватися</StyledLink> </Typography>
             </Box>
