@@ -24,6 +24,11 @@ if (!GOOGLE_CLIENT_SECRET) {
     process.exit(1);
 }
 
+if (!GOOGLE_REDIRECT_URI) {
+    console.error('Error: GOOGLE_REDIRECT_URI is not defined in environment variables');
+    process.exit(1);
+}
+
 const oAuth2Client = new OAuth2Client(
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
@@ -128,7 +133,10 @@ app.post('/auth/google/code', async (req, res) => {
     }
 
     try {
-        const { tokens } = await oAuth2Client.getToken(code);
+        const { tokens } = await oAuth2Client.getToken({
+            code,
+            redirect_uri: GOOGLE_REDIRECT_URI
+        });
 
         if (!tokens.id_token) {
             console.error('Failed to retrieve ID token from Google with the provided code.');
@@ -200,12 +208,6 @@ app.post('/auth/google/code', async (req, res) => {
         res.status(500).json({ message: 'Помилка сервера при автентифікації через Google Authorization Code' });
     }
 });
-
-
-/* Закоментовуємо старі ендпоінти, які приймали ID токен напряму
-app.post('/signup/google', async (req, res) => { ... });
-app.post('/auth/google/fedcm', async (req, res) => { ... });
-*/
 
 app.post('/signin', async (req, res) => {
     try {
