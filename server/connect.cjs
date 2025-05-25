@@ -6,7 +6,8 @@ const dotenv = require('dotenv');
 const { OAuth2Client } = require('google-auth-library');
 const path = require('path');
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
-const fetch = require('node-fetch');
+const TextToSpeech = require('@google-cloud/text-to-speech'); // Додано для Google TTS
+// const fetch = require('node-fetch'); // Більше не потрібен для ElevenLabs, якщо не використовується для іншого
 
 dotenv.config({ path: './server/config.env' });
 
@@ -68,7 +69,7 @@ connectToMongo();
 
 let genAI;
 let geminiModel;
-const GEMINI_MODEL_NAME = process.env.GEMINI_MODEL_NAME || "gemini-1.5-flash-latest"; // Можна змінити через .env
+const GEMINI_MODEL_NAME = process.env.GEMINI_MODEL_NAME || "gemini-1.5-flash-latest";
 
 if (process.env.GOOGLE_GEMINI_API_KEY) {
     genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY);
@@ -78,6 +79,22 @@ if (process.env.GOOGLE_GEMINI_API_KEY) {
     console.warn('WARN: GOOGLE_GEMINI_API_KEY is not defined. Chat assistant functionality will be limited to mock responses.');
 }
 
+// Ініціалізація Google Cloud Text-to-Speech клієнта
+let ttsClient;
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    try {
+        ttsClient = new TextToSpeech.TextToSpeechClient();
+        console.log('Google Cloud Text-to-Speech client initialized.');
+    } catch (e) {
+        console.error('Failed to initialize Google Cloud Text-to-Speech client:', e);
+        console.warn('WARN: Ensure GOOGLE_APPLICATION_CREDENTIALS environment variable is set correctly and the JSON key file is accessible.');
+    }
+} else {
+    console.warn('WARN: GOOGLE_APPLICATION_CREDENTIALS is not set. Voice generation will be disabled.');
+}
+
+
+// ... (твій код для /signup, /signup/google, /auth/google/fedcm, /signin залишається без змін) ...
 app.post('/signup', async (req, res) => {
     try {
         const { name, email, password, allowExtraEmails } = req.body;
@@ -212,6 +229,7 @@ app.post('/signin', async (req, res) => {
     }
 });
 
+
 app.post('/api/chat', async (req, res) => {
     console.log(`[${new Date().toISOString()}] POST /api/chat request received`);
     try {
@@ -250,10 +268,7 @@ app.post('/api/chat', async (req, res) => {
 
         const chat = geminiModel.startChat({
             history: geminiHistory,
-            generationConfig: {
-                maxOutputTokens: 800,
-                temperature: 0.7,
-            },
+            generationConfig: { maxOutputTokens: 800, temperature: 0.7, },
             safetySettings: [
                 { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
                 { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
@@ -262,48 +277,39 @@ app.post('/api/chat', async (req, res) => {
             ],
         });
 
-        const fullUserPrompt = `Context for GRINDZONE Fitness Club:\n${siteContext}\n\nUser question: ${userMessage}`;
+        const fullUserPrompt = `Context for GRINDZONE Fitness Club:\n${siteContext}\n\nUser question: ${userMessage}\n\nImportant: Provide response as plain text without any markdown formatting for bolding or emphasis (do not use ** or *).`;
 
         console.log(`[${new Date().toISOString()}] Sending request to Google Gemini AI (Model: ${GEMINI_MODEL_NAME})...`);
         const result = await chat.sendMessage(fullUserPrompt);
         const response = result.response;
-        const geminiResponseText = response.text().trim();
+        let geminiResponseText = response.text().trim();
+
+        geminiResponseText = geminiResponseText.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
+
         console.log(`[${new Date().toISOString()}] Received response from Google Gemini AI.`);
-        console.log(`[${new Date().toISOString()}] Gemini Response Text: ${geminiResponseText.substring(0, 150)}...`);
+        console.log(`[${new Date().toISOString()}] Gemini Response Text (cleaned): ${geminiResponseText.substring(0, 150)}...`);
 
         let audioData = null;
-        const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-        const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM'; // Дефолтний голос
-
-        if (geminiResponseText && ELEVENLABS_API_KEY) {
-            console.log(`[${new Date().toISOString()}] Attempting to generate audio with ElevenLabs (Voice ID: ${ELEVENLABS_VOICE_ID}).`);
+        if (geminiResponseText && ttsClient) {
+            console.log(`[${new Date().toISOString()}] Attempting to generate audio with Google Cloud TTS.`);
+            const ttsRequest = {
+                input: { text: geminiResponseText },
+                voice: { languageCode: 'uk-UA', name: 'uk-UA-Wavenet-A' }, // Можеш вибрати інший голос
+                audioConfig: { audioEncoding: 'MP3' },
+            };
             try {
-                const elevenLabsResponse = await fetch(
-                    `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}/stream`,
-                    {
-                        method: 'POST',
-                        headers: { 'Accept': 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': ELEVENLABS_API_KEY },
-                        body: JSON.stringify({
-                            text: geminiResponseText,
-                            model_id: 'eleven_multilingual_v2',
-                            voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-                        }),
-                    }
-                );
-                if (elevenLabsResponse.ok) {
-                    const audioBuffer = await elevenLabsResponse.arrayBuffer();
-                    const audioBase64 = Buffer.from(audioBuffer).toString('base64');
-                    audioData = `data:audio/mpeg;base64,${audioBase64}`;
-                    console.log(`[${new Date().toISOString()}] Audio successfully generated by ElevenLabs.`);
+                const [ttsResponse] = await ttsClient.synthesizeSpeech(ttsRequest);
+                if (ttsResponse.audioContent) {
+                    audioData = `data:audio/mp3;base64,${ttsResponse.audioContent.toString('base64')}`;
+                    console.log(`[${new Date().toISOString()}] Audio successfully generated by Google Cloud TTS.`);
                 } else {
-                    const errorBody = await elevenLabsResponse.text();
-                    console.error(`[${new Date().toISOString()}] ElevenLabs API Error (${elevenLabsResponse.status}):`, errorBody);
+                    console.warn(`[${new Date().toISOString()}] Google Cloud TTS did not return audio content.`);
                 }
-            } catch (elevenError) {
-                console.error(`[${new Date().toISOString()}] Error calling ElevenLabs:`, elevenError);
+            } catch (ttsError) {
+                console.error(`[${new Date().toISOString()}] Error calling Google Cloud TTS:`, ttsError);
             }
-        } else if (geminiResponseText && !ELEVENLABS_API_KEY) {
-            console.warn(`[${new Date().toISOString()}] WARN: ELEVENLABS_API_KEY is not defined. Skipping voice generation.`);
+        } else if (geminiResponseText && !ttsClient) {
+            console.warn(`[${new Date().toISOString()}] WARN: Google Cloud TTS client not initialized. Skipping voice generation.`);
         }
 
         console.log(`[${new Date().toISOString()}] Sending response to client. Text length: ${geminiResponseText.length}, Audio available: ${!!audioData}`);
