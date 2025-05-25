@@ -300,7 +300,7 @@ app.post('/api/chat', async (req, res) => {
             const voiceName = 'ru-RU-Chirp3-HD-Leda';
             const speakingRate = 1.15;
 
-            console.log(`[${new Date().toISOString()}] Attempting to generate audio with Google Cloud TTS (Voice: ${voiceName}, Lang: ${languageCode}, Rate: ${speakingRate}, Pitch: ${pitch}).`);
+            console.log(`[${new Date().toISOString()}] Attempting to generate audio with Google Cloud TTS (Voice: ${voiceName}, Lang: ${languageCode}, Rate: ${speakingRate}.`);
 
             const ttsRequest = {
                 input: { text: textForSpeech },
