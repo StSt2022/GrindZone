@@ -68,10 +68,12 @@ connectToMongo();
 
 let genAI;
 let geminiModel;
+const GEMINI_MODEL_NAME = process.env.GEMINI_MODEL_NAME || "gemini-1.5-flash-latest"; // Можна змінити через .env
+
 if (process.env.GOOGLE_GEMINI_API_KEY) {
     genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY);
-    geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-    console.log('Google Gemini AI client initialized with model gemini-1.5-flash-latest.');
+    geminiModel = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME });
+    console.log(`Google Gemini AI client initialized with model ${GEMINI_MODEL_NAME}.`);
 } else {
     console.warn('WARN: GOOGLE_GEMINI_API_KEY is not defined. Chat assistant functionality will be limited to mock responses.');
 }
@@ -262,7 +264,7 @@ app.post('/api/chat', async (req, res) => {
 
         const fullUserPrompt = `Context for GRINDZONE Fitness Club:\n${siteContext}\n\nUser question: ${userMessage}`;
 
-        console.log(`[${new Date().toISOString()}] Sending request to Google Gemini AI...`);
+        console.log(`[${new Date().toISOString()}] Sending request to Google Gemini AI (Model: ${GEMINI_MODEL_NAME})...`);
         const result = await chat.sendMessage(fullUserPrompt);
         const response = result.response;
         const geminiResponseText = response.text().trim();
@@ -271,10 +273,10 @@ app.post('/api/chat', async (req, res) => {
 
         let audioData = null;
         const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-        const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
+        const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM'; // Дефолтний голос
 
         if (geminiResponseText && ELEVENLABS_API_KEY) {
-            console.log(`[${new Date().toISOString()}] Attempting to generate audio with ElevenLabs.`);
+            console.log(`[${new Date().toISOString()}] Attempting to generate audio with ElevenLabs (Voice ID: ${ELEVENLABS_VOICE_ID}).`);
             try {
                 const elevenLabsResponse = await fetch(
                     `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}/stream`,
@@ -301,7 +303,7 @@ app.post('/api/chat', async (req, res) => {
                 console.error(`[${new Date().toISOString()}] Error calling ElevenLabs:`, elevenError);
             }
         } else if (geminiResponseText && !ELEVENLABS_API_KEY) {
-            console.warn(`[${new Date().toISOString()}] WARN: ELEVENLABS_API_KEY is not defined. Skipping voice generation for testing or due to missing key.`);
+            console.warn(`[${new Date().toISOString()}] WARN: ELEVENLABS_API_KEY is not defined. Skipping voice generation.`);
         }
 
         console.log(`[${new Date().toISOString()}] Sending response to client. Text length: ${geminiResponseText.length}, Audio available: ${!!audioData}`);
