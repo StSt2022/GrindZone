@@ -5,7 +5,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const { OAuth2Client } = require('google-auth-library');
 const path = require('path');
-const OpenAI = require('openai');
+const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
 const fetch = require('node-fetch');
 
 dotenv.config({ path: './server/config.env' });
@@ -66,14 +66,14 @@ async function connectToMongo() {
 
 connectToMongo();
 
-let openai;
-if (process.env.OPENAI_API_KEY) {
-    openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-    });
-    console.log('OpenAI client initialized.');
+let genAI;
+let geminiModel;
+if (process.env.GOOGLE_GEMINI_API_KEY) {
+    genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY);
+    geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    console.log('Google Gemini AI client initialized with model gemini-1.5-flash-latest.');
 } else {
-    console.warn('WARN: OPENAI_API_KEY is not defined. Chat assistant functionality will be limited to mock responses.');
+    console.warn('WARN: GOOGLE_GEMINI_API_KEY is not defined. Chat assistant functionality will be limited to mock responses.');
 }
 
 app.post('/signup', async (req, res) => {
@@ -215,110 +215,65 @@ app.post('/api/chat', async (req, res) => {
     try {
         const { userMessage, chatHistory, siteContext } = req.body;
         console.log(`[${new Date().toISOString()}] User Message: ${userMessage}`);
-        // console.log(`[${new Date().toISOString()}] Chat History: ${JSON.stringify(chatHistory, null, 2)}`); // Розкоментуй для детального логування історії
-        // console.log(`[${new Date().toISOString()}] Site Context: ${siteContext.substring(0, 100)}...`); // Логування частини контексту
 
         if (!userMessage || !siteContext) {
             console.error(`[${new Date().toISOString()}] Missing userMessage or siteContext`);
             return res.status(400).json({ error: "Відсутнє повідомлення користувача або контекст сайту." });
         }
-        if (!openai) {
-            console.log(`[${new Date().toISOString()}] OpenAI client not initialized. Returning mock response for chat.`);
-            const mockBotReply = `Мок-відповідь: отримано "${userMessage}". Налаштуйте OpenAI API ключ для реальних відповідей.`;
+
+        if (!geminiModel) {
+            console.log(`[${new Date().toISOString()}] Gemini AI client not initialized. Returning mock response for chat.`);
+            const mockBotReply = `Мок-відповідь: отримано "${userMessage}". Налаштуйте Google Gemini API ключ для реальних відповідей.`;
             return res.json({ text: mockBotReply, audioData: null });
         }
 
-        let messagesForLLM = [
-            {
-                role: "system",
-                content: `Ти - корисний AI-асистент фітнес-клубу "GRINDZONE". Твоя мета - відповідати на запитання користувачів на основі наданої інформації про клуб та загальних знань про фітнес і здоровий спосіб життя. Дотримуйся правил, описаних в секції "Правила асистента". Наданий контекст про GRINDZONE:\n${siteContext}`
-            },
-        ];
-
+        const geminiChatHistory = [];
         if (chatHistory && chatHistory.length > 0) {
             chatHistory.forEach(msg => {
-                const role = msg.sender === 'user' ? 'user' : (msg.sender === 'bot' ? 'assistant' : 'user');
-                messagesForLLM.push({ role: role, content: msg.text });
+                geminiChatHistory.push({
+                    role: msg.sender === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.text }]
+                });
             });
         }
-        messagesForLLM.push({ role: "user", content: userMessage });
 
-        console.log(`[${new Date().toISOString()}] Sending request to OpenAI... Model: gpt-3.5-turbo`); // Змінив модель на більш імовірну
-        // console.log(`[${new Date().toISOString()}] Messages for LLM: ${JSON.stringify(messagesForLLM, null, 2)}`); // Розкоментуй для повного логування запиту
-
-        const completion = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo", // Використовуємо gpt-3.5-turbo, бо gpt-4.1 не існує як стандартна назва
-            messages: messagesForLLM,
-            temperature: 0.7,
+        const chat = geminiModel.startChat({
+            history: geminiChatHistory,
+            generationConfig: {
+                maxOutputTokens: 800,
+                temperature: 0.7,
+            },
+            safetySettings: [
+                { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+                { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+                { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+                { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+            ],
         });
-        console.log(`[${new Date().toISOString()}] Received response from OpenAI.`);
 
-        const llmResponseText = completion.choices[0].message.content.trim();
-        console.log(`[${new Date().toISOString()}] LLM Response Text: ${llmResponseText.substring(0, 150)}...`);
+        const fullUserPrompt = `Context for GRINDZONE Fitness Club:\n${siteContext}\n\nUser question: ${userMessage}`;
 
-        // ТИМЧАСОВО ВІДКЛЮЧАЄМО ElevenLabs для тестування
+        console.log(`[${new Date().toISOString()}] Sending request to Google Gemini AI...`);
+        const result = await chat.sendMessage(fullUserPrompt);
+        const response = result.response;
+        const geminiResponseText = response.text().trim();
+        console.log(`[${new Date().toISOString()}] Received response from Google Gemini AI.`);
+        console.log(`[${new Date().toISOString()}] Gemini Response Text: ${geminiResponseText.substring(0, 150)}...`);
+
         const audioData = null;
         console.log(`[${new Date().toISOString()}] ElevenLabs block is temporarily disabled for testing.`);
 
-        /*
-        // Оригінальний блок ElevenLabs (закоментовано для тесту)
-        let audioBase64 = null;
-        const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-        const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
-
-        if (llmResponseText && ELEVENLABS_API_KEY) {
-            console.log(`[${new Date().toISOString()}] Attempting to generate audio with ElevenLabs.`);
-            try {
-                const elevenLabsResponse = await fetch(
-                    `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}/stream`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'audio/mpeg',
-                            'Content-Type': 'application/json',
-                            'xi-api-key': ELEVENLABS_API_KEY,
-                        },
-                        body: JSON.stringify({
-                            text: llmResponseText,
-                            model_id: 'eleven_multilingual_v2',
-                            voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-                        }),
-                    }
-                );
-
-                if (elevenLabsResponse.ok) {
-                    const audioBuffer = await elevenLabsResponse.arrayBuffer();
-                    audioBase64 = Buffer.from(audioBuffer).toString('base64');
-                    console.log(`[${new Date().toISOString()}] Audio successfully generated by ElevenLabs.`);
-                } else {
-                    const errorBody = await elevenLabsResponse.text();
-                    console.error(`[${new Date().toISOString()}] ElevenLabs API Error (${elevenLabsResponse.status}):`, errorBody);
-                }
-            } catch (elevenError) {
-                console.error(`[${new Date().toISOString()}] Error calling ElevenLabs:`, elevenError);
-            }
-        } else if (llmResponseText && !ELEVENLABS_API_KEY) {
-            console.warn(`[${new Date().toISOString()}] WARN: ELEVENLABS_API_KEY is not defined. Skipping voice generation.`);
-        }
-        audioData = audioBase64 ? `data:audio/mpeg;base64,${audioBase64}` : null;
-        */
-
-        console.log(`[${new Date().toISOString()}] Sending response to client. Text length: ${llmResponseText.length}, Audio available: ${!!audioData}`);
+        console.log(`[${new Date().toISOString()}] Sending response to client. Text length: ${geminiResponseText.length}, Audio available: ${!!audioData}`);
         res.json({
-            text: llmResponseText,
+            text: geminiResponseText,
             audioData: audioData
         });
 
     } catch (error) {
-        console.error(`[${new Date().toISOString()}] Помилка в /api/chat:`, error); // Змінив логування помилки для більшої деталізації
-        if (error.response && error.response.data) { // Це для помилок від Axios, якщо б він використовувався. Для OpenAI SDK помилка буде іншою.
-            console.error(`[${new Date().toISOString()}] Деталі помилки API (якщо є):`, error.response.data);
-            return res.status(error.response.status || 500).json({ error: error.response.data.error?.message || "Помилка при зверненні до AI сервісу." });
-        }
-        // Для помилок OpenAI SDK, структура помилки може бути іншою
-        if (error.status && error.error && error.error.message) { // Специфічно для OpenAI помилок
-            console.error(`[${new Date().toISOString()}] OpenAI API Error Status: ${error.status}, Message: ${error.error.message}`);
-            return res.status(error.status).json({ error: error.error.message });
+        console.error(`[${new Date().toISOString()}] Помилка в /api/chat:`, error);
+        if (error.message && error.message.includes('[GoogleGenerativeAI Error]')) {
+            console.error(`[${new Date().toISOString()}] Google Gemini API Error: ${error.message}`);
+            return res.status(500).json({ error: `Помилка при зверненні до Gemini AI: ${error.message}` });
         }
         res.status(500).json({ error: "Внутрішня помилка сервера при обробці чат-запиту." });
     }
