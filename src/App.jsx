@@ -2,7 +2,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import SignUp from './pages/SignUp/SignUp.jsx';
 import SignIn from './pages/SignIn/SignIn.jsx';
 import Home from './pages/Home/Home';
-import AppTheme from './shared-theme/AppTheme.jsx'; // Ensure this import is present
+import AppTheme from './shared-theme/AppTheme.jsx';
+import ChatWidget from "./widgets/ChatWidget.jsx";
 
 function App() {
     return (
@@ -17,6 +18,7 @@ function App() {
                     <Route path="/food" element={<Home />} />
                     <Route path="/community" element={<Home />} />
                 </Routes>
+                <ChatWidget />
             </Router>
         </AppTheme>
     );
