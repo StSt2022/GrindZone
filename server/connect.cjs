@@ -290,11 +290,28 @@ app.post('/api/chat', async (req, res) => {
 
         let audioData = null;
         if (geminiResponseText && ttsClient) {
-            console.log(`[${new Date().toISOString()}] Attempting to generate audio with Google Cloud TTS.`);
+            let textForSpeech = geminiResponseText;
+            textForSpeech = textForSpeech.replace(/[-,;:!?()"]/g, ' ');
+            textForSpeech = textForSpeech.replace(/\.{2,}/g, '.');
+            textForSpeech = textForSpeech.replace(/\s+/g, ' ').trim();
+            console.log(`[${new Date().toISOString()}] Text prepared for TTS: ${textForSpeech.substring(0,150)}...`);
+
+            const languageCode = 'ru-RU';
+            const voiceName = 'ru-RU-Chirp3-HD-Leda';
+            const speakingRate = 1.15;
+
+            console.log(`[${new Date().toISOString()}] Attempting to generate audio with Google Cloud TTS (Voice: ${voiceName}, Lang: ${languageCode}, Rate: ${speakingRate}, Pitch: ${pitch}).`);
+
             const ttsRequest = {
-                input: { text: geminiResponseText },
-                voice: { languageCode: 'ru-RU', name: 'ru-RU-Chirp3-HD-Leda' },
-                audioConfig: { audioEncoding: 'MP3', speakingRate: 1.15 },
+                input: { text: textForSpeech },
+                voice: {
+                    languageCode: languageCode,
+                    name: voiceName
+                },
+                audioConfig: {
+                    audioEncoding: 'MP3',
+                    speakingRate: speakingRate,
+                },
             };
             try {
                 const [ttsResponse] = await ttsClient.synthesizeSpeech(ttsRequest);
@@ -308,12 +325,12 @@ app.post('/api/chat', async (req, res) => {
                 console.error(`[${new Date().toISOString()}] Error calling Google Cloud TTS:`, ttsError);
             }
         } else if (geminiResponseText && !ttsClient) {
-            console.warn(`[${new Date().toISOString()}] WARN: Google Cloud TTS client not initialized. Skipping voice generation.`);
+            console.warn(`[${new Date().toISOString()}] WARN: Google Cloud TTS client not initialized or GOOGLE_APPLICATION_CREDENTIALS not set. Skipping voice generation.`);
         }
 
         console.log(`[${new Date().toISOString()}] Sending response to client. Text length: ${geminiResponseText.length}, Audio available: ${!!audioData}`);
         res.json({
-            text: geminiResponseText,
+            text: geminiResponseText, // Повертаємо оригінальний текст від Gemini (без видалення розділових знаків для відображення)
             audioData: audioData
         });
 
