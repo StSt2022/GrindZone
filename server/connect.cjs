@@ -294,7 +294,7 @@ app.post('/api/chat', async (req, res) => {
             const ttsRequest = {
                 input: { text: geminiResponseText },
                 voice: { languageCode: 'ru-RU', name: 'ru-RU-Chirp3-HD-Leda' },
-                audioConfig: { audioEncoding: 'MP3' },
+                audioConfig: { audioEncoding: 'MP3', speakingRate: 1.2, pitch: 5 },
             };
             try {
                 const [ttsResponse] = await ttsClient.synthesizeSpeech(ttsRequest);

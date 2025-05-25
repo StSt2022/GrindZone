@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { VolumeUp, VolumeOff } from '@mui/icons-material';
+import CloseIcon from '@mui/icons-material/Close';
 
 const YOUR_SITE_CONTEXT_FOR_BACKEND = `
 Інформація про Фітнес-Клуб "GRINDZONE":
@@ -27,8 +29,20 @@ const ChatWidget = () => {
     ]);
     const [inputText, setInputText] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [isTtsEnabled, setIsTtsEnabled] = useState(() => {
+        const savedTtsPreference = localStorage.getItem('ttsEnabled');
+        return savedTtsPreference !== null ? JSON.parse(savedTtsPreference) : true;
+    });
+
     const messagesEndRef = useRef(null);
     const audioPlayerRef = useRef(new Audio());
+
+    useEffect(() => {
+        localStorage.setItem('ttsEnabled', JSON.stringify(isTtsEnabled));
+        if (!isTtsEnabled) {
+            stopAudio();
+        }
+    }, [isTtsEnabled]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -40,16 +54,29 @@ const ChatWidget = () => {
         }
     }, [messages, isOpen]);
 
-    const toggleChat = () => setIsOpen(!isOpen);
+    const toggleChat = () => {
+        setIsOpen(!isOpen);
+        if (isOpen) {
+            stopAudio();
+        }
+    };
+
+    const toggleTts = () => {
+        setIsTtsEnabled(prev => !prev);
+    };
 
     const playAudio = (audioDataUri) => {
-        if (audioPlayerRef.current && audioDataUri) {
-            if (!audioPlayerRef.current.paused) {
-                audioPlayerRef.current.pause();
-                audioPlayerRef.current.currentTime = 0;
-            }
+        if (isTtsEnabled && audioPlayerRef.current && audioDataUri) {
+            stopAudio();
             audioPlayerRef.current.src = audioDataUri;
             audioPlayerRef.current.play().catch(e => console.error("Error playing audio:", e));
+        }
+    };
+
+    const stopAudio = () => {
+        if (audioPlayerRef.current && !audioPlayerRef.current.paused) {
+            audioPlayerRef.current.pause();
+            audioPlayerRef.current.currentTime = 0;
         }
     };
 
@@ -63,6 +90,7 @@ const ChatWidget = () => {
         setMessages(currentMessages);
         setInputText("");
         setIsLoading(true);
+        stopAudio();
 
         try {
             const historyForAPI = currentMessages.slice(0, -1).map(msg => ({
@@ -93,7 +121,7 @@ const ChatWidget = () => {
                 const botMessage = { id: Date.now() + 1, text: data.text, sender: "bot" };
                 setMessages(prevMessages => [...prevMessages, botMessage]);
 
-                if (data.audioData) {
+                if (data.audioData && isTtsEnabled) {
                     playAudio(data.audioData);
                 }
             } else {
@@ -132,13 +160,29 @@ const ChatWidget = () => {
                             <span className="uppercase tracking-[.1em] font-bold" style={{ color: '#C996FF', textShadow: '0 0 8px rgba(201, 150, 255, 0.5)'}}>GRINDZONE</span>
                             <span className="text-slate-300"> асистент</span>
                         </h3>
-                        <button
-                            onClick={toggleChat}
-                            className="text-slate-400 hover:text-slate-200 text-2xl sm:text-3xl leading-none transition-colors duration-200"
-                            aria-label="Закрити чат"
-                        >
-                            ×
-                        </button>
+                        <div className="flex items-center space-x-1"> {/* Додав space-x-1 для невеликого відступу */}
+                            <button
+                                onClick={toggleTts}
+                                className={`p-1.5 rounded-full transition-colors duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#1F1533] ${
+                                    isTtsEnabled
+                                        ? 'text-purple-300 hover:bg-purple-700/50 focus:ring-purple-500'
+                                        : 'text-slate-500 hover:bg-slate-700/50 focus:ring-slate-500'
+                                }`}
+                                style={{ width: '28px', height: '28px' }} // Задаємо однаковий розмір для обох кнопок
+                                aria-label={isTtsEnabled ? "Вимкнути озвучування" : "Увімкнути озвучування"}
+                                title={isTtsEnabled ? "Вимкнути озвучування" : "Увімкнути озвучування"}
+                            >
+                                {isTtsEnabled ? <VolumeUp sx={{ fontSize: '18px' }} /> : <VolumeOff sx={{ fontSize: '18px' }} />}
+                            </button>
+                            <button
+                                onClick={toggleChat}
+                                className="p-1.5 rounded-full text-slate-400 hover:text-slate-200 transition-colors duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#1F1533] focus:ring-slate-500"
+                                aria-label="Закрити чат"
+                                style={{ width: '28px', height: '28px' }}
+                            >
+                                <span><CloseIcon /></span>
+                            </button>
+                        </div>
                     </div>
                     <div className="flex-grow p-3 sm:p-4 overflow-y-auto space-y-3 bg-[#100A1CF2]">
                         {messages.map((msg) => (
