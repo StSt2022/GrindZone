@@ -293,7 +293,7 @@ app.post('/api/chat', async (req, res) => {
             console.log(`[${new Date().toISOString()}] Attempting to generate audio with Google Cloud TTS.`);
             const ttsRequest = {
                 input: { text: geminiResponseText },
-                voice: { languageCode: 'en-US', name: 'en-US-Chirp3-HD-Leda' },
+                voice: { languageCode: 'ru-RU', name: 'ru-RU-Chirp3-HD-Leda' },
                 audioConfig: { audioEncoding: 'MP3' },
             };
             try {
