@@ -6,8 +6,7 @@ const dotenv = require('dotenv');
 const { OAuth2Client } = require('google-auth-library');
 const path = require('path');
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
-const TextToSpeech = require('@google-cloud/text-to-speech'); // Додано для Google TTS
-// const fetch = require('node-fetch'); // Більше не потрібен для ElevenLabs, якщо не використовується для іншого
+const TextToSpeech = require('@google-cloud/text-to-speech');
 
 dotenv.config({ path: './server/config.env' });
 
@@ -294,7 +293,7 @@ app.post('/api/chat', async (req, res) => {
             console.log(`[${new Date().toISOString()}] Attempting to generate audio with Google Cloud TTS.`);
             const ttsRequest = {
                 input: { text: geminiResponseText },
-                voice: { languageCode: 'uk-UA', name: 'uk-UA-Chirp3-HD-Leda' },
+                voice: { languageCode: 'en-US', name: 'en-US-Chirp3-HD-Leda' },
                 audioConfig: { audioEncoding: 'MP3' },
             };
             try {
