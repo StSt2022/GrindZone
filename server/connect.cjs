@@ -71,6 +71,7 @@ if (process.env.OPENAI_API_KEY) {
     openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
     });
+    console.log('OpenAI client initialized.');
 } else {
     console.warn('WARN: OPENAI_API_KEY is not defined. Chat assistant functionality will be limited to mock responses.');
 }
@@ -87,22 +88,9 @@ app.post('/signup', async (req, res) => {
             return res.status(400).json({ message: 'Користувач із такою поштою вже існує' });
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = {
-            name,
-            email,
-            password: hashedPassword,
-            googleId: null,
-            allowExtraEmails: allowExtraEmails || false,
-            collection: [],
-            createdAt: new Date(),
-        };
+        const newUser = { name, email, password: hashedPassword, googleId: null, allowExtraEmails: allowExtraEmails || false, collection: [], createdAt: new Date() };
         const result = await usersCollection.insertOne(newUser);
-        res.status(201).json({
-            message: 'Користувач успішно створений',
-            userId: result.insertedId,
-            name: newUser.name,
-            email: newUser.email,
-        });
+        res.status(201).json({ message: 'Користувач успішно створений', userId: result.insertedId, name: newUser.name, email: newUser.email });
     } catch (error) {
         console.error('Error during signup:', error);
         res.status(500).json({ message: 'Помилка сервера під час реєстрації' });
@@ -116,10 +104,7 @@ app.post('/signup/google', async (req, res) => {
             return res.status(400).json({ message: 'Усі поля від Google є обов’язковими' });
         }
         if (!clientGoogle) return res.status(500).json({ message: 'Серверна помилка конфігурації Google.' });
-        const ticket = await clientGoogle.verifyIdToken({
-            idToken: idToken,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
+        const ticket = await clientGoogle.verifyIdToken({ idToken: idToken, audience: process.env.GOOGLE_CLIENT_ID });
         const payload = ticket.getPayload();
         if (payload['sub'] !== googleId) {
             return res.status(401).json({ message: 'Невірний Google ID' });
@@ -128,36 +113,15 @@ app.post('/signup/google', async (req, res) => {
         let user = await usersCollection.findOne({ email });
         if (user) {
             if (!user.googleId) {
-                await usersCollection.updateOne(
-                    { email },
-                    { $set: { googleId: googleId, name: user.name || name } }
-                );
+                await usersCollection.updateOne({ email }, { $set: { googleId: googleId, name: user.name || name } });
                 user = await usersCollection.findOne({ email });
             }
-            res.status(200).json({
-                message: 'Користувач успішно увійшов через Google',
-                userId: user._id,
-                email: user.email,
-                name: user.name,
-            });
+            res.status(200).json({ message: 'Користувач успішно увійшов через Google', userId: user._id, email: user.email, name: user.name });
         } else {
-            const newUser = {
-                name: name || email.split('@')[0],
-                email,
-                googleId,
-                password: null,
-                allowExtraEmails: payload.email_verified || false,
-                collection: [],
-                createdAt: new Date(),
-            };
+            const newUser = { name: name || email.split('@')[0], email, googleId, password: null, allowExtraEmails: payload.email_verified || false, collection: [], createdAt: new Date() };
             const result = await usersCollection.insertOne(newUser);
             const createdUser = await usersCollection.findOne({ _id: result.insertedId });
-            res.status(201).json({
-                message: 'Користувач успішно створений через Google',
-                userId: result.insertedId,
-                email: createdUser.email,
-                name: createdUser.name,
-            });
+            res.status(201).json({ message: 'Користувач успішно створений через Google', userId: result.insertedId, email: createdUser.email, name: createdUser.name });
         }
     } catch (error) {
         console.error('Error during Google signup:', error);
@@ -184,10 +148,7 @@ app.post('/auth/google/fedcm', async (req, res) => {
             console.error('Google client not initialized. Check GOOGLE_CLIENT_ID.');
             return res.status(500).json({ message: 'Серверна помилка конфігурації Google.' });
         }
-        const ticket = await clientGoogle.verifyIdToken({
-            idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
+        const ticket = await clientGoogle.verifyIdToken({ idToken: token, audience: process.env.GOOGLE_CLIENT_ID });
         const payload = ticket.getPayload();
         const email = payload.email;
         const name = payload.name;
@@ -199,36 +160,15 @@ app.post('/auth/google/fedcm', async (req, res) => {
         let user = await usersCollection.findOne({ email });
         if (user) {
             if (!user.googleId) {
-                await usersCollection.updateOne(
-                    { email },
-                    { $set: { googleId: googleId, name: user.name || name } }
-                );
+                await usersCollection.updateOne({ email }, { $set: { googleId: googleId, name: user.name || name } });
                 user = await usersCollection.findOne({ email });
             }
-            res.status(200).json({
-                message: 'Користувач успішно увійшов через Google',
-                userId: user._id,
-                email: user.email,
-                name: user.name,
-            });
+            res.status(200).json({ message: 'Користувач успішно увійшов через Google', userId: user._id, email: user.email, name: user.name });
         } else {
-            const newUser = {
-                name: name || email.split('@')[0],
-                email,
-                googleId,
-                password: null,
-                allowExtraEmails: payload.email_verified || false,
-                collection: [],
-                createdAt: new Date(),
-            };
+            const newUser = { name: name || email.split('@')[0], email, googleId, password: null, allowExtraEmails: payload.email_verified || false, collection: [], createdAt: new Date() };
             const result = await usersCollection.insertOne(newUser);
             const createdUser = await usersCollection.findOne({ _id: result.insertedId });
-            res.status(201).json({
-                message: 'Користувач успішно створений через Google',
-                userId: result.insertedId,
-                email: createdUser.email,
-                name: createdUser.name,
-            });
+            res.status(201).json({ message: 'Користувач успішно створений через Google', userId: result.insertedId, email: createdUser.email, name: createdUser.name });
         }
     } catch (error) {
         console.error('Error during Google FedCM/Sign-In auth:', error);
@@ -257,20 +197,13 @@ app.post('/signin', async (req, res) => {
             return res.status(401).json({ message: 'Користувач із такою поштою не існує' });
         }
         if (!user.password) {
-            return res.status(401).json({
-                message: 'Цей користувач зареєстрований через Google. Використовуйте вхід через Google.',
-            });
+            return res.status(401).json({ message: 'Цей користувач зареєстрований через Google. Використовуйте вхід через Google.' });
         }
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             return res.status(401).json({ message: 'Неправильний пароль' });
         }
-        res.status(200).json({
-            message: 'Успішний вхід',
-            userId: user._id,
-            name: user.name,
-            email: user.email,
-        });
+        res.status(200).json({ message: 'Успішний вхід', userId: user._id, name: user.name, email: user.email });
     } catch (error) {
         console.error('Error during signin:', error);
         res.status(500).json({ message: 'Помилка сервера під час входу' });
@@ -278,14 +211,19 @@ app.post('/signin', async (req, res) => {
 });
 
 app.post('/api/chat', async (req, res) => {
+    console.log(`[${new Date().toISOString()}] POST /api/chat request received`);
     try {
         const { userMessage, chatHistory, siteContext } = req.body;
+        console.log(`[${new Date().toISOString()}] User Message: ${userMessage}`);
+        // console.log(`[${new Date().toISOString()}] Chat History: ${JSON.stringify(chatHistory, null, 2)}`); // Розкоментуй для детального логування історії
+        // console.log(`[${new Date().toISOString()}] Site Context: ${siteContext.substring(0, 100)}...`); // Логування частини контексту
 
         if (!userMessage || !siteContext) {
+            console.error(`[${new Date().toISOString()}] Missing userMessage or siteContext`);
             return res.status(400).json({ error: "Відсутнє повідомлення користувача або контекст сайту." });
         }
         if (!openai) {
-            console.log("OpenAI client not initialized. Returning mock response for chat.");
+            console.log(`[${new Date().toISOString()}] OpenAI client not initialized. Returning mock response for chat.`);
             const mockBotReply = `Мок-відповідь: отримано "${userMessage}". Налаштуйте OpenAI API ключ для реальних відповідей.`;
             return res.json({ text: mockBotReply, audioData: null });
         }
@@ -305,19 +243,31 @@ app.post('/api/chat', async (req, res) => {
         }
         messagesForLLM.push({ role: "user", content: userMessage });
 
+        console.log(`[${new Date().toISOString()}] Sending request to OpenAI... Model: gpt-3.5-turbo`); // Змінив модель на більш імовірну
+        // console.log(`[${new Date().toISOString()}] Messages for LLM: ${JSON.stringify(messagesForLLM, null, 2)}`); // Розкоментуй для повного логування запиту
+
         const completion = await openai.chat.completions.create({
-            model: "gpt-4.1",
+            model: "gpt-3.5-turbo", // Використовуємо gpt-3.5-turbo, бо gpt-4.1 не існує як стандартна назва
             messages: messagesForLLM,
             temperature: 0.7,
         });
+        console.log(`[${new Date().toISOString()}] Received response from OpenAI.`);
 
         const llmResponseText = completion.choices[0].message.content.trim();
-        let audioBase64 = null;
+        console.log(`[${new Date().toISOString()}] LLM Response Text: ${llmResponseText.substring(0, 150)}...`);
 
+        // ТИМЧАСОВО ВІДКЛЮЧАЄМО ElevenLabs для тестування
+        const audioData = null;
+        console.log(`[${new Date().toISOString()}] ElevenLabs block is temporarily disabled for testing.`);
+
+        /*
+        // Оригінальний блок ElevenLabs (закоментовано для тесту)
+        let audioBase64 = null;
         const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
         const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
 
         if (llmResponseText && ELEVENLABS_API_KEY) {
+            console.log(`[${new Date().toISOString()}] Attempting to generate audio with ElevenLabs.`);
             try {
                 const elevenLabsResponse = await fetch(
                     `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}/stream`,
@@ -339,27 +289,36 @@ app.post('/api/chat', async (req, res) => {
                 if (elevenLabsResponse.ok) {
                     const audioBuffer = await elevenLabsResponse.arrayBuffer();
                     audioBase64 = Buffer.from(audioBuffer).toString('base64');
+                    console.log(`[${new Date().toISOString()}] Audio successfully generated by ElevenLabs.`);
                 } else {
                     const errorBody = await elevenLabsResponse.text();
-                    console.error(`ElevenLabs API Error (${elevenLabsResponse.status}):`, errorBody);
+                    console.error(`[${new Date().toISOString()}] ElevenLabs API Error (${elevenLabsResponse.status}):`, errorBody);
                 }
             } catch (elevenError) {
-                console.error("Error calling ElevenLabs:", elevenError);
+                console.error(`[${new Date().toISOString()}] Error calling ElevenLabs:`, elevenError);
             }
         } else if (llmResponseText && !ELEVENLABS_API_KEY) {
-            console.warn("WARN: ELEVENLABS_API_KEY is not defined. Skipping voice generation.");
+            console.warn(`[${new Date().toISOString()}] WARN: ELEVENLABS_API_KEY is not defined. Skipping voice generation.`);
         }
+        audioData = audioBase64 ? `data:audio/mpeg;base64,${audioBase64}` : null;
+        */
 
+        console.log(`[${new Date().toISOString()}] Sending response to client. Text length: ${llmResponseText.length}, Audio available: ${!!audioData}`);
         res.json({
             text: llmResponseText,
-            audioData: audioBase64 ? `data:audio/mpeg;base64,${audioBase64}` : null
+            audioData: audioData
         });
 
     } catch (error) {
-        console.error("Помилка в /api/chat:", error.message);
-        if (error.response && error.response.data) {
-            console.error("Деталі помилки API:", error.response.data);
+        console.error(`[${new Date().toISOString()}] Помилка в /api/chat:`, error); // Змінив логування помилки для більшої деталізації
+        if (error.response && error.response.data) { // Це для помилок від Axios, якщо б він використовувався. Для OpenAI SDK помилка буде іншою.
+            console.error(`[${new Date().toISOString()}] Деталі помилки API (якщо є):`, error.response.data);
             return res.status(error.response.status || 500).json({ error: error.response.data.error?.message || "Помилка при зверненні до AI сервісу." });
+        }
+        // Для помилок OpenAI SDK, структура помилки може бути іншою
+        if (error.status && error.error && error.error.message) { // Специфічно для OpenAI помилок
+            console.error(`[${new Date().toISOString()}] OpenAI API Error Status: ${error.status}, Message: ${error.error.message}`);
+            return res.status(error.status).json({ error: error.error.message });
         }
         res.status(500).json({ error: "Внутрішня помилка сервера при обробці чат-запиту." });
     }
