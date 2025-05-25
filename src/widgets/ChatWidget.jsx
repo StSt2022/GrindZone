@@ -35,98 +35,78 @@ const ChatWidget = () => {
     };
 
     useEffect(() => {
-        if (isOpen) scrollToBottom();
+        if (isOpen) {
+            scrollToBottom();
+        }
     }, [messages, isOpen]);
 
     const toggleChat = () => setIsOpen(!isOpen);
 
-    async function getLLMResponse(userMessage, chatHistory, siteContext) {
-        setIsLoading(true);
-        console.log("Sending to backend (LLM):", { userMessage, chatHistory, siteContext });
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        let mockReply = `Я отримав твоє повідомлення: "${userMessage}". Звернись до відповідної сторінки сайту GRINDZONE або уточни запит. (Це мок-відповідь LLM)`;
-        if (userMessage.toLowerCase().includes("ціна")) {
-            mockReply = "Інформацію про ціни та абонементи GRINDZONE можна знайти на сторінці 'Ціни'. (Мок LLM)";
-        } else if (userMessage.toLowerCase().includes("розклад")) {
-            mockReply = "Актуальний розклад занять GRINDZONE є на сайті на сторінці 'Розклад'. (Мок LLM)";
-        }
-        setIsLoading(false);
-        return { text: mockReply, audioUrl: null }; // Текст звичайним регістром
-    }
-
-    // ... (getElevenLabsAudio та playAudio залишаються без змін) ...
-    async function getElevenLabsAudio(textToSpeak) {
-        const ELEVENLABS_API_KEY = "ТВІЙ_СПРАВЖНІЙ_API_КЛЮЧ_ELEVENLABS";
-        const VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
-
-        if (!ELEVENLABS_API_KEY || ELEVENLABS_API_KEY === "ТВІЙ_СПРАВЖНІЙ_API_КЛЮЧ_ELEVENLABS") {
-            console.warn("ElevenLabs API key not set. Skipping audio playback.");
-            return null;
-        }
-        setIsLoading(true);
-        try {
-            const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}/stream`, {
-                method: 'POST',
-                headers: { 'Accept': 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': ELEVENLABS_API_KEY },
-                body: JSON.stringify({
-                    text: textToSpeak, model_id: 'eleven_multilingual_v2',
-                    voice_settings: { stability: 0.5, similarity_boost: 0.75 }
-                }),
-            });
-            if (!response.ok) throw new Error(`ElevenLabs API error: ${response.statusText}`);
-            const audioBlob = await response.blob();
-            return URL.createObjectURL(audioBlob);
-        } catch (error) {
-            console.error('Error fetching audio from ElevenLabs:', error);
-            return null;
-        } finally {
-            setIsLoading(false);
-        }
-    }
-
-    const playAudio = (audioUrl) => {
-        if (audioPlayerRef.current) {
-            if (!audioPlayerRef.current.paused) audioPlayerRef.current.pause();
-            audioPlayerRef.current.src = audioUrl;
+    const playAudio = (audioDataUri) => {
+        if (audioPlayerRef.current && audioDataUri) {
+            if (!audioPlayerRef.current.paused) {
+                audioPlayerRef.current.pause();
+                audioPlayerRef.current.currentTime = 0;
+            }
+            audioPlayerRef.current.src = audioDataUri;
             audioPlayerRef.current.play().catch(e => console.error("Error playing audio:", e));
-            audioPlayerRef.current.onended = () => { URL.revokeObjectURL(audioUrl); };
         }
     };
 
-
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        const trimmedInput = inputText.trim(); // Звичайний регістр
+        const trimmedInput = inputText.trim();
         if (trimmedInput === "" || isLoading) return;
 
         const newUserMessage = { id: Date.now(), text: trimmedInput, sender: "user" };
-        const updatedMessages = [...messages, newUserMessage];
-        setMessages(updatedMessages);
+        const currentMessages = [...messages, newUserMessage];
+        setMessages(currentMessages);
         setInputText("");
         setIsLoading(true);
 
         try {
-            const historyForAPI = updatedMessages.slice(-10).map(msg => ({
-                role: msg.sender === 'user' ? 'user' : 'assistant',
-                content: msg.text
+            const historyForAPI = currentMessages.slice(0, -1).map(msg => ({
+                sender: msg.sender,
+                text: msg.text
             }));
 
-            const { text: botResponseText } = await getLLMResponse(
-                trimmedInput, historyForAPI, YOUR_SITE_CONTEXT_FOR_BACKEND
-            );
+            const response = await fetch('http://localhost:3000/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userMessage: trimmedInput,
+                    chatHistory: historyForAPI,
+                    siteContext: YOUR_SITE_CONTEXT_FOR_BACKEND
+                }),
+            });
 
-            if (botResponseText) {
-                const botMessage = { id: Date.now() + 1, text: botResponseText, sender: "bot" };
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP помилка! Статус: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.text) {
+                const botMessage = { id: Date.now() + 1, text: data.text, sender: "bot" };
                 setMessages(prevMessages => [...prevMessages, botMessage]);
-                // const audioUrl = await getElevenLabsAudio(botResponseText);
-                // if (audioUrl) playAudio(audioUrl);
+
+                if (data.audioData) {
+                    playAudio(data.audioData);
+                }
             } else {
-                const errorMessage = { id: Date.now() + 1, text: "Вибач, не вдалося отримати відповідь.", sender: "bot" };
+                const errorMessage = { id: Date.now() + 1, text: "Вибач, не вдалося отримати змістовну відповідь.", sender: "bot" };
                 setMessages(prevMessages => [...prevMessages, errorMessage]);
             }
+
         } catch (error) {
-            console.error("Error in handleSendMessage:", error);
-            const errorMessage = { id: Date.now() + 1, text: "Вибач, сталася помилка. Спробуй пізніше.", sender: "bot" };
+            console.error("Помилка в handleSendMessage:", error);
+            const errorMessageText = error.message.includes("Failed to fetch")
+                ? "Не вдалося з'єднатися з сервером. Перевір, чи він запущений, та налаштування CORS."
+                : error.message.startsWith("HTTP помилка!") ? error.message : "Вибач, сталася помилка. Спробуй пізніше.";
+            const errorMessage = { id: Date.now() + 1, text: errorMessageText, sender: "bot" };
             setMessages(prevMessages => [...prevMessages, errorMessage]);
         } finally {
             setIsLoading(false);
@@ -138,7 +118,6 @@ const ChatWidget = () => {
             {!isOpen && (
                 <button
                     onClick={toggleChat}
-                    // Фон кнопки залишаємо яскравим для привернення уваги
                     className="fixed bottom-6 right-6 bg-gradient-to-br from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white w-16 h-16 rounded-full shadow-2xl shadow-purple-500/50 flex items-center justify-center text-3xl z-[999] transition-all duration-300 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-purple-400 focus:ring-opacity-75"
                     aria-label="Відкрити чат"
                 >
@@ -147,9 +126,7 @@ const ChatWidget = () => {
             )}
 
             {isOpen && (
-                <div className="fixed bottom-6 right-6 w-[calc(100vw-48px)] sm:w-[420px] h-[75vh] max-h-[600px] bg-[#140D23F8] rounded-2xl shadow-2xl shadow-purple-900/60 flex flex-col z-[1000] border border-[#4A3F6A99] overflow-hidden"
-                >
-                    {/* Хедер чату */}
+                <div className="fixed bottom-6 right-6 w-[calc(100vw-48px)] sm:w-[420px] h-[75vh] max-h-[600px] bg-[#140D23F8] rounded-2xl shadow-2xl shadow-purple-900/60 flex flex-col z-[1000] border border-[#4A3F6A99] overflow-hidden">
                     <div className="bg-[#1F1533] text-white p-3 sm:p-4 rounded-t-2xl flex justify-between items-center border-b border-[#4A3F6A99]">
                         <h3 className="font-semibold text-base sm:text-lg">
                             <span className="uppercase tracking-[.1em] font-bold" style={{ color: '#C996FF', textShadow: '0 0 8px rgba(201, 150, 255, 0.5)'}}>GRINDZONE</span>
@@ -163,21 +140,14 @@ const ChatWidget = () => {
                             ×
                         </button>
                     </div>
-
-                    {/* Область повідомлень */}
-                    <div className="flex-grow p-3 sm:p-4 overflow-y-auto space-y-3 bg-[#100A1CF2]"> {/* Дуже темний фон */}
+                    <div className="flex-grow p-3 sm:p-4 overflow-y-auto space-y-3 bg-[#100A1CF2]">
                         {messages.map((msg) => (
                             <div
                                 key={msg.id}
                                 className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
                                 <div
-                                    className={`max-w-[85%] p-2.5 sm:p-3 rounded-xl break-words text-sm sm:text-base shadow-md
-                                        ${
-                                        msg.sender === 'user'
-                                            ? 'bg-indigo-600 text-slate-50 rounded-br-none' // Більш спокійний колір для користувача
-                                            : 'bg-[#2C2045F5] text-slate-200 rounded-bl-none' // Фон для бота, як на скріншоті
-                                    }`}
+                                    className={`max-w-[85%] p-2.5 sm:p-3 rounded-xl break-words text-sm sm:text-base shadow-md ${msg.sender === 'user' ? 'bg-indigo-600 text-slate-50 rounded-br-none' : 'bg-[#2C2045F5] text-slate-200 rounded-bl-none'}`}
                                 >
                                     {msg.text}
                                 </div>
@@ -192,8 +162,6 @@ const ChatWidget = () => {
                         )}
                         <div ref={messagesEndRef} />
                     </div>
-
-                    {/* Форма вводу */}
                     <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-[#4A3F6A99] bg-[#1F1533F5]">
                         <div className="flex items-center space-x-2">
                             <input
@@ -201,14 +169,12 @@ const ChatWidget = () => {
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 placeholder={isLoading ? "Завантаження..." : "Ваше питання до GRINDZONE..."}
-                                // Стилі для поля вводу, як на скріншоті
                                 className="flex-grow p-2.5 sm:p-3 bg-[#170F2AE6] border border-[#594A8D] rounded-lg text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm sm:text-base"
                                 autoFocus
                                 disabled={isLoading}
                             />
                             <button
                                 type="submit"
-                                // Кнопка з градієнтом, як на скріншоті
                                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white p-2.5 sm:p-3 rounded-lg font-bold text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-75 disabled:opacity-70 transition-all duration-200"
                                 disabled={!inputText.trim() || isLoading}
                             >

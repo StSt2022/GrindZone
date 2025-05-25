@@ -4,26 +4,36 @@ const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { OAuth2Client } = require('google-auth-library');
-const path = require('path'); // Додаємо path
+const path = require('path');
+const OpenAI = require('openai');
+const fetch = require('node-fetch');
 
 dotenv.config({ path: './server/config.env' });
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-if (!process.env.GOOGLE_CLIENT_ID) {
+let clientGoogle;
+if (process.env.GOOGLE_CLIENT_ID) {
+    clientGoogle = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+} else {
     console.error('Error: GOOGLE_CLIENT_ID is not defined in config.env');
 }
-const clientGoogle = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const allowedOrigins = [
     'http://localhost:5173',
-    'https://your-app.netlify.app', // Замініть на ваш продакшен URL
+    'https://your-app.netlify.app',
 ];
 
 app.use(
     cors({
-        origin: allowedOrigins,
+        origin: function (origin, callback) {
+            if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
         methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
         allowedHeaders: ['Content-Type', 'Authorization'],
         credentials: true,
@@ -32,10 +42,7 @@ app.use(
 );
 
 app.options('*', cors());
-
 app.use(express.json());
-
-// Статичні файли (для SPA)
 app.use(express.static(path.join(__dirname, '../dist')));
 
 if (!process.env.ATLAS_URI) {
@@ -59,7 +66,15 @@ async function connectToMongo() {
 
 connectToMongo();
 
-// Ваші існуючі ендпоінти (/signup, /signup/google, /auth/google/fedcm, /signin)
+let openai;
+if (process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+    });
+} else {
+    console.warn('WARN: OPENAI_API_KEY is not defined. Chat assistant functionality will be limited to mock responses.');
+}
+
 app.post('/signup', async (req, res) => {
     try {
         const { name, email, password, allowExtraEmails } = req.body;
@@ -100,6 +115,7 @@ app.post('/signup/google', async (req, res) => {
         if (!name || !email || !googleId || !idToken) {
             return res.status(400).json({ message: 'Усі поля від Google є обов’язковими' });
         }
+        if (!clientGoogle) return res.status(500).json({ message: 'Серверна помилка конфігурації Google.' });
         const ticket = await clientGoogle.verifyIdToken({
             idToken: idToken,
             audience: process.env.GOOGLE_CLIENT_ID,
@@ -146,17 +162,11 @@ app.post('/signup/google', async (req, res) => {
     } catch (error) {
         console.error('Error during Google signup:', error);
         if (error.message) {
-            if (
-                error.message.includes('Token used too late') ||
-                error.message.includes('Invalid ID token') ||
-                error.message.includes('Invalid token signature')
-            ) {
+            if ( error.message.includes('Token used too late') || error.message.includes('Invalid ID token') || error.message.includes('Invalid token signature') ) {
                 return res.status(401).json({ message: 'Недійсний або прострочений токен Google' });
             }
             if (error.message.includes('Wrong recipient') || error.message.includes('audience')) {
-                console.error(
-                    'AUDIENCE MISMATCH: Ensure GOOGLE_CLIENT_ID on server matches the one used by the client.'
-                );
+                console.error('AUDIENCE MISMATCH: Ensure GOOGLE_CLIENT_ID on server matches the one used by the client.');
                 return res.status(401).json({ message: 'Помилка конфігурації Google Client ID.' });
             }
         }
@@ -223,17 +233,11 @@ app.post('/auth/google/fedcm', async (req, res) => {
     } catch (error) {
         console.error('Error during Google FedCM/Sign-In auth:', error);
         if (error.message) {
-            if (
-                error.message.includes('Token used too late') ||
-                error.message.includes('Invalid ID token') ||
-                error.message.includes('Invalid token signature')
-            ) {
+            if (error.message.includes('Token used too late') || error.message.includes('Invalid ID token') || error.message.includes('Invalid token signature')) {
                 return res.status(401).json({ message: 'Недійсний або прострочений токен Google' });
             }
             if (error.message.includes('Wrong recipient') || error.message.includes('audience')) {
-                console.error(
-                    'AUDIENCE MISMATCH: Ensure GOOGLE_CLIENT_ID on server matches the one used by the client.'
-                );
+                console.error('AUDIENCE MISMATCH: Ensure GOOGLE_CLIENT_ID on server matches the one used by the client.');
                 return res.status(401).json({ message: 'Помилка конфігурації Google Client ID.' });
             }
         }
@@ -273,6 +277,94 @@ app.post('/signin', async (req, res) => {
     }
 });
 
+app.post('/api/chat', async (req, res) => {
+    try {
+        const { userMessage, chatHistory, siteContext } = req.body;
+
+        if (!userMessage || !siteContext) {
+            return res.status(400).json({ error: "Відсутнє повідомлення користувача або контекст сайту." });
+        }
+        if (!openai) {
+            console.log("OpenAI client not initialized. Returning mock response for chat.");
+            const mockBotReply = `Мок-відповідь: отримано "${userMessage}". Налаштуйте OpenAI API ключ для реальних відповідей.`;
+            return res.json({ text: mockBotReply, audioData: null });
+        }
+
+        let messagesForLLM = [
+            {
+                role: "system",
+                content: `Ти - корисний AI-асистент фітнес-клубу "GRINDZONE". Твоя мета - відповідати на запитання користувачів на основі наданої інформації про клуб та загальних знань про фітнес і здоровий спосіб життя. Дотримуйся правил, описаних в секції "Правила асистента". Наданий контекст про GRINDZONE:\n${siteContext}`
+            },
+        ];
+
+        if (chatHistory && chatHistory.length > 0) {
+            chatHistory.forEach(msg => {
+                const role = msg.sender === 'user' ? 'user' : (msg.sender === 'bot' ? 'assistant' : 'user');
+                messagesForLLM.push({ role: role, content: msg.text });
+            });
+        }
+        messagesForLLM.push({ role: "user", content: userMessage });
+
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4.1",
+            messages: messagesForLLM,
+            temperature: 0.7,
+        });
+
+        const llmResponseText = completion.choices[0].message.content.trim();
+        let audioBase64 = null;
+
+        const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+        const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
+
+        if (llmResponseText && ELEVENLABS_API_KEY) {
+            try {
+                const elevenLabsResponse = await fetch(
+                    `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}/stream`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'audio/mpeg',
+                            'Content-Type': 'application/json',
+                            'xi-api-key': ELEVENLABS_API_KEY,
+                        },
+                        body: JSON.stringify({
+                            text: llmResponseText,
+                            model_id: 'eleven_multilingual_v2',
+                            voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+                        }),
+                    }
+                );
+
+                if (elevenLabsResponse.ok) {
+                    const audioBuffer = await elevenLabsResponse.arrayBuffer();
+                    audioBase64 = Buffer.from(audioBuffer).toString('base64');
+                } else {
+                    const errorBody = await elevenLabsResponse.text();
+                    console.error(`ElevenLabs API Error (${elevenLabsResponse.status}):`, errorBody);
+                }
+            } catch (elevenError) {
+                console.error("Error calling ElevenLabs:", elevenError);
+            }
+        } else if (llmResponseText && !ELEVENLABS_API_KEY) {
+            console.warn("WARN: ELEVENLABS_API_KEY is not defined. Skipping voice generation.");
+        }
+
+        res.json({
+            text: llmResponseText,
+            audioData: audioBase64 ? `data:audio/mpeg;base64,${audioBase64}` : null
+        });
+
+    } catch (error) {
+        console.error("Помилка в /api/chat:", error.message);
+        if (error.response && error.response.data) {
+            console.error("Деталі помилки API:", error.response.data);
+            return res.status(error.response.status || 500).json({ error: error.response.data.error?.message || "Помилка при зверненні до AI сервісу." });
+        }
+        res.status(500).json({ error: "Внутрішня помилка сервера при обробці чат-запиту." });
+    }
+});
+
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'), (err) => {
         if (err) {
@@ -288,14 +380,18 @@ app.listen(port, () => {
 
 process.on('SIGINT', async () => {
     console.log('SIGINT received. Shutting down gracefully...');
-    await clientMongo.close();
-    console.log('MongoDB connection closed.');
+    if (clientMongo && typeof clientMongo.close === 'function') {
+        await clientMongo.close();
+        console.log('MongoDB connection closed.');
+    }
     process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
     console.log('SIGTERM received. Shutting down gracefully...');
-    await clientMongo.close();
-    console.log('MongoDB connection closed.');
+    if (clientMongo && typeof clientMongo.close === 'function') {
+        await clientMongo.close();
+        console.log('MongoDB connection closed.');
+    }
     process.exit(0);
 });
