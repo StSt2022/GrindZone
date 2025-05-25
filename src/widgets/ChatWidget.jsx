@@ -70,7 +70,7 @@ const ChatWidget = () => {
                 text: msg.text
             }));
 
-            const response = await fetch('http://localhost:3000/api/chat', {
+            const response = await fetch('https://grindzone.onrender.com/api/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
