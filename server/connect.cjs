@@ -267,7 +267,7 @@ app.post('/api/chat', async (req, res) => {
 
         const chat = geminiModel.startChat({
             history: geminiHistory,
-            generationConfig: { maxOutputTokens: 800, temperature: 0.7, },
+            generationConfig: { maxOutputTokens: 800, temperature: 1.0, },
             safetySettings: [
                 { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
                 { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
@@ -294,7 +294,7 @@ app.post('/api/chat', async (req, res) => {
             const ttsRequest = {
                 input: { text: geminiResponseText },
                 voice: { languageCode: 'ru-RU', name: 'ru-RU-Chirp3-HD-Leda' },
-                audioConfig: { audioEncoding: 'MP3', speakingRate: 1.2 },
+                audioConfig: { audioEncoding: 'MP3', speakingRate: 1.15 },
             };
             try {
                 const [ttsResponse] = await ttsClient.synthesizeSpeech(ttsRequest);
