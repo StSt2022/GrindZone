@@ -22,7 +22,7 @@ if (process.env.GOOGLE_CLIENT_ID) {
 
 const allowedOrigins = [
     'http://localhost:5173',
-    'https://your-app.netlify.app',
+    'https://grindzone.onrender.com',
 ];
 
 app.use(
