@@ -18,47 +18,35 @@ import CardContent from '@mui/material/CardContent';
 import Grid from '@mui/material/Grid';
 import Slider from '@mui/material/Slider';
 import { styled } from '@mui/material/styles';
-import AppTheme from '../../shared-theme/AppTheme.jsx'; // Переконайтесь, що шлях правильний
+import AppTheme from '../../shared-theme/AppTheme.jsx';
 import { keyframes } from '@emotion/react';
+import Footer from "../../components/Footer.jsx";
 
-// Icons
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import PeopleIcon from '@mui/icons-material/People';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-// AccessTimeIcon // Не використовується прямо, але може бути потрібен
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import LocalDrinkIcon from '@mui/icons-material/LocalDrink';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 
-// Icons for Growth Slider
 import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 
-// Icons for Training Types
 import SelfImprovementIcon from '@mui/icons-material/SelfImprovement';
 
-// Social Media Icons for Footer
-import FacebookIcon from '@mui/icons-material/Facebook';
-import InstagramIcon from '@mui/icons-material/Instagram';
-import TwitterIcon from '@mui/icons-material/Twitter';
-import LinkedInIcon from '@mui/icons-material/LinkedIn';
-import GitHubIcon from '@mui/icons-material/GitHub';
 
 
-// Animations
-const pulseGlow = keyframes`0% { box-shadow: 0 0 15px 0 rgba(138, 43, 226, 0.4); } 50% { box-shadow: 0 0 25px 5px rgba(138, 43, 226, 0.7); } 100% { box-shadow: 0 0 15px 0 rgba(138, 43, 226, 0.4); }`;
 const gridLineGlow = keyframes`0% { opacity: 0.05; } 50% { opacity: 0.1; } 100% { opacity: 0.05; }`;
-const fadeInUp = keyframes`0% { opacity: 0; transform: translateY(10px) translateZ(0); } 50% { opacity: 1; transform: translateY(0) translateZ(0); } 100% { opacity: 0; transform: translateY(-10px) translateZ(0); }`; // Додав translateZ(0)
-const pulseScroll = keyframes`0% { transform: scale(1) translateZ(0); } 50% { transform: scale(1.05) translateZ(0); } 100% { transform: scale(1) translateZ(0); }`; // Додав translateZ(0)
+const fadeInUp = keyframes`0% { opacity: 0; transform: translateY(10px) translateZ(0); } 50% { opacity: 1; transform: translateY(0) translateZ(0); } 100% { opacity: 0; transform: translateY(-10px) translateZ(0); }`;
+const pulseScroll = keyframes`0% { transform: scale(1) translateZ(0); } 50% { transform: scale(1.05) translateZ(0); } 100% { transform: scale(1) translateZ(0); }`;
 const energyPulse = keyframes`
     0% {transform: scale(0.5) translateZ(0); opacity: 0; box-shadow: 0 0 0 0 rgba(138, 43, 226, 0.7);}
     50% {opacity: 0.8; box-shadow: 0 0 20px 10px rgba(138, 43, 226, 0.4);}
     100% {transform: scale(1.5) translateZ(0); opacity: 0; box-shadow: 0 0 30px 20px rgba(138, 43, 226, 0);}
 `;
-const textFadeInUp = keyframes`from {opacity: 0; transform: translateY(30px) translateZ(0);} to {opacity: 1; transform: translateY(0) translateZ(0);}`; // Додав translateZ(0)
-const flowingGradient = keyframes`0% { background-position: -200% center; } 100% { background-position: 200% center; }`;
+const textFadeInUp = keyframes`from {opacity: 0; transform: translateY(30px) translateZ(0);} to {opacity: 1; transform: translateY(0) translateZ(0);}`;
 
 
 const gridBackgroundStyles = {
@@ -95,51 +83,6 @@ const trainingTypes = [
     { title: "Харчування", icon: <RestaurantMenuIcon sx={{ fontSize: '3rem', color: '#66bb6a' }} />, description: "Контролюй вагу та енергію.", bgColor: 'rgba(102, 187, 106, 0.1)' },
 ];
 
-// Styled components for Footer
-const FooterContainer = styled(Box)(({ theme }) => ({
-    paddingTop: theme.spacing(4),
-    paddingBottom: theme.spacing(4),
-    paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(2),
-    backgroundColor: 'rgba(10, 5, 18, 0.97)',
-    color: 'rgba(230, 220, 255, 0.7)',
-    textAlign: 'center',
-    position: 'relative',
-    overflow: 'hidden', // Важливо для обрізання будь-яких виступаючих частин ::before
-    marginTop: 'auto',
-    zIndex: 10, // Вищий zIndex для футера
-    isolation: 'isolate', // Створення нового контексту стекування для футера
-    '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '3px', // Тонка лінія
-        background: `linear-gradient(90deg, transparent 0%, rgba(198, 126, 255, 0.5) 20%, #a96cff 50%, rgba(198, 126, 255, 0.5) 80%, transparent 100%)`,
-        backgroundSize: '300% auto',
-        animation: `${flowingGradient} 7s linear infinite`,
-        zIndex: 1, // Над фоном футера, але під контентом футера, якщо потрібно
-        transform: 'translateZ(0)', // Спроба апаратного прискорення для ::before
-        backfaceVisibility: 'hidden', // Може допомогти з рендерингом
-        // imageRendering: 'pixelated', // Можна спробувати 'pixelated' або 'crisp-edges', якщо градієнт розмитий, але це може погіршити вигляд
-    },
-}));
-
-const SocialLink = styled(IconButton)(({ theme }) => ({
-    margin: theme.spacing(0, 1.2),
-    color: 'rgba(230, 220, 255, 0.7)',
-    transition: 'transform 0.3s ease-in-out, color 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-    willChange: 'transform, color, box-shadow',
-    '& .MuiSvgIcon-root': {
-        fontSize: '1.7rem',
-    },
-    '&:hover': {
-        color: '#d1a9ff',
-        transform: 'translateY(-5px) scale(1.15)',
-        boxShadow: `0 0 20px 3px rgba(198, 126, 255, 0.45)`,
-    },
-}));
 
 function Home(props) {
     const [isAuthenticated, setIsAuthenticated] = React.useState(false);
@@ -158,7 +101,7 @@ function Home(props) {
         }
     };
 
-    const toggleAuth = () => setIsAuthenticated(!isAuthenticated); // Цю функцію можна змінити для навігації на /signup або /signin
+    const toggleAuth = () => setIsAuthenticated(!isAuthenticated);
     const handleOpenNavMenu = (event) => setAnchorElNav(event.currentTarget);
     const handleOpenUserMenu = (event) => setAnchorElUser(event.currentTarget);
     const handleCloseNavMenu = () => setAnchorElNav(null);
@@ -184,10 +127,10 @@ function Home(props) {
         flexDirection: 'column',
         willChange: 'transform, box-shadow',
         isolation: 'isolate',
-        transform: 'translateZ(0)', // Додано для всіх карток
-        backfaceVisibility: 'hidden', // Додано для всіх карток
+        transform: 'translateZ(0)',
+        backfaceVisibility: 'hidden',
         '&:hover': {
-            transform: 'translateY(-10px) scale(1.02) translateZ(0)', // Зберігаємо translateZ(0)
+            transform: 'translateY(-10px) scale(1.02) translateZ(0)',
             boxShadow: '0 18px 45px rgba(138, 43, 226, 0.35), 0 0 25px rgba(138, 43, 226, 0.2)',
             '&::before': { opacity: 0.9, height: '5px' }
         },
@@ -198,9 +141,6 @@ function Home(props) {
         if (isAuthenticated) {
             navigate('/profile');
         } else {
-            // Замість toggleAuth, можна перенаправляти на сторінку реєстрації або входу
-            // наприклад: navigate('/signup');
-            // Або залишити toggleAuth для демонстрації зміни стану
             toggleAuth();
         }
     };
@@ -401,52 +341,7 @@ function Home(props) {
                     </Container>
                 </Box>
 
-                <FooterContainer component="footer">
-                    <Container maxWidth="lg">
-                        <Grid container spacing={2} justifyContent="space-between" alignItems="center" direction={{ xs: 'column', sm: 'row' }}>
-                            <Grid item xs={12} sm="auto" sx={{ mb: { xs: 2, sm: 0 } }}>
-                                <Typography variant="h6" component={Link} to="/" sx={{
-                                    fontWeight: 700,
-                                    color: 'white',
-                                    textDecoration: 'none',
-                                    textShadow: '0 0 8px rgba(198, 126, 255, 0.6)',
-                                    transition: 'text-shadow 0.3s ease, opacity 0.3s ease',
-                                    letterSpacing: '.1rem',
-                                    '&:hover': {
-                                        textShadow: '0 0 15px rgba(198, 126, 255, 0.9)',
-                                        opacity: 0.9,
-                                    }
-                                }}>
-                                    GRINDZONE
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={12} sm sx={{ my: { xs: 2, sm: 0 } }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                    <SocialLink onClick={() => alert('Незабаром!')} aria-label="Facebook">
-                                        <FacebookIcon />
-                                    </SocialLink>
-                                    <SocialLink onClick={() => alert('Незабаром!')} aria-label="Instagram">
-                                        <InstagramIcon />
-                                    </SocialLink>
-                                    <SocialLink onClick={() => alert('Незабаром!')} aria-label="Twitter">
-                                        <TwitterIcon />
-                                    </SocialLink>
-                                    <SocialLink onClick={() => alert('Незабаром!')} aria-label="LinkedIn">
-                                        <LinkedInIcon />
-                                    </SocialLink>
-                                    <SocialLink onClick={() => alert('Незабаром!')} aria-label="GitHub">
-                                        <GitHubIcon />
-                                    </SocialLink>
-                                </Box>
-                            </Grid>
-                            <Grid item xs={12} sm="auto" sx={{ mt: { xs: 2, sm: 0 } }}>
-                                <Typography variant="body2" sx={{ color: 'rgba(230, 220, 255, 0.6)', fontSize: {xs: '0.75rem', sm:'0.8rem'} }}>
-                                    © {new Date().getFullYear()} GRINDZONE. Всі права захищено.
-                                </Typography>
-                            </Grid>
-                        </Grid>
-                    </Container>
-                </FooterContainer>
+                <Footer />
             </Box>
         </AppTheme>
     );
