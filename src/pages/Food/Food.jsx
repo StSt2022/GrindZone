@@ -212,27 +212,25 @@ function FoodPage(props) {
         setFilters(prev => ({ ...prev, [name]: value }));
     };
 
-    const fetchFoodData = React.useCallback(async (currentSearchTerm, currentFilters, fetchRecommended = false) => {
+    const fetchAndSetFoodData = React.useCallback(async (currentSearchTerm, currentFilters) => {
         setIsLoadingSearch(true);
         const params = new URLSearchParams();
 
-        if (fetchRecommended) {
-            params.append('isRecommended', 'true');
-        } else {
-            if (currentSearchTerm.trim()) {
-                params.append('name', currentSearchTerm.trim());
-            }
-            const activeFilters = { ...currentFilters };
-            if (activeFilters.goal === 'Веган') {
-                params.append('diet_special', 'vegan_or_veganska');
-                delete activeFilters.goal;
-            }
-            Object.entries(activeFilters).forEach(([key, value]) => {
-                if (value) {
-                    params.append(key, value);
-                }
-            });
+        if (currentSearchTerm.trim()) {
+            params.append('name', currentSearchTerm.trim());
         }
+
+        const activeFilters = { ...currentFilters };
+        if (activeFilters.goal === 'Веган') {
+            params.append('diet_special', 'vegan_or_veganska');
+            delete activeFilters.goal;
+        }
+
+        Object.entries(activeFilters).forEach(([key, value]) => {
+            if (value) {
+                params.append(key, value);
+            }
+        });
 
         try {
             const response = await fetch(`/api/food?${params.toString()}`);
@@ -250,14 +248,12 @@ function FoodPage(props) {
         }
     }, []);
 
-
     React.useEffect(() => {
-        fetchFoodData(searchTerm, filters, true);
-    }, [fetchFoodData]);
-
+        fetchAndSetFoodData('', { type: '', goal: '', diet: '', difficulty: '' });
+    }, [fetchAndSetFoodData]);
 
     const handleSearch = () => {
-        fetchFoodData(searchTerm, filters, false);
+        fetchAndSetFoodData(searchTerm, filters);
     };
 
     const handleAddFoodToDailyIntake = (foodItem, portionWeightGrams, mealType) => {
@@ -363,14 +359,37 @@ function FoodPage(props) {
                                             <Box sx={{mb: 1.5}}>
                                                 <Typography variant="caption" sx={{color: 'rgba(230, 220, 255, 0.6)'}}>Час: {meal.time}</Typography>
                                             </Box>
-                                            <Box sx={{ flexGrow: 1, mb: 2, minHeight: '80px', overflowY: 'auto', maxHeight: '150px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', pr: 1, '&::-webkit-scrollbar': { width: '6px' }, '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(138, 43, 226, 0.5)', borderRadius: '3px' }, '&::-webkit-scrollbar-track': { backgroundColor: 'rgba(255,255,255,0.05)' } }}>
+                                            <Box sx={{
+                                                flexGrow: 1,
+                                                mb: 2,
+                                                minHeight: '80px',
+                                                overflowY: 'auto',
+                                                overflowX: 'auto',
+                                                maxHeight: '150px',
+                                                maxWidth: '250px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'flex-start',
+                                                pr: 1,
+                                                '&::-webkit-scrollbar': {
+                                                    width: '6px',
+                                                    height: '6px'
+                                                },
+                                                '&::-webkit-scrollbar-thumb': {
+                                                    backgroundColor: 'rgba(138, 43, 226, 0.5)',
+                                                    borderRadius: '3px'
+                                                },
+                                                '&::-webkit-scrollbar-track': {
+                                                    backgroundColor: 'rgba(255,255,255,0.05)'
+                                                }
+                                            }}>
                                                 {meal.items.length > 0 ? meal.items.map((item) => (
                                                     <Box key={item.id} sx={{mb: 0.5, p:0.5, borderRadius: '6px', background: 'rgba(255,255,255,0.03)', padding: '8px'}}>
-                                                        <Typography variant="body2" sx={{ color: 'rgba(230, 220, 255, 0.85)', fontSize: {xs: '0.85rem', sm: '0.9rem'}, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>• {item.name}</Typography>
+                                                        <Typography variant="body2" sx={{ color: 'rgba(230, 220, 255, 0.85)', fontSize: {xs: '0.85rem', sm: '0.9rem'}, whiteSpace: 'nowrap' }}>• {item.name}</Typography>
                                                         <Typography variant="caption" sx={{ color: 'rgba(230, 220, 255, 0.6)', display:'block', pl: '14px' }}>{item.calories} ккал, Б:{item.protein} Ж:{item.fats} В:{item.carbs}</Typography>
                                                     </Box>
                                                 )) : (
-                                                    <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%'}}>
+                                                    <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
                                                         <NoFoodIcon sx={{color: 'rgba(230, 220, 255, 0.4)', fontSize: '2.5rem', mb: 0.5}}/>
                                                         <Typography variant="body2" sx={{ color: 'rgba(230, 220, 255, 0.6)', fontStyle: 'italic', textAlign:'center' }}>Нічого не додано</Typography>
                                                     </Box>
@@ -383,7 +402,16 @@ function FoodPage(props) {
                             ))}
                         </Grid>
 
-                        <Paper elevation={12} sx={{ mb: { xs: 4, md: 6 }, p: {xs:2.5, sm:3, md: 3.5}, background: 'rgba(28, 22, 48, 0.88)', backdropFilter: 'blur(10px)', borderRadius: '22px', border: '1px solid rgba(138, 43, 226, 0.2)', boxShadow: '0 8px 25px rgba(0,0,0, 0.25)', display: 'flex', flexDirection: 'column', }}>
+                        <Paper elevation={12} sx={{
+                            mb: { xs: 4, md: 6 }, p: {xs:2.5, sm:3, md: 3.5},
+                            background: 'rgba(28, 22, 48, 0.88)',
+                            backdropFilter: 'blur(10px)',
+                            borderRadius: '22px',
+                            border: '1px solid rgba(138, 43, 226, 0.2)',
+                            boxShadow: '0 8px 25px rgba(0,0,0, 0.25)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                        }}>
                             <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3.5, color: 'white', flexShrink: 0}}>
                                 <ManageSearchIcon sx={{mr:1.5, fontSize: '2.8rem', color: '#b388ff', filter: 'drop-shadow(0 0 10px #b388ff77)'}}/>
                                 <Typography variant="h5" component="h2" sx={{ fontWeight: '600', textShadow: '0 0 10px rgba(180,130,255,0.4)'}}>
@@ -419,7 +447,16 @@ function FoodPage(props) {
                                 </Grid>
                             </Grid>
 
-                            <Box sx={{ flexGrow: 1, minHeight: 0, maxHeight: '700px', overflowY: 'auto', pr: 1, '&::-webkit-scrollbar': {width: '8px'}, '&::-webkit-scrollbar-thumb': {backgroundColor: 'rgba(138, 43, 226, 0.6)', borderRadius: '4px'}, '&::-webkit-scrollbar-track': {backgroundColor: 'rgba(255,255,255,0.08)'} }}>
+                            <Box sx={{
+                                flexGrow: 1,
+                                minHeight: 0,
+                                maxHeight: '700px',
+                                overflowY: 'auto',
+                                pr: 1,
+                                '&::-webkit-scrollbar': {width: '8px'},
+                                '&::-webkit-scrollbar-thumb': {backgroundColor: 'rgba(138, 43, 226, 0.6)', borderRadius: '4px'},
+                                '&::-webkit-scrollbar-track': {backgroundColor: 'rgba(255,255,255,0.08)'}
+                            }}>
                                 <Grid container spacing={{ xs: 2, sm: 2.5 }}>
                                     {isLoadingSearch ? (
                                         <Grid item xs={12} sx={{textAlign: 'center', py: 5}}>
@@ -437,17 +474,44 @@ function FoodPage(props) {
                                                         const mealType = e.target.elements[`mealType-${food._id}`].value;
                                                         handleAddFoodToDailyIntake(food, portion, mealType);
                                                     }}
-                                                    sx={{ ...commonCardStyles, width: '100%', maxWidth: '400px', minHeight: '600px', background: 'rgba(12, 11, 29, 0.9) !important', '&:hover': { ...commonCardStyles['&:hover'], transform: 'translateY(-6px) scale(1.01) translateZ(0)', }, '&::before': { background: 'linear-gradient(90deg, #b388ff, #8c5dff)', }, display: 'flex', flexDirection: 'column' }}
+                                                    sx={{
+                                                        width: '400px',
+                                                        minHeight: '600px',
+                                                        background: 'rgba(12, 11, 29, 0.9) !important',
+                                                        '&:hover': {
+                                                            ...commonCardStyles['&:hover'],
+                                                            transform: 'translateY(-6px) scale(1.01) translateZ(0)',
+                                                        },
+                                                        '&::before': {
+                                                            background: 'linear-gradient(90deg, #b388ff, #8c5dff)',
+                                                        },
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                    }}
                                                 >
                                                     <CardMedia
                                                         component="img"
-                                                        image={food.image || `https://via.placeholder.com/400x250.png/2c1f3a/c67eff?text=${encodeURIComponent(food.name?.split(' ')[0] || 'Food')}`}
-                                                        alt={food.name}
-                                                        sx={{ width: '100%', height: '250px', objectFit: 'cover', filter: 'brightness(0.9)', borderBottom: `2px solid #a96cff` }}
+                                                        image={food.image || `https://via.placeholder.com/400x250.png/2c1f3a/c67eff?text=${encodeURIComponent(food.name?.split(' ')[0] || 'Їжа')}`}
+                                                        alt={food.name || 'Зображення страви'}
+                                                        sx={{
+                                                            width: '100%', // Замість maxWidth/maxHeight
+                                                            height: '250px', // Фіксована висота
+                                                            objectFit: 'cover',
+                                                            filter: 'brightness(0.9)',
+                                                            borderBottom: `2px solid #a96cff`,
+                                                        }}
                                                     />
-                                                    <CardContent sx={{ p: 2, display: 'flex', flexDirection: 'column', color: 'white', flexGrow: 1 }}>
-                                                        <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold', color: 'white', mb: 1, fontSize: '1.1rem', lineHeight: 1.3, minHeight: '4.2em' }}>
-                                                            {food.name}
+                                                    <CardContent
+                                                        sx={{
+                                                            p: 2, // Збільшено падінг для кращого вигляду
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            color: 'white',
+                                                            flexGrow: 1,
+                                                        }}
+                                                    >
+                                                        <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold', color: 'white', mb: 1, fontSize: '1.1rem', lineHeight: 1.3, minHeight: '2.6em' /* для двох рядків тексту */ }}>
+                                                            {food.name || "Назва страви"}
                                                         </Typography>
 
                                                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}>
@@ -456,30 +520,122 @@ function FoodPage(props) {
                                                             {food.diet && <Chip icon={<SpaIcon fontSize="small" />} label={food.diet} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(230,220,255,0.8)' }} />}
                                                             {food.difficulty && <Chip icon={<SpeedIcon fontSize="small" />} label={food.difficulty} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(230,220,255,0.8)' }} />}
                                                             {food.prepTime && <Chip icon={<ScheduleIcon fontSize="small" />} label={`${food.prepTime} хв`} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(230,220,255,0.8)' }} />}
-                                                            {food.tags?.slice(0, 3).map(tag => (
-                                                                <Chip key={tag} icon={<TagIcon fontSize="small" />} label={tag} size="small" variant="outlined" sx={{ borderColor: 'rgba(198,126,255,0.35)', color: 'rgba(198,126,255,0.8)', height: '22px', fontSize: '0.65rem', borderRadius: '6px' }} />
+                                                            {food.tags?.slice(0, 5).map(tag => ( // Обмежено до 5 тегів
+                                                                <Chip
+                                                                    key={tag}
+                                                                    icon={<TagIcon fontSize="small" />}
+                                                                    label={tag}
+                                                                    size="small"
+                                                                    variant="outlined"
+                                                                    sx={{
+                                                                        borderColor: 'rgba(198,126,255,0.35)',
+                                                                        color: 'rgba(198,126,255,0.8)',
+                                                                        height: '22px',
+                                                                        fontSize: '0.65rem',
+                                                                        borderRadius: '6px',
+                                                                    }}
+                                                                />
                                                             ))}
                                                         </Box>
 
                                                         <Divider sx={{ borderColor: 'rgba(138,43,226,0.2)', my: 1 }} />
 
                                                         <Grid container spacing={0.5} sx={{ mb: 1.5, fontSize: '0.8rem', color: 'rgba(230,220,255,0.8)' }}>
-                                                            <Grid item xs={6} sx={{ display: 'flex', alignItems: 'center' }}><BarChartIcon fontSize="inherit" sx={{ mr: 0.5, color: '#c67eff' }} /> {food.caloriesPer100g || 0} ккал/100г</Grid>
-                                                            <Grid item xs={6} sx={{ display: 'flex', alignItems: 'center' }}><EggIcon fontSize="inherit" sx={{ mr: 0.5, color: '#c67eff' }} /> Б: {food.protein || 0}г</Grid>
-                                                            <Grid item xs={6} sx={{ display: 'flex', alignItems: 'center' }}><OilBarrelIcon fontSize="inherit" sx={{ mr: 0.5, color: '#c67eff' }} /> Ж: {food.fats || 0}г</Grid>
-                                                            <Grid item xs={6} sx={{ display: 'flex', alignItems: 'center' }}><GrainIcon fontSize="inherit" sx={{ mr: 0.5, color: '#c67eff' }} /> В: {food.carbs || 0}г</Grid>
+                                                            <Grid item xs={6} sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                <BarChartIcon fontSize="inherit" sx={{ mr: 0.5, color: '#c67eff' }} /> {food.caloriesPer100g || 0} ккал/100г
+                                                            </Grid>
+                                                            <Grid item xs={6} sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                <EggIcon fontSize="inherit" sx={{ mr: 0.5, color: '#c67eff' }} /> Б: {food.protein || 0}г
+                                                            </Grid>
+                                                            <Grid item xs={6} sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                <OilBarrelIcon fontSize="inherit" sx={{ mr: 0.5, color: '#c67eff' }} /> Ж: {food.fats || 0}г
+                                                            </Grid>
+                                                            <Grid item xs={6} sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                <GrainIcon fontSize="inherit" sx={{ mr: 0.5, color: '#c67eff' }} /> В: {food.carbs || 0}г
+                                                            </Grid>
                                                         </Grid>
 
                                                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 'auto', mb: 2 }}>
-                                                            <TextField name={`portion-${food._id}`} label="Вага (г)" type="number" size="small" defaultValue={defaultPortion} InputProps={{ sx: { color: 'white', borderRadius: '8px', background: 'rgba(55,45,75,0.7)', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(138,43,226,0.3)' }, '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': { margin: 0, WebkitAppearance: 'none' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(138,43,226,0.6)' }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#c67eff' }, }, inputProps: { min: 1, step: 1 }, }} InputLabelProps={{ sx: { color: 'rgba(230,220,255,0.6)', '&.Mui-focused': { color: '#c67eff' }, }, }} sx={{ flexGrow: 1 }} />
-                                                            <FormControl fullWidth size="small" sx={{ minWidth: 120, flexGrow: 1, '& .MuiInputLabel-root': { color: 'rgba(230,220,255,0.6)', '&.Mui-focused': { color: '#c67eff' } }, '& .MuiOutlinedInput-root': { color: 'white', borderRadius: '8px', background: 'rgba(55,45,75,0.7)', '& fieldset': { borderColor: 'rgba(138,43,226,0.3)' }, '&:hover fieldset': { borderColor: 'rgba(138,43,226,0.6)' }, '&.Mui-focused fieldset': { borderColor: '#c67eff' }, '& .MuiSelect-icon': { color: 'rgba(230,220,255,0.6)' }, }, }}>
+                                                            <TextField
+                                                                name={`portion-${food._id}`}
+                                                                label="Вага (г)"
+                                                                type="number"
+                                                                size="small"
+                                                                defaultValue={defaultPortion}
+                                                                InputProps={{
+                                                                    sx: {
+                                                                        color: 'white',
+                                                                        borderRadius: '8px',
+                                                                        background: 'rgba(55,45,75,0.7)',
+                                                                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(138,43,226,0.3)' },
+                                                                        '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': { margin: 0, WebkitAppearance: 'none' },
+                                                                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(138,43,226,0.6)' },
+                                                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#c67eff' },
+                                                                    },
+                                                                    inputProps: { min: 1, step: 1 },
+                                                                }}
+                                                                InputLabelProps={{
+                                                                    sx: {
+                                                                        color: 'rgba(230,220,255,0.6)',
+                                                                        '&.Mui-focused': { color: '#c67eff' },
+                                                                    },
+                                                                }}
+                                                                sx={{ flexGrow: 1 }}
+                                                            />
+
+                                                            <FormControl fullWidth size="small" sx={{
+                                                                minWidth: 120, flexGrow: 1,
+                                                                '& .MuiInputLabel-root': { color: 'rgba(230,220,255,0.6)', '&.Mui-focused': { color: '#c67eff' } },
+                                                                '& .MuiOutlinedInput-root': {
+                                                                    color: 'white',
+                                                                    borderRadius: '8px',
+                                                                    background: 'rgba(55,45,75,0.7)',
+                                                                    '& fieldset': { borderColor: 'rgba(138,43,226,0.3)' },
+                                                                    '&:hover fieldset': { borderColor: 'rgba(138,43,226,0.6)' },
+                                                                    '&.Mui-focused fieldset': { borderColor: '#c67eff' },
+                                                                    '& .MuiSelect-icon': { color: 'rgba(230,220,255,0.6)' },
+                                                                },
+                                                            }}>
                                                                 <InputLabel>Прийом їжі</InputLabel>
-                                                                <Select name={`mealType-${food._id}`} defaultValue={food.type || foodTypes[0]} label="Прийом їжі" MenuProps={{ PaperProps: { sx: { maxHeight: 200, backgroundColor: 'rgba(45, 38, 65, 0.95)', backdropFilter: 'blur(5px)', border: '1px solid rgba(138,43,226,0.3)' } } }}>
-                                                                    {foodTypes.map(mt => (<MenuItem key={mt} value={mt}>{mt}</MenuItem>))}
+                                                                <Select
+                                                                    name={`mealType-${food._id}`}
+                                                                    defaultValue={food.type || foodTypes[0]}
+                                                                    label="Прийом їжі"
+                                                                    MenuProps={{
+                                                                        PaperProps: {
+                                                                            sx: {
+                                                                                maxHeight: 200,
+                                                                                backgroundColor: 'rgba(45, 38, 65, 0.95)',
+                                                                                backdropFilter: 'blur(5px)',
+                                                                                border: '1px solid rgba(138,43,226,0.3)',
+                                                                            },
+                                                                        },
+                                                                    }}
+                                                                >
+                                                                    {foodTypes.map(mt => (
+                                                                        <MenuItem key={mt} value={mt}>{mt}</MenuItem>
+                                                                    ))}
                                                                 </Select>
                                                             </FormControl>
                                                         </Box>
-                                                        <Button type="submit" fullWidth variant="contained" startIcon={<AddCircleOutlineIcon />} sx={{ borderRadius: '8px', background: 'linear-gradient(45deg, #8e44ad 0%, #c0392b 100%)', color: 'white', '&:hover': { background: 'linear-gradient(45deg, #7d3c98 0%, #a93226 100%)', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' } }}>Додати</Button>
+
+                                                        <Button
+                                                            type="submit"
+                                                            fullWidth
+                                                            variant="contained"
+                                                            startIcon={<AddCircleOutlineIcon />}
+                                                            sx={{
+                                                                borderRadius: '8px',
+                                                                background: 'linear-gradient(45deg, #8e44ad 0%, #c0392b 100%)',
+                                                                color: 'white',
+                                                                '&:hover': {
+                                                                    background: 'linear-gradient(45deg, #7d3c98 0%, #a93226 100%)',
+                                                                    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                                                                },
+                                                            }}
+                                                        >
+                                                            Додати
+                                                        </Button>
                                                     </CardContent>
                                                 </Card>
                                             </Grid>
@@ -487,9 +643,9 @@ function FoodPage(props) {
                                     }) : (
                                         <Grid item xs={12}>
                                             <Typography sx={{textAlign: 'center', color: 'rgba(230,220,255,0.7)', fontStyle: 'italic', py:5}}>
-                                                { (searchTerm || Object.values(filters).some(f => f))
+                                                { searchResults.length === 0 && !isLoadingSearch && (searchTerm || Object.values(filters).some(f => f))
                                                     ? "Страв не знайдено за вашими критеріями. Спробуйте змінити запит."
-                                                    : "Використовуйте пошук та фільтри, щоб знайти потрібні страви, або перегляньте рекомендовані вище."
+                                                    : "Використовуйте пошук та фільтри, щоб знайти потрібні страви."
                                                 }
                                             </Typography>
                                         </Grid>
