@@ -499,6 +499,8 @@ function FoodPage(props) {
                                                         image={food.image ? `/food-images/${food.image}` : `https://via.placeholder.com/400x400.png/2c1f3a/c67eff?text=${encodeURIComponent((food.name || 'Їжа').split(' ')[0])}`}
                                                         alt={food.name || 'Зображення страви'}
                                                         sx={{
+                                                            minWidth: '400px',
+                                                            minHeight: '400px',
                                                             maxWidth: '400px',
                                                             maxHeight: '400px',
                                                             objectFit: 'cover',
