@@ -79,7 +79,7 @@ const commonCardStyles = {
     boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)',
     transition: 'all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1)',
     position: 'relative',
-    overflow: 'hidden', // Важливо для borderRadius на CardMedia
+    overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
     willChange: 'transform, box-shadow',
@@ -350,10 +350,33 @@ function FoodPage(props) {
                                             <Box sx={{mb: 1.5}}>
                                                 <Typography variant="caption" sx={{color: 'rgba(230, 220, 255, 0.6)'}}>Час: {meal.time}</Typography>
                                             </Box>
-                                            <Box sx={{ flexGrow: 1, mb: 2, minHeight: '80px', overflowY: 'auto', maxHeight: '150px', pr: 1, '&::-webkit-scrollbar': {width: '6px'}, '&::-webkit-scrollbar-thumb': {backgroundColor: 'rgba(138, 43, 226, 0.5)', borderRadius: '3px'}, '&::-webkit-scrollbar-track': {backgroundColor: 'rgba(255,255,255,0.05)'} }}>
+                                            <Box sx={{
+                                                flexGrow: 1,
+                                                mb: 2,
+                                                minHeight: '80px',
+                                                overflowY: 'auto',
+                                                overflowX: 'auto',
+                                                maxHeight: '150px',
+                                                maxWidth: '250px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'flex-start',
+                                                pr: 1,
+                                                '&::-webkit-scrollbar': {
+                                                    width: '6px',
+                                                    height: '6px'
+                                                },
+                                                '&::-webkit-scrollbar-thumb': {
+                                                    backgroundColor: 'rgba(138, 43, 226, 0.5)',
+                                                    borderRadius: '3px'
+                                                },
+                                                '&::-webkit-scrollbar-track': {
+                                                    backgroundColor: 'rgba(255,255,255,0.05)'
+                                                }
+                                            }}>
                                                 {meal.items.length > 0 ? meal.items.map((item) => (
-                                                    <Box key={item.id} sx={{mb: 0.5, p:0.5, borderRadius: '6px', background: 'rgba(255,255,255,0.03)'}}>
-                                                        <Typography variant="body2" sx={{ color: 'rgba(230, 220, 255, 0.85)', fontSize: {xs: '0.85rem', sm: '0.9rem'} }}>• {item.name}</Typography>
+                                                    <Box key={item.id} sx={{mb: 0.5, p:0.5, borderRadius: '6px', background: 'rgba(255,255,255,0.03)', padding: '8px'}}>
+                                                        <Typography variant="body2" sx={{ color: 'rgba(230, 220, 255, 0.85)', fontSize: {xs: '0.85rem', sm: '0.9rem'}, whiteSpace: 'nowrap' }}>• {item.name}</Typography>
                                                         <Typography variant="caption" sx={{ color: 'rgba(230, 220, 255, 0.6)', display:'block', pl: '14px' }}>{item.calories} ккал, Б:{item.protein} Ж:{item.fats} В:{item.carbs}</Typography>
                                                     </Box>
                                                 )) : (
