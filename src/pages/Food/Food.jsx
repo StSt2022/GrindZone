@@ -49,6 +49,7 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import TagIcon from '@mui/icons-material/Tag';
 import BarChartIcon from '@mui/icons-material/BarChart';
 
+
 import BreakfastDiningIcon from '@mui/icons-material/BreakfastDining';
 import LunchDiningIcon from '@mui/icons-material/LunchDining';
 import DinnerDiningIcon from '@mui/icons-material/DinnerDining';
@@ -212,30 +213,33 @@ function FoodPage(props) {
         setFilters(prev => ({ ...prev, [name]: value }));
     };
 
-    const fetchAndSetFoodData = React.useCallback(async (currentSearchTerm, currentFilters) => {
+    const fetchFoodData = React.useCallback(async (currentSearchTerm, currentFilters, isInitialLoad = false) => {
         setIsLoadingSearch(true);
         const params = new URLSearchParams();
 
-        if (currentSearchTerm.trim()) {
-            params.append('name', currentSearchTerm.trim());
-        }
-
-        const activeFilters = { ...currentFilters };
-        if (activeFilters.goal === 'Веган') {
-            params.append('diet_special', 'vegan_or_veganska');
-            delete activeFilters.goal;
-        }
-
-        Object.entries(activeFilters).forEach(([key, value]) => {
-            if (value) {
-                params.append(key, value);
+        if (!isInitialLoad) {
+            if (currentSearchTerm.trim()) {
+                params.append('name', currentSearchTerm.trim());
             }
-        });
+
+            const activeFilters = { ...currentFilters };
+            if (activeFilters.goal === 'Веган') {
+                params.append('diet_special', 'vegan_or_veganska');
+                delete activeFilters.goal;
+            }
+
+            Object.entries(activeFilters).forEach(([key, value]) => {
+                if (value) {
+                    params.append(key, value);
+                }
+            });
+        }
 
         try {
             const response = await fetch(`/api/food?${params.toString()}`);
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+                console.error("Server error fetching food:", errorData.message);
                 throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
@@ -249,12 +253,13 @@ function FoodPage(props) {
     }, []);
 
     React.useEffect(() => {
-        fetchAndSetFoodData('', { type: '', goal: '', diet: '', difficulty: '' });
-    }, [fetchAndSetFoodData]);
+        fetchFoodData('', {}, true);
+    }, [fetchFoodData]);
 
     const handleSearch = () => {
-        fetchAndSetFoodData(searchTerm, filters);
+        fetchFoodData(searchTerm, filters, false);
     };
+
 
     const handleAddFoodToDailyIntake = (foodItem, portionWeightGrams, mealType) => {
         if (!portionWeightGrams || portionWeightGrams <= 0 || !mealType) {
@@ -281,7 +286,7 @@ function FoodPage(props) {
                     ...meal,
                     items: [...meal.items, {
                         id: generateClientSideId(),
-                        name: `${foodItem.name} (${portionWeightGrams}г)`,
+                        name: `${foodItem.name || 'Невідома страва'} (${portionWeightGrams}г)`,
                         calories, protein, fats, carbs
                     }],
                     totalCalories: meal.totalCalories + calories,
@@ -491,11 +496,11 @@ function FoodPage(props) {
                                                 >
                                                     <CardMedia
                                                         component="img"
-                                                        image={food.image || `https://via.placeholder.com/400x250.png/2c1f3a/c67eff?text=${encodeURIComponent(food.name?.split(' ')[0] || 'Їжа')}`}
+                                                        image={food.image || `https://via.placeholder.com/400x400.png/2c1f3a/c67eff?text=${encodeURIComponent(food.name?.split(' ')[0] || 'Їжа')}`}
                                                         alt={food.name || 'Зображення страви'}
                                                         sx={{
-                                                            width: '100%', // Замість maxWidth/maxHeight
-                                                            height: '250px', // Фіксована висота
+                                                            maxWidth: '400px',
+                                                            maxHeight: '400px',
                                                             objectFit: 'cover',
                                                             filter: 'brightness(0.9)',
                                                             borderBottom: `2px solid #a96cff`,
@@ -503,15 +508,15 @@ function FoodPage(props) {
                                                     />
                                                     <CardContent
                                                         sx={{
-                                                            p: 2, // Збільшено падінг для кращого вигляду
+                                                            p: 1,
                                                             display: 'flex',
                                                             flexDirection: 'column',
                                                             color: 'white',
                                                             flexGrow: 1,
                                                         }}
                                                     >
-                                                        <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold', color: 'white', mb: 1, fontSize: '1.1rem', lineHeight: 1.3, minHeight: '2.6em' /* для двох рядків тексту */ }}>
-                                                            {food.name || "Назва страви"}
+                                                        <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold', color: 'white', mb: 1, fontSize: '1.1rem', lineHeight: 1.3, marginBottom: 2 }}>
+                                                            {food.name || 'Назва не вказана'}
                                                         </Typography>
 
                                                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}>
@@ -520,7 +525,7 @@ function FoodPage(props) {
                                                             {food.diet && <Chip icon={<SpaIcon fontSize="small" />} label={food.diet} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(230,220,255,0.8)' }} />}
                                                             {food.difficulty && <Chip icon={<SpeedIcon fontSize="small" />} label={food.difficulty} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(230,220,255,0.8)' }} />}
                                                             {food.prepTime && <Chip icon={<ScheduleIcon fontSize="small" />} label={`${food.prepTime} хв`} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(230,220,255,0.8)' }} />}
-                                                            {food.tags?.slice(0, 5).map(tag => ( // Обмежено до 5 тегів
+                                                            {food.tags?.slice(0, 5).map(tag => (
                                                                 <Chip
                                                                     key={tag}
                                                                     icon={<TagIcon fontSize="small" />}
