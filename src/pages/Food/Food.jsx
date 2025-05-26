@@ -496,7 +496,7 @@ function FoodPage(props) {
                                                 >
                                                     <CardMedia
                                                         component="img"
-                                                        image={food.image || `https://via.placeholder.com/400x400.png/2c1f3a/c67eff?text=${encodeURIComponent(food.name?.split(' ')[0] || 'Їжа')}`}
+                                                        image={food.image ? `/food-images/${food.image}` : `https://via.placeholder.com/400x400.png/2c1f3a/c67eff?text=${encodeURIComponent((food.name || 'Їжа').split(' ')[0])}`}
                                                         alt={food.name || 'Зображення страви'}
                                                         sx={{
                                                             maxWidth: '400px',

@@ -44,6 +44,7 @@ app.use(
 app.options('*', cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../dist')));
+app.use('/food-images', express.static(path.join(__dirname, '../src/images')));
 
 if (!process.env.ATLAS_URI) {
     console.error('Error: ATLAS_URI is not defined in config.env');
