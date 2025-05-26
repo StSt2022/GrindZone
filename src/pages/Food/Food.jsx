@@ -112,7 +112,7 @@ const StaticCard = styled(Card)(({ theme }) => ({
     '&::before': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, #a96cff, #c67eff, #8a2be2)', opacity: 0.7, transition: 'opacity 0.3s ease, height 0.3s ease', zIndex: 1 }
 }));
 
-const foodTypes = ['Сніданок', 'Обід', 'Вечеря', 'Перекуси'];
+const foodTypes = ['Сніданок', 'Обід', 'Вечеря', 'Перекус'];
 const foodGoals = ['Для масонабору', 'Для схуднення', 'Баланс', 'Протеїнова', 'Веган'];
 const foodDiets = ['Кето', 'Веганська', 'Низьковуглеводна', 'Безглютенова', 'Стандартна'];
 const foodDifficulties = ['Легка', 'Середня', 'Складна'];
@@ -189,7 +189,7 @@ function FoodPage(props) {
         { id: 'breakfast', name: "Сніданок", icon: <BreakfastDiningIcon sx={{ fontSize: '2.5rem', color: '#FFD700' }} />, items: [], totalCalories: 0, time: "08:00" },
         { id: 'lunch', name: "Обід", icon: <LunchDiningIcon sx={{ fontSize: '2.5rem', color: '#FFA07A' }} />, items: [], totalCalories: 0, time: "13:30" },
         { id: 'dinner', name: "Вечеря", icon: <DinnerDiningIcon sx={{ fontSize: '2.5rem', color: '#ADD8E6' }} />, items: [], totalCalories: 0, time: "19:00" },
-        { id: 'snacks', name: "Перекуси", icon: <BakeryDiningIcon sx={{ fontSize: '2.5rem', color: '#98FB98' }} />, items: [], totalCalories: 0, time: "Між прийомами" },
+        { id: 'snacks', name: "Перекус", icon: <BakeryDiningIcon sx={{ fontSize: '2.5rem', color: '#98FB98' }} />, items: [], totalCalories: 0, time: "Між прийомами" },
     ]);
 
     const [searchTerm, setSearchTerm] = React.useState('');
