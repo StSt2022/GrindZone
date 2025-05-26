@@ -230,7 +230,7 @@ app.get('/api/food', async (req, res) => {
         if (!db) {
             return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
         }
-        const foodsCollection = db.collection('foods');
+        const foodsCollection = db.collection('food');
         const { name, type, goal, diet, difficulty, isRecommended, diet_special } = req.query;
         const query = {};
 
