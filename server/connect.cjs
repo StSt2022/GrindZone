@@ -78,7 +78,6 @@ if (process.env.GOOGLE_GEMINI_API_KEY) {
     console.warn('WARN: GOOGLE_GEMINI_API_KEY is not defined. Chat assistant functionality will be limited to mock responses.');
 }
 
-// Ініціалізація Google Cloud Text-to-Speech клієнта
 let ttsClient;
 if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     try {
@@ -92,8 +91,6 @@ if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     console.warn('WARN: GOOGLE_APPLICATION_CREDENTIALS is not set. Voice generation will be disabled.');
 }
 
-
-// ... (твій код для /signup, /signup/google, /auth/google/fedcm, /signin залишається без змін) ...
 app.post('/signup', async (req, res) => {
     try {
         const { name, email, password, allowExtraEmails } = req.body;
@@ -228,6 +225,35 @@ app.post('/signin', async (req, res) => {
     }
 });
 
+app.get('/api/food', async (req, res) => {
+    try {
+        if (!db) {
+            return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
+        }
+        const foodsCollection = db.collection('foods');
+        const { name, type, goal, diet, difficulty, isRecommended, diet_special } = req.query;
+        const query = {};
+
+        if (name) query.name = { $regex: name, $options: 'i' };
+        if (type) query.type = type;
+        if (goal) query.goal = goal;
+
+        if (diet_special === 'vegan_or_veganska') {
+            query.diet = { $in: ['Веган', 'Веганська'] };
+        } else if (diet) {
+            query.diet = diet;
+        }
+
+        if (difficulty) query.difficulty = difficulty;
+        if (isRecommended === 'true') query.isRecommended = true;
+
+        const foodItems = await foodsCollection.find(query).toArray();
+        res.json(foodItems);
+    } catch (error) {
+        console.error('Error fetching food data:', error);
+        res.status(500).json({ message: 'Помилка сервера при отриманні даних про їжу' });
+    }
+});
 
 app.post('/api/chat', async (req, res) => {
     console.log(`[${new Date().toISOString()}] POST /api/chat request received`);
@@ -330,7 +356,7 @@ app.post('/api/chat', async (req, res) => {
 
         console.log(`[${new Date().toISOString()}] Sending response to client. Text length: ${geminiResponseText.length}, Audio available: ${!!audioData}`);
         res.json({
-            text: geminiResponseText, // Повертаємо оригінальний текст від Gemini (без видалення розділових знаків для відображення)
+            text: geminiResponseText,
             audioData: audioData
         });
 
