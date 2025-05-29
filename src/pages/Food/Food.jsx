@@ -1,17 +1,9 @@
 import * as React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import AppBar from '@mui/material/AppBar';
+import { useNavigate, Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import Menu from '@mui/material/Menu';
-import MenuIcon from '@mui/icons-material/Menu';
 import Container from '@mui/material/Container';
-import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
-import Tooltip from '@mui/material/Tooltip';
-import MenuItem from '@mui/material/MenuItem';
 import CssBaseline from '@mui/material/CssBaseline';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -26,30 +18,28 @@ import FormControl from '@mui/material/FormControl';
 import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
 import Paper from '@mui/material/Paper';
+import MenuItem from '@mui/material/MenuItem';
 import { styled } from '@mui/material/styles';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import { keyframes } from '@emotion/react';
 import Footer from "../../components/Footer.jsx";
+import NavigationBar from '../../components/NavigationBar.jsx';
 
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import SearchIcon from '@mui/icons-material/Search';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import NoFoodIcon from '@mui/icons-material/NoFood';
 import ManageSearchIcon from '@mui/icons-material/ManageSearch';
-
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import EggIcon from '@mui/icons-material/Egg';
 import OilBarrelIcon from '@mui/icons-material/OilBarrel';
 import GrainIcon from '@mui/icons-material/Grain';
-
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import SpaIcon from '@mui/icons-material/Spa';
 import SpeedIcon from '@mui/icons-material/Speed';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import TagIcon from '@mui/icons-material/Tag';
 import BarChartIcon from '@mui/icons-material/BarChart';
-
-
 import BreakfastDiningIcon from '@mui/icons-material/BreakfastDining';
 import LunchDiningIcon from '@mui/icons-material/LunchDining';
 import DinnerDiningIcon from '@mui/icons-material/DinnerDining';
@@ -64,11 +54,6 @@ const gridBackgroundStyles = {
     '&::before': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 50% 30%, rgba(138, 43, 226, 0.08), transparent 60%)', animation: `${gridLineGlow} 5s infinite ease-in-out`},
     '&::after': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(180deg, rgba(18, 9, 29, 0.98) 0%, rgba(10, 5, 18, 1) 100%)', zIndex: -2},
 };
-
-const pages = [ { title: 'Профіль', path: '/profile' }, { title: 'Активності', path: '/activities' }, { title: 'Харчування', path: '/food' }, { title: 'Спільнота', path: '/community' }];
-const settings = ['Профіль', 'Налаштування', 'Вихід'];
-
-const navButtonBaseStyles = { my: 2, color: 'rgba(255, 255, 255, 0.9)', display: 'block', px: 2.2, py: 0.8, borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.1)', background: 'rgba(255, 255, 255, 0.03)', boxShadow: 'none', transition: 'all 0.25s ease-out', textTransform: 'none', fontWeight: 500, fontSize: '0.9rem', '&:hover': { background: 'rgba(255, 255, 255, 0.12)', transform: 'translateY(-1px)', boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)', color: 'white'}};
 
 const commonCardStyles = {
     height: '100%',
@@ -179,8 +164,9 @@ const StyledLinearProgress = styled(LinearProgress)(({ theme }) => ({
 
 function FoodPage(props) {
     const [isAuthenticated, setIsAuthenticated] = React.useState(true);
-    const [anchorElNav, setAnchorElNav] = React.useState(null);
-    const [anchorElUser, setAnchorElUser] = React.useState(null);
+    const [currentUser, setCurrentUser] = React.useState(
+        isAuthenticated ? { name: "Food User", avatarUrl: "/static/images/avatar/1.jpg" } : null
+    );
     const navigate = useNavigate();
 
     const [dailyGoals] = React.useState({ calories: 2200, protein: 150, fat: 70, carbs: 240 });
@@ -197,15 +183,9 @@ function FoodPage(props) {
     const [searchResults, setSearchResults] = React.useState([]);
     const [isLoadingSearch, setIsLoadingSearch] = React.useState(false);
 
-    const handleOpenNavMenu = (event) => setAnchorElNav(event.currentTarget);
-    const handleOpenUserMenu = (event) => setAnchorElUser(event.currentTarget);
-    const handleCloseNavMenu = () => setAnchorElNav(null);
-    const handleCloseUserMenu = () => setAnchorElUser(null);
-
-    const handleSettingClick = (setting) => {
-        if (setting === 'Вихід') { setIsAuthenticated(false); navigate('/'); }
-        else if (setting === 'Профіль') navigate('/profile');
-        handleCloseUserMenu();
+    const handleLogout = () => {
+        setIsAuthenticated(false);
+        setCurrentUser(null);
     };
 
     const handleFilterChange = (event) => {
@@ -301,26 +281,11 @@ function FoodPage(props) {
             <CssBaseline enableColorScheme />
             <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
                 <Box sx={gridBackgroundStyles} />
-                <AppBar position="sticky" sx={{ background: 'linear-gradient(90deg, rgba(30, 35, 50, 0.8) 0%, rgba(50, 55, 75, 0.9) 100%)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottomLeftRadius: {sm: '20px'}, borderBottomRightRadius: {sm: '20px'}, boxShadow: '0 5px 25px rgba(0, 0, 0, 0.25)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', zIndex: 1200, willChange: 'backdrop-filter' }}>
-                    <Container maxWidth="xl">
-                        <Toolbar disableGutters>
-                            <Typography variant="h6" noWrap component={Link} to="/" sx={{ mr: 2, display: { xs: 'none', md: 'flex' }, fontWeight: 700, letterSpacing: '.2rem', color: 'white', textDecoration: 'none', textShadow: '0 0 8px rgba(255, 255, 255, 0.4)'}}>GRINDZONE</Typography>
-                            <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
-                                <IconButton size="large" onClick={handleOpenNavMenu} sx={{ color: 'white', background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(5px)', borderRadius: '50%', p: 1, boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)', '&:hover': { background: 'rgba(255, 255, 255, 0.15)' } }}><MenuIcon /></IconButton>
-                                <Menu id="menu-appbar-mobile" anchorEl={anchorElNav} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} keepMounted transformOrigin={{ vertical: 'top', horizontal: 'left' }} open={Boolean(anchorElNav)} onClose={handleCloseNavMenu} sx={{ display: { xs: 'block', md: 'none' }, '& .MuiPaper-root': { background: 'rgba(35, 40, 55, 0.9)', backdropFilter: 'blur(10px)', borderRadius: '15px', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)', minWidth: '200px', }, '& .MuiList-root': { padding: '8px' }, '& .MuiMenuItem-root': { borderRadius: '10px', margin: '4px 0', color: 'rgba(255, 255, 255, 0.9)', transition: 'all 0.2s ease', justifyContent: 'center', '&:hover': { background: 'rgba(255, 255, 255, 0.1)', color: 'white',}}}}>
-                                    {isAuthenticated ? (pages.map((page) => (<MenuItem key={page.title} onClick={() => { handleCloseNavMenu(); navigate(page.path); }}><Typography textAlign="center">{page.title}</Typography></MenuItem>))) : ([<MenuItem key="signin" onClick={() => { handleCloseNavMenu(); navigate('/signin'); }}><Typography textAlign="center">Увійти</Typography></MenuItem>, <MenuItem key="signup" onClick={() => { handleCloseNavMenu(); navigate('/signup'); }}><Typography textAlign="center">Зареєструватися</Typography></MenuItem>])}
-                                </Menu>
-                            </Box>
-                            <Typography variant="h5" noWrap component={Link} to="/" sx={{ display: { xs: 'flex', md: 'none' }, flexGrow: 1, justifyContent: 'center', fontWeight: 700, letterSpacing: '.2rem', color: 'white', textDecoration: 'none', textShadow: '0 0 8px rgba(255, 255, 255, 0.4)', ...(isAuthenticated && { pr: '56px' })}}>GRINDZONE</Typography>
-                            <Box sx={{ flexGrow: { xs: 0, md: 1 }, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1.5 }}>
-                                <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1.5 }}>
-                                    {isAuthenticated && pages.map((page) => (<Button key={page.title} component={Link} to={page.path} sx={navButtonBaseStyles}>{page.title}</Button>))}
-                                </Box>
-                                {isAuthenticated ? (<Box sx={{ ml: {md: 1 } }}><Tooltip title="Відкрити налаштування"><IconButton onClick={handleOpenUserMenu} sx={{ p: 0.5, background: 'rgba(255, 255, 255, 0.08)', backdropFilter: 'blur(5px)', boxShadow: '0 0 12px rgba(60, 120, 220, 0.3)', transition: 'all 0.3s ease', borderRadius: '50%', '&:hover': { background: 'rgba(255, 255, 255, 0.18)', transform: 'scale(1.05)' } }}><Avatar alt="User Avatar" src="/static/images/avatar/1.jpg" sx={{ border: '2px solid rgba(60, 120, 220, 0.5)', width: 40, height: 40 }} /></IconButton></Tooltip><Menu id="menu-appbar-user" anchorEl={anchorElUser} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} keepMounted transformOrigin={{ vertical: 'top', horizontal: 'right' }} open={Boolean(anchorElUser)} onClose={handleCloseUserMenu} sx={{ mt: '45px', '& .MuiPaper-root': { background: 'rgba(35, 40, 55, 0.9)', backdropFilter: 'blur(10px)', borderRadius: '15px', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)', minWidth: '180px',}, '& .MuiList-root': { padding: '8px' }, '& .MuiMenuItem-root': { borderRadius: '10px', margin: '4px 0', color: 'rgba(255, 255, 255, 0.9)', transition: 'all 0.2s ease', '&:hover': { background: 'rgba(255, 255, 255, 0.1)', color: 'white',}} }}>{settings.map((setting) => (<MenuItem key={setting} onClick={() => handleSettingClick(setting)}><Typography textAlign="center" sx={{flexGrow: 1}}>{setting}</Typography></MenuItem>))}</Menu></Box>) : (<Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1.5, ml: {md:1} }}><Button component={Link} to="/signin" sx={{...navButtonBaseStyles}}>Увійти</Button><Button component={Link} to="/signup" sx={{ ...navButtonBaseStyles, background: 'linear-gradient(45deg, #0072ff 0%, #00c6ff 100%)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(0, 114, 255, 0.25)', '&:hover': { ...navButtonBaseStyles['&:hover'], background: 'linear-gradient(45deg, #005fcc 0%, #00a0cc 100%)', boxShadow: '0 6px 15px rgba(0, 114, 255, 0.35)'}}}>Зареєструватися</Button></Box>)}
-                            </Box>
-                        </Toolbar>
-                    </Container>
-                </AppBar>
+                <NavigationBar
+                    isAuthenticated={isAuthenticated}
+                    currentUser={currentUser}
+                    onLogout={handleLogout}
+                />
                 <Box sx={{ flexGrow: 1, py: { xs: 4, md: 6 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 5, backgroundColor: 'rgba(18, 9, 29, 0.8)' }}>
                     <Container maxWidth="xl">
                         <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' }, color: 'white', textAlign: 'center', mb: { xs: 4, md: 6 }, textShadow: '0 0 15px rgba(198, 126, 255, 0.5)', animation: `${textFadeInUp} 1s ease-out 0.2s backwards` }}>
