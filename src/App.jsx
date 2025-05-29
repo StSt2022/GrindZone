@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import SignUp from './pages/SignUp/SignUp.jsx';
 import SignIn from './pages/SignIn/SignIn.jsx';
 import Home from './pages/Home/Home';
+import Profile from './pages/Profile/Profile';
 import Food from './pages/Food/Food';
 import Community from './pages/Community/Community';
 import AppTheme from './shared-theme/AppTheme.jsx';
@@ -119,9 +120,7 @@ function App() {
                         <Route
                             path="/profile"
                             element={
-                                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                                    <Home currentUser={currentUser} />
-                                </ProtectedRoute>
+                                <Profile currentUser={currentUser} />
                             }
                         />
                         <Route
