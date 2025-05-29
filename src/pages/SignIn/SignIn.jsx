@@ -71,6 +71,7 @@ const Card = styled(MuiCard)(({ theme }) => ({
 }));
 
 const SignInContainer = styled(Stack)(({ theme }) => ({
+  position: 'relative',
   minHeight: 'calc((1 - var(--template-frame-height, 0)) * 100dvh)',
   padding: theme.spacing(2),
   [theme.breakpoints.up('sm')]: {

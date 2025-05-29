@@ -23,7 +23,6 @@ import { styled } from '@mui/material/styles';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import { keyframes } from '@emotion/react';
 import Footer from "../../components/Footer.jsx";
-import NavigationBar from '../../components/NavigationBar.jsx';
 
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import SearchIcon from '@mui/icons-material/Search';
@@ -281,11 +280,7 @@ function FoodPage(props) {
             <CssBaseline enableColorScheme />
             <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
                 <Box sx={gridBackgroundStyles} />
-                <NavigationBar
-                    isAuthenticated={isAuthenticated}
-                    currentUser={currentUser}
-                    onLogout={handleLogout}
-                />
+
                 <Box sx={{ flexGrow: 1, py: { xs: 4, md: 6 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 5, backgroundColor: 'rgba(18, 9, 29, 0.8)' }}>
                     <Container maxWidth="xl">
                         <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' }, color: 'white', textAlign: 'center', mb: { xs: 4, md: 6 }, textShadow: '0 0 15px rgba(198, 126, 255, 0.5)', animation: `${textFadeInUp} 1s ease-out 0.2s backwards` }}>

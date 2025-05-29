@@ -26,7 +26,6 @@ import { styled, alpha, useTheme } from '@mui/material/styles';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import { keyframes } from '@emotion/react';
 import Footer from "../../components/Footer.jsx";
-import NavigationBar from '../../components/NavigationBar.jsx'; // Assuming NavigationBar.jsx is in src/components/
 
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -34,7 +33,6 @@ import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import ShareIcon from '@mui/icons-material/Share';
 import SendIcon from '@mui/icons-material/Send';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
-// VideocamIcon is not directly used in this component, if NavigationBar or Footer needs it, ensure it's there
 import CloseIcon from '@mui/icons-material/Close';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -448,11 +446,6 @@ function CommunityPage(props) {
             <CssBaseline enableColorScheme />
             <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
                 <Box sx={gridBackgroundStyles} />
-                <NavigationBar
-                    isAuthenticated={isAuthenticated}
-                    currentUser={currentUser}
-                    onLogout={handleLogout}
-                />
 
                 <Container maxWidth="md" sx={{ py: { xs: 3, md: 5 }, position: 'relative', zIndex: 5, flexGrow: 1 }}>
                     <Typography variant="h3" component="h1" sx={{ textAlign: 'center', mb: 1, fontWeight: 'bold', color: 'white', textShadow: '0 0 15px rgba(198, 126, 255, 0.4)' }}>Стрічка Спільноти</Typography>

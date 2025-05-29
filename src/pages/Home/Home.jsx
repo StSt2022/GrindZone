@@ -13,7 +13,6 @@ import { styled } from '@mui/material/styles';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import { keyframes } from '@emotion/react';
 import Footer from "../../components/Footer.jsx";
-import NavigationBar from '../../components/NavigationBar.jsx';
 
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
@@ -129,11 +128,6 @@ function Home(props) {
             <CssBaseline enableColorScheme />
             <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
                 <Box sx={gridBackgroundStyles} />
-                <NavigationBar
-                    isAuthenticated={isAuthenticated}
-                    currentUser={currentUser}
-                    onLogout={handleLogout}
-                />
 
                 <Box id="hero-animation-section" sx={{ position: 'relative', width: '100%', height: { xs: 'auto', md: 'calc(85vh - 68px)' }, minHeight: { xs: '70vh', md: '500px' }, overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', py: { xs: 6, md: 10 }, borderBottom: '1px solid rgba(138, 43, 226, 0.2)'}}>
                     {[0, 1, 2].map((i) => (<Box key={i} sx={{
