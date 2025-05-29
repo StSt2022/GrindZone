@@ -1,4 +1,6 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import NavigationBar from './components/NavigationBar';
 import SignUp from './pages/SignUp/SignUp.jsx';
 import SignIn from './pages/SignIn/SignIn.jsx';
 import Home from './pages/Home/Home';
@@ -7,20 +9,127 @@ import Community from './pages/Community/Community';
 import AppTheme from './shared-theme/AppTheme.jsx';
 import ChatWidget from "./widgets/ChatWidget.jsx";
 
+const ProtectedRoute = ({ isAuthenticated, children }) => {
+    if (!isAuthenticated) {
+        return <Navigate to="/signin" replace />;
+    }
+    return children;
+};
+
+const GuestRoute = ({ isAuthenticated, children }) => {
+    if (isAuthenticated) {
+        return <Navigate to="/" replace />;
+    }
+    return children;
+};
+
 function App() {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const storedUser = localStorage.getItem('currentUser');
+        const token = localStorage.getItem('authToken');
+
+        if (storedUser && token) {
+            try {
+                const parsedUser = JSON.parse(storedUser);
+                setCurrentUser(parsedUser);
+                setIsAuthenticated(true);
+            } catch (error) {
+                console.error("Error parsing stored user:", error);
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('authToken');
+            }
+        }
+        setIsLoading(false);
+    }, []);
+
+    const handleLoginSuccess = (userData, token) => {
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        if (token) {
+            localStorage.setItem('authToken', token);
+        }
+        setCurrentUser(userData);
+        setIsAuthenticated(true);
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('authToken');
+        setCurrentUser(null);
+        setIsAuthenticated(false);
+    };
+
+    if (isLoading) {
+        return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Завантаження...</div>;
+    }
+
     return (
         <AppTheme>
             <Router>
+                <NavigationBar
+                    isAuthenticated={isAuthenticated}
+                    currentUser={currentUser}
+                    onLogout={handleLogout}
+                />
                 <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/signup" element={<SignUp />} />
-                    <Route path="/signin" element={<SignIn />} />
-                    <Route path="/profile" element={<Home />} />
-                    <Route path="/activities" element={<Home />} />
-                    <Route path="/food" element={<Food />} />
-                    <Route path="/community" element={<Community />} />
+                    <Route path="/" element={<Home isAuthenticated={isAuthenticated} currentUser={currentUser} />} />
+
+                    <Route
+                        path="/signup"
+                        element={
+                            <GuestRoute isAuthenticated={isAuthenticated}>
+                                <SignUp onLoginSuccess={handleLoginSuccess} />
+                            </GuestRoute>
+                        }
+                    />
+                    <Route
+                        path="/signin"
+                        element={
+                            <GuestRoute isAuthenticated={isAuthenticated}>
+                                <SignIn onLoginSuccess={handleLoginSuccess} />
+                            </GuestRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/profile"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <Home />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/activities"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <Home />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/food"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <Food />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/community"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <Community />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
-                <ChatWidget />
+                {isAuthenticated && <ChatWidget />}
             </Router>
         </AppTheme>
     );

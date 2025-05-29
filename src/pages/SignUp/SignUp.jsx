@@ -1,4 +1,5 @@
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
@@ -7,7 +8,6 @@ import Divider from '@mui/material/Divider';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormLabel from '@mui/material/FormLabel';
 import FormControl from '@mui/material/FormControl';
-import { Link as RouterLink } from 'react-router-dom';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
@@ -16,7 +16,6 @@ import { styled, useTheme, alpha } from '@mui/material/styles';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
 import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx';
-import { useState, useEffect } from 'react';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -93,62 +92,65 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
   },
 }));
 
-export default function SignUp(props) {
+export default function SignUp({ onLoginSuccess }) {
+  const navigate = useNavigate();
   const [submitError, setSubmitError] = useState(null);
   const theme = useTheme();
-  const [emailError, setEmailError] = React.useState(false);
-  const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
-  const [passwordError, setPasswordError] = React.useState(false);
-  const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('');
-  const [nameError, setNameError] = React.useState(false);
-  const [nameErrorMessage, setNameErrorMessage] = React.useState('');
+  const [emailError, setEmailError] = useState(false);
+  const [emailErrorMessage, setEmailErrorMessage] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
+  const [passwordErrorMessage, setPasswordErrorMessage] = useState('');
+  const [nameError, setNameError] = useState(false);
+  const [nameErrorMessage, setNameErrorMessage] = useState('');
 
   useEffect(() => {
-    // Ініціалізація GIS як резервного методу
-    if (window.google) {
+    if (window.google && GOOGLE_CLIENT_ID) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGISCallback,
       });
-      console.log('Google Identity Services initialized');
+      console.log('Google Identity Services initialized for Sign Up');
+    } else {
+      console.warn('Google Identity Services script not loaded or GOOGLE_CLIENT_ID missing for Sign Up.');
     }
   }, []);
 
+  const processGoogleAuthResponse = (result) => {
+    const userData = {
+      userId: result.userId,
+      name: result.name,
+      email: result.email,
+      avatarUrl: result.avatarUrl || null
+    };
+    const token = result.token || null; // Припускаємо, що сервер може повернути токен
+    onLoginSuccess(userData, token);
+    navigate('/');
+  }
+
   const handleGISCallback = async (response) => {
+    setSubmitError(null);
+    if (!response.credential) {
+      setSubmitError("Не вдалося отримати дані для реєстрації від Google (GIS).");
+      console.error("GIS response missing credential.");
+      return;
+    }
     try {
-      const userResponse = await fetch(
-          'https://oauth2.googleapis.com/tokeninfo?id_token=' + response.credential
-      );
-      const userDataFromGoogle = await userResponse.json();
-
-      if (!userResponse.ok) {
-        throw new Error('Помилка верифікації токена Google');
-      }
-
-      const userData = {
-        name: userDataFromGoogle.name,
-        email: userDataFromGoogle.email,
-        googleId: userDataFromGoogle.sub,
-        idToken: response.credential,
-      };
-
-      const signupResponse = await fetch(`${import.meta.env.VITE_API_URL}/signup/google`, {
+      const signupResponse = await fetch(`${import.meta.env.VITE_API_URL}/auth/google/fedcm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
+        body: JSON.stringify({ token: response.credential }),
       });
 
-      if (!signupResponse.ok) {
-        const errorData = await signupResponse.json();
-        throw new Error(errorData.message || 'Помилка при реєстрації через Google');
-      }
-
       const result = await signupResponse.json();
-      console.log('Користувач зареєстрований через GIS:', result);
-      window.location.href = '/';
+
+      if (!signupResponse.ok) {
+        throw new Error(result.message || 'Помилка при реєстрації через Google (GIS)');
+      }
+      console.log('Користувач успішно зареєстрований/увійшов через Google (GIS):', result);
+      processGoogleAuthResponse(result);
     } catch (error) {
       setSubmitError(error.message);
-      console.error('Помилка GIS:', error);
+      console.error('Помилка обробки GIS відповіді для реєстрації:', error);
     }
   };
 
@@ -156,7 +158,6 @@ export default function SignUp(props) {
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const nameInput = document.getElementById('name');
-
     let isValid = true;
 
     if (!emailInput.value || !/\S+@\S+\.\S+/.test(emailInput.value)) {
@@ -185,7 +186,6 @@ export default function SignUp(props) {
       setNameError(false);
       setNameErrorMessage('');
     }
-
     return isValid;
   };
 
@@ -207,47 +207,75 @@ export default function SignUp(props) {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/signup`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Помилка при реєстрації');
-      }
-
       const result = await response.json();
-      console.log('Користувач зареєстрований:', result);
-      window.location.href = '/signin';
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Помилка при реєстрації');
+      }
+      console.log('Користувач зареєстрований (звичайна реєстрація):', result);
+      navigate('/signin');
     } catch (error) {
       setSubmitError(error.message);
-      console.error('Помилка:', error);
+      console.error('Помилка звичайної реєстрації:', error);
+    }
+  };
+
+  const fallbackToGIS = async () => {
+    if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+      setSubmitError("Google Identity Services не доступне. Перевірте підключення скрипта або спробуйте оновити сторінку.");
+      console.error("Google SDK not available for GIS fallback.");
+      return;
+    }
+    try {
+      console.log("Attempting GIS prompt for Sign Up...");
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          console.warn('GIS prompt was not displayed or skipped:', notification.getNotDisplayedReason(), notification.getSkippedReason());
+          let message = "Не вдалося відобразити вікно реєстрації Google.";
+          if (notification.isNotDisplayed()) {
+            const reason = notification.getNotDisplayedReason();
+            if (reason === "suppressed_by_user") message = "Вікно реєстрації Google було закрито. Спробуйте ще раз.";
+            else if (reason === "browser_not_supported") message = "Ваш браузер не підтримує цей метод реєстрації Google.";
+            else message = "Не вдалося відобразити вікно реєстрації Google. Перевірте налаштування браузера.";
+          } else if (notification.isSkippedMoment()) {
+            const reason = notification.getSkippedReason();
+            if (reason === "user_cancel" || reason === "tap_outside") message = "Реєстрацію через Google скасовано.";
+            else message = "Реєстрацію через Google пропущено. Спробуйте ще раз.";
+          }
+          setSubmitError(message);
+        }
+      });
+    } catch (error) {
+      console.error('Помилка GIS fallback prompt (Sign Up):', error);
+      setSubmitError('Не вдалося ініціювати реєстрацію через Google: ' + error.message);
     }
   };
 
   const handleGoogleSignIn = async () => {
     setSubmitError(null);
     try {
+      if (!GOOGLE_CLIENT_ID) {
+        setSubmitError("Google Client ID не налаштовано.");
+        console.error("Google Client ID is not configured.");
+        return;
+      }
       if (!navigator.credentials || !navigator.credentials.get) {
-        console.log("FedCM API is not available, falling back to GIS");
+        console.log("FedCM API is not available, falling back to GIS for Sign Up");
         return await fallbackToGIS();
       }
 
-      console.log("Attempting FedCM get with Google");
+      console.log("Attempting FedCM get with Google for Sign Up");
       const credential = await navigator.credentials.get({
         federated: {
-          providers: [
-            {
-              configURL: "https://accounts.google.com/gsi/fedcm.json",
-              clientId: GOOGLE_CLIENT_ID,
-            },
-          ],
+          providers: [ { configURL: "https://accounts.google.com/gsi/fedcm.json", clientId: GOOGLE_CLIENT_ID } ],
         },
       });
 
-      console.log("FedCM credential received:", credential);
+      console.log("FedCM credential received for Sign Up:", credential);
 
       if (credential && credential.token) {
         const signupResponse = await fetch(`${import.meta.env.VITE_API_URL}/auth/google/fedcm`, {
@@ -256,48 +284,35 @@ export default function SignUp(props) {
           body: JSON.stringify({ token: credential.token }),
         });
 
-        if (!signupResponse.ok) {
-          const errorData = await signupResponse.json();
-          throw new Error(errorData.message || 'Помилка при реєстрації через Google');
-        }
-
         const result = await signupResponse.json();
-        console.log('Користувач зареєстрований/увійшов через Google FedCM:', result);
-        window.location.href = '/';
+
+        if (!signupResponse.ok) {
+          throw new Error(result.message || 'Помилка при реєстрації через Google (FedCM)');
+        }
+        console.log('Користувач успішно зареєстрований/увійшов через Google (FedCM):', result);
+        processGoogleAuthResponse(result);
       } else {
-        console.log("FedCM returned null, falling back to GIS");
+        console.log("FedCM returned null or no token, falling back to GIS for Sign Up");
         await fallbackToGIS();
       }
     } catch (error) {
-      console.error("Помилка FedCM Google Sign-In:", error);
-      if (error.name === 'AbortError') {
-        setSubmitError("Вхід через Google було скасовано.");
-      } else if (error.message.includes("The request is not allowed by the user agent")) {
-        setSubmitError("Запит на вхід через Google заблоковано. Перевірте налаштування браузера (наприклад, сторонні куки).");
+      console.error("Помилка FedCM Google Sign Up:", error);
+      if (error.name === 'AbortError' || (error.message && error.message.toLowerCase().includes('aborted'))) {
+        setSubmitError("Реєстрацію через Google було скасовано.");
+      } else if (error.message && (error.message.includes("The request is not allowed by the user agent") || error.message.includes("disabled") || error.message.includes("InvalidStateError"))) {
+        setSubmitError("Запит на реєстрацію через Google заблоковано. Перевірте налаштування браузера.");
+        console.log("Falling back to GIS due to FedCM block/error (Sign Up)");
+        await fallbackToGIS();
       } else {
-        setSubmitError(error.message || "Невідома помилка під час входу через Google.");
-        console.log("Falling back to GIS due to error");
+        setSubmitError(error.message || "Невідома помилка під час реєстрації через Google.");
+        console.log("Falling back to GIS due to general error in FedCM flow (Sign Up)");
         await fallbackToGIS();
       }
-    }
-  };
-
-  const fallbackToGIS = async () => {
-    if (!window.google) {
-      setSubmitError("Google Identity Services не доступне. Перевірте підключення скрипта.");
-      return;
-    }
-
-    try {
-      window.google.accounts.id.prompt();
-    } catch (error) {
-      console.error('Помилка GIS fallback:', error);
-      setSubmitError('Не вдалося увійти через альтернативний метод: ' + error.message);
     }
   };
 
   return (
-      <AppTheme {...props}>
+      <AppTheme>
         <CssBaseline enableColorScheme />
         <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1 }} />
         <SignUpContainer direction="column" justifyContent="center">
@@ -350,6 +365,7 @@ export default function SignUp(props) {
                     helperText={nameErrorMessage}
                     color={nameError ? 'error' : 'primary'}
                     size="small"
+                    onChange={() => { setNameError(false); setNameErrorMessage(''); setSubmitError(null);}}
                 />
               </FormControl>
               <FormControl>
@@ -366,6 +382,7 @@ export default function SignUp(props) {
                     helperText={emailErrorMessage}
                     color={emailError ? 'error' : 'primary'}
                     size="small"
+                    onChange={() => { setEmailError(false); setEmailErrorMessage(''); setSubmitError(null);}}
                 />
               </FormControl>
               <FormControl>
@@ -383,10 +400,11 @@ export default function SignUp(props) {
                     helperText={passwordErrorMessage}
                     color={passwordError ? 'error' : 'primary'}
                     size="small"
+                    onChange={() => { setPasswordError(false); setPasswordErrorMessage(''); setSubmitError(null);}}
                 />
               </FormControl>
               <FormControlLabel
-                  control={<Checkbox value="allowExtraEmails" color="primary" size="small" />}
+                  control={<Checkbox name="allowExtraEmails" color="primary" size="small" />}
                   label="Я хочу отримувати оновлення електронною поштою."
               />
               {submitError && (
@@ -424,14 +442,14 @@ export default function SignUp(props) {
                   fullWidth
                   variant="outlined"
                   color="primary"
-                  onClick={() => alert('Незабаром')}
+                  onClick={() => {setSubmitError(null); alert('Реєстрація через Facebook незабаром')}}
                   startIcon={<FacebookIcon />}
               >
                 Реєстрація через Facebook
               </Button>
               <Typography sx={{ textAlign: 'center', pt: 1 }}>
                 Вже маєте обліковий запис?{' '}
-                <StyledLink to="/signin">Увійти</StyledLink>
+                <StyledLink to="/signin" onClick={() => setSubmitError(null)}>Увійти</StyledLink>
               </Typography>
             </Box>
           </Card>

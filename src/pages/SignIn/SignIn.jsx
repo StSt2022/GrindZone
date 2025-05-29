@@ -1,4 +1,5 @@
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
@@ -7,7 +8,6 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Divider from '@mui/material/Divider';
 import FormLabel from '@mui/material/FormLabel';
 import FormControl from '@mui/material/FormControl';
-import { Link as RouterLink } from 'react-router-dom';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
@@ -16,8 +16,7 @@ import { styled, useTheme, alpha } from '@mui/material/styles';
 import ForgotPassword from './components/ForgotPassword.jsx';
 import AppTheme from "../../shared-theme/AppTheme.jsx";
 import ColorModeSelect from '../../shared-theme/ColorModeSelect.jsx';
-import { GoogleIcon, FacebookIcon } from './components/CustomIcons';
-import { useState, useEffect } from 'react';
+import { GoogleIcon, FacebookIcon } from './components/CustomIcons.jsx';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -93,14 +92,15 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
   },
 }));
 
-export default function SignIn(props) {
+export default function SignIn({ onLoginSuccess }) {
+  const navigate = useNavigate();
   const theme = useTheme();
   const [emailError, setEmailError] = useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = useState('');
   const [passwordError, setPasswordError] = useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = useState('');
   const [open, setOpen] = useState(false);
-  const [submitError, setSubmitError] = useState(null); // Для загальних помилок відправки
+  const [submitError, setSubmitError] = useState(null);
 
   const handleClickOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -117,31 +117,37 @@ export default function SignIn(props) {
     }
   }, []);
 
+  const processAuthResponse = (result) => {
+    const userData = {
+      userId: result.userId,
+      name: result.name,
+      email: result.email,
+      avatarUrl: result.avatarUrl || null
+    };
+    const token = result.token || null;
+    onLoginSuccess(userData, token);
+    navigate('/');
+  };
+
   const handleGISCallback = async (response) => {
-    console.log("GIS Callback response for Sign In:", response);
+    setSubmitError(null);
     if (!response.credential) {
       setSubmitError("Не вдалося отримати дані для входу від Google (GIS).");
       console.error("GIS response missing credential.");
       return;
     }
-
     try {
       const signInResponse = await fetch(`${import.meta.env.VITE_API_URL}/auth/google/fedcm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: response.credential }),
       });
-
       const result = await signInResponse.json();
-
       if (!signInResponse.ok) {
         throw new Error(result.message || 'Помилка при вході через Google (GIS)');
       }
-
       console.log('Користувач увійшов через Google (GIS):', result);
-      // Тут можна зберегти дані користувача (наприклад, в localStorage) та перенаправити
-      // localStorage.setItem('user', JSON.stringify({ userId: result.userId, name: result.name, email: result.email }));
-      window.location.href = '/'; // Перенаправлення на головну сторінку
+      processAuthResponse(result);
     } catch (error) {
       setSubmitError(error.message);
       console.error('Помилка обробки GIS відповіді для входу:', error);
@@ -164,7 +170,7 @@ export default function SignIn(props) {
             const reason = notification.getNotDisplayedReason();
             if (reason === "suppressed_by_user") message = "Вікно входу Google було закрито. Спробуйте ще раз.";
             else if (reason === "browser_not_supported") message = "Ваш браузер не підтримує цей метод входу Google.";
-            else message = "Не вдалося відобразити вікно входу Google. Перевірте налаштування браузера (спливаючі вікна, сторонні куки).";
+            else message = "Не вдалося відобразити вікно входу Google. Перевірте налаштування браузера.";
           } else if (notification.isSkippedMoment()) {
             const reason = notification.getSkippedReason();
             if (reason === "user_cancel" || reason === "tap_outside") message = "Вхід через Google скасовано.";
@@ -174,7 +180,7 @@ export default function SignIn(props) {
         }
       });
     } catch (error) {
-      console.error('Помилка GIS fallback prompt:', error);
+      console.error('Помилка GIS fallback prompt (Sign In):', error);
       setSubmitError('Не вдалося ініціювати вхід через Google: ' + error.message);
     }
   };
@@ -195,12 +201,7 @@ export default function SignIn(props) {
       console.log("Attempting FedCM get with Google for Sign In");
       const credential = await navigator.credentials.get({
         federated: {
-          providers: [
-            {
-              configURL: "https://accounts.google.com/gsi/fedcm.json",
-              clientId: GOOGLE_CLIENT_ID,
-            },
-          ],
+          providers: [ { configURL: "https://accounts.google.com/gsi/fedcm.json", clientId: GOOGLE_CLIENT_ID, } ],
         },
       });
 
@@ -212,16 +213,12 @@ export default function SignIn(props) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: credential.token }),
         });
-
         const result = await signInResponse.json();
-
         if (!signInResponse.ok) {
-          throw new Error(result.message || 'Помилка при вході через Google');
+          throw new Error(result.message || 'Помилка при вході через Google (FedCM)');
         }
-
         console.log('Користувач увійшов через Google FedCM:', result);
-        // localStorage.setItem('user', JSON.stringify({ userId: result.userId, name: result.name, email: result.email }));
-        window.location.href = '/';
+        processAuthResponse(result);
       } else {
         console.log("FedCM returned null or no token, falling back to GIS for Sign In");
         await fallbackToGIS();
@@ -231,12 +228,12 @@ export default function SignIn(props) {
       if (error.name === 'AbortError' || (error.message && error.message.toLowerCase().includes('aborted'))) {
         setSubmitError("Вхід через Google було скасовано.");
       } else if (error.message && (error.message.includes("The request is not allowed by the user agent") || error.message.includes("disabled") || error.message.includes("InvalidStateError"))) {
-        setSubmitError("Запит на вхід через Google заблоковано. Перевірте налаштування браузера (наприклад, сторонні куки).");
-        console.log("Falling back to GIS due to FedCM block/error");
+        setSubmitError("Запит на вхід через Google заблоковано. Перевірте налаштування браузера.");
+        console.log("Falling back to GIS due to FedCM block/error (Sign In)");
         await fallbackToGIS();
       } else {
         setSubmitError(error.message || "Невідома помилка під час входу через Google.");
-        console.log("Falling back to GIS due to general error in FedCM flow");
+        console.log("Falling back to GIS due to general error in FedCM flow (Sign In)");
         await fallbackToGIS();
       }
     }
@@ -246,7 +243,6 @@ export default function SignIn(props) {
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     let isValid = true;
-
     if (!emailInput.value || !/\S+@\S+\.\S+/.test(emailInput.value)) {
       setEmailError(true);
       setEmailErrorMessage('Будь ласка, введіть дійсну електронну адресу.');
@@ -254,8 +250,7 @@ export default function SignIn(props) {
     } else {
       setEmailError(false); setEmailErrorMessage('');
     }
-
-    if (!passwordInput.value) { // Пароль може бути будь-якої довжини при вході, сервер перевірить
+    if (!passwordInput.value) {
       setPasswordError(true);
       setPasswordErrorMessage('Будь ласка, введіть пароль.');
       isValid = false;
@@ -267,7 +262,7 @@ export default function SignIn(props) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setSubmitError(null); // Очистити попередні помилки
+    setSubmitError(null);
     if (!validateInputs()) return;
 
     const data = new FormData(event.currentTarget);
@@ -277,30 +272,23 @@ export default function SignIn(props) {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/signin`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-
       const result = await response.json();
-
       if (!response.ok) {
         throw new Error(result.message || 'Помилка під час входу');
       }
-
-      console.log('Успішний вхід:', result);
-      // Тут можна зберегти дані користувача (наприклад, в localStorage) та перенаправити
-      // localStorage.setItem('user', JSON.stringify({ userId: result.userId, name: result.name, email: result.email }));
-      window.location.href = '/'; // Перенаправлення на головну сторінку
+      console.log('Успішний вхід (звичайний):', result);
+      processAuthResponse(result);
     } catch (error) {
       setSubmitError(error.message);
-      console.error('Помилка входу:', error);
+      console.error('Помилка звичайного входу:', error);
     }
   };
 
   return (
-      <AppTheme {...props}>
+      <AppTheme>
         <CssBaseline enableColorScheme />
         <SignInContainer direction="column" justifyContent="center">
           <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1 }} />
@@ -382,7 +370,7 @@ export default function SignIn(props) {
                     label="Запам'ятати мене"
                 />
                 <RouterLink
-                    to="#" // Заглушка, оскільки ForgotPassword відкривається модально
+                    to="#"
                     onClick={(e) => { e.preventDefault(); handleClickOpen(); }}
                     style={{
                       color: theme.palette.primary.main,
@@ -425,7 +413,7 @@ export default function SignIn(props) {
                   fullWidth
                   variant="outlined"
                   color="primary"
-                  onClick={handleGoogleSignIn} // Підключено обробник
+                  onClick={handleGoogleSignIn}
                   startIcon={<GoogleIcon />}
               >
                 Вхід через Google
