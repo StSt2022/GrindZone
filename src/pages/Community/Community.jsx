@@ -106,9 +106,9 @@ const StyledTextField = styled(TextField)(({ theme, ownerState }) => ({
             },
         },
         '& textarea.MuiInputBase-input': {
-            overflowY: 'auto !important',
+            overflowY: 'auto',
             resize: 'none',
-            // maxHeight буде задаватися через maxRows на компоненті TextField
+            maxHeight: '40px',
         },
     },
 }));
@@ -148,20 +148,19 @@ const ModalContentBox = styled(Box)(({ theme }) => ({
     flexDirection: 'column',
 }));
 
-const StyledFormControl = styled(FormControl)({
-    minWidth: 120,
+const StyledFormControl = styled(FormControl)(({ theme }) => ({
+    minWidth: 130,
     '& .MuiOutlinedInput-root': {
         color: 'rgba(255, 255, 255, 0.9)',
-        backgroundColor: 'rgba(40, 32, 60, 0.7)',
         borderRadius: '10px',
         '& fieldset': { borderColor: 'rgba(138, 43, 226, 0.4)' },
-        '&:hover fieldset': { borderColor: 'rgba(198, 126, 255, 0.8)' },
+        '&:hover fieldset': { borderColor: 'rgba(198, 126, 255, 0.8)', backgroundColor: alpha(theme.palette.info.light, 0.1) },
         '&.Mui-focused fieldset': { borderColor: '#c67eff' },
-        '& .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.7)' },
+        '& .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.7)' }
     },
     '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.6)'},
-    '& .MuiInputLabel-root.Mui-focused': { color: '#c67eff'},
-});
+    '& .MuiInputLabel-root.Mui-focused': { color: '#c67eff'}
+}));
 
 const POST_TYPES = [
     { value: 'text', label: 'Текст/Думка', IconComponent: LightbulbOutlinedIcon },
@@ -552,11 +551,12 @@ function CommunityPage(props) {
                                 onClick={handleCreatePost}
                                 disabled={(!newPostText.trim() && !selectedFile) || (isAuthenticated && !currentUser)}
                                 sx={{
-                                    background: 'linear-gradient(45deg, #8E2DE2 0%, #4A00E0 100%)', // Більш насичений фіолетовий
-                                    color: 'white', fontWeight: 'bold', fontSize: '0.9rem', borderRadius: '10px',
-                                    boxShadow: '0 5px 12px rgba(142, 45, 226, 0.4)',
-                                    '&:hover': {  background: 'linear-gradient(45deg, #7A1FB8 0%, #3A00B0 100%)', boxShadow: '0 7px 18px rgba(142, 45, 226, 0.5)' },
-                                    '&.Mui-disabled': { background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', boxShadow: 'none'}
+                                    background: 'rgba(255,255,255,0.9) !important',
+                                    fontWeight: 'bold', fontSize: '0.9rem', borderRadius: 'none !important',
+                                    boxShadow: 'none !important',
+                                    border: 'none !important',
+                                    '&:hover': {  background: 'linear-gradient(45deg, #7A1FB8 0%, #3A00B0 100%) !important', boxShadow: '0 7px 18px rgba(142, 45, 226, 0.5)', color: 'white !important'},
+                                    '&.Mui-disabled': { background: 'rgba(255,255,255,0.1) !important', color: 'rgba(255,255,255,0.5) !important', boxShadow: 'none !important' },
                                 }}
                             >Опублікувати</Button>
                         </Box>
