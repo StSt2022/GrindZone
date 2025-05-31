@@ -79,6 +79,7 @@ const ZoneCard = ({ zone, index }) => {
                     alignSelf: 'center',
                     flex: '0 0 auto',
                     objectFit: 'cover',
+                    borderRadius: '10px',
                     borderRight: { md: `2px solid ${accent}55` },
                     borderBottom: { xs: `2px solid ${accent}55`, md: 'none' },
                     filter: 'brightness(0.85) contrast(1.05) saturate(1.1)',

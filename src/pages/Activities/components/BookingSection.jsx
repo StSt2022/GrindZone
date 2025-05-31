@@ -34,12 +34,12 @@ import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 
 // Фіолетова палітра (близька до твого AppTheme)
-const primaryPurple = '#a96cff'; // Основний фіолетовий
-const secondaryPurple = '#c67eff'; // Світліший фіолетовий
-const darkPurpleBg = 'rgba(45, 35, 75, 0.8)'; // Фон для полів
-const cardBg = 'rgba(30, 22, 52, 0.92)'; // Фон для карток
-const lightText = 'rgba(230, 220, 255, 0.85)';
-const subtleText = 'rgba(230, 220, 255, 0.65)';
+const primaryPurple = '#8a2be2'; // Залишаємо насичений фіолетовий
+const secondaryPurple = '#7b1fa2'; // Темніший фіолетовий, без рожевого відтінку
+const hoverPurple = '#6a1b9a'; // Ще темніший для наведення
+const cardBg = 'rgba(20, 15, 40, 0.95)';
+const lightText = 'rgba(220, 210, 255, 0.9)';
+const subtleText = 'rgba(220, 210, 255, 0.7)';
 
 const formControlBaseStyles = (isDisabled = false) => ({
     mb: 2.5,
@@ -86,10 +86,17 @@ const formControlBaseStyles = (isDisabled = false) => ({
     },
 });
 
+const selectControlStyles = (isDisabled = false) => ({
+    ...formControlBaseStyles(isDisabled), // Успадковуємо стилі
+    '& .MuiInputLabel-outlined:not(.MuiInputLabel-shrink)': {
+        transform: 'translate(14px, 9px) scale(1)', // Центрування для Select
+    },
+});
+
 const menuProps = {
     PaperProps: {
         sx: {
-            bgcolor: alpha(cardBg, 0.98),
+            backgroundColor: alpha(cardBg, 0.98),
             backdropFilter: 'blur(10px)',
             color: lightText,
             border: `1px solid ${alpha(primaryPurple, 0.6)}`,
@@ -111,7 +118,7 @@ const StyledBookingButton = styled(Button)(({ theme, disabled }) => ({
     textTransform: 'none',
     color: theme.palette.common.white,
     background: disabled
-        ? alpha(primaryPurple, 0.3) // Затемнений фіолетовий для disabled
+        ? alpha(primaryPurple, 0.3)
         : `linear-gradient(45deg, ${secondaryPurple} 0%, ${primaryPurple} 100%)`,
     boxShadow: disabled
         ? 'none'
@@ -121,21 +128,21 @@ const StyledBookingButton = styled(Button)(({ theme, disabled }) => ({
     '&:hover': {
         background: disabled
             ? alpha(primaryPurple, 0.3)
-            : `linear-gradient(45deg, ${alpha(secondaryPurple, 0.85)} 0%, ${alpha(primaryPurple, 0.85)} 100%)`,
+            : `linear-gradient(45deg, ${hoverPurple} 0%, ${alpha(primaryPurple, 0.9)} 100%)`,
         boxShadow: disabled
             ? 'none'
-            : `0 8px 25px -5px ${alpha(primaryPurple, 0.6)}, inset 0 -2px 8px rgba(0,0,0,0.15)`,
+            : `0 8px 25px -5px ${alpha(hoverPurple, 0.6)}, inset 0 -2px 8px rgba(0,0,0,0.15)`,
         transform: disabled ? 'none' : 'translateY(-2px) scale(1.01)',
         borderColor: disabled ? alpha(primaryPurple, 0.2) : alpha(theme.palette.common.white, 0.3),
     },
     '&.Mui-disabled': {
         color: alpha(theme.palette.common.white, 0.5),
-        background: alpha(darkPurpleBg, 0.6),
+        background: alpha(cardBg, 0.6),
     },
     '& .MuiButton-startIcon': {
         marginRight: theme.spacing(1.2),
         marginLeft: theme.spacing(-0.8),
-    }
+    },
 }));
 
 const BookingFormCard = styled(Card)(({ theme }) => ({
@@ -288,14 +295,21 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
     return (
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={uk}>
             <Box component="section" sx={{ py: { xs: 5, md: 8 } }}>
-                <Typography variant="h2" component="h2" sx={{
-                    textAlign: 'center', fontWeight: 'bold', color: 'white',
-                    mb: { xs: 5, md: 7 },
-                    textShadow: `0 0 25px ${alpha(primaryPurple, 0.5)}`,
-                    fontSize: { xs: '2.3rem', sm: '2.9rem', md: '3.3rem' },
-                    background: `linear-gradient(120deg, ${secondaryPurple} 0%, ${primaryPurple} 60%, ${alpha(primaryPurple, 0.8)} 100%)`,
-                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                }}>
+                <Typography
+                    variant="h2"
+                    component="h2"
+                    sx={{
+                        textAlign: 'center',
+                        fontWeight: 'bold',
+                        color: 'white',
+                        mb: { xs: 5, md: 7 },
+                        textShadow: '0 0 20px rgba(198, 126, 255, 0.4)', // Зберігаємо тінь із Zones.jsx
+                        fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' }, // Узгоджуємо розміри з Zones.jsx
+                        background: 'linear-gradient(120deg, #e6ceff 0%, #c67eff 60%, #a96cff 100%)', // Градієнт із Zones.jsx
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                    }}
+                >
                     Забронювати Активність
                 </Typography>
 
@@ -320,7 +334,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                 <Typography variant="h5" sx={{ fontWeight: '600', color: 'white' }}>Тренажер</Typography> {/* Змінив на h5 */}
                             </Box>
                             <Box component="form" onSubmit={handleEquipmentBooking}>
-                                <FormControl fullWidth sx={formControlBaseStyles()}>
+                                <FormControl fullWidth sx={selectControlStyles()}>
                                     <InputLabel id="equipment-select-label">Оберіть тренажер</InputLabel>
                                     <Select
                                         labelId="equipment-select-label" value={selectedEquipmentId} label="Оберіть тренажер"
@@ -370,7 +384,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                                startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: alpha(secondaryPurple,0.9), fontSize:'1.3rem'}}/>
                                            }}
                                 />
-                                <Box sx={{ mt: 1, mb: 5 }}>
+                                <Box sx={{ mt: 2, mb: 5 }}>
                                     <StyledBookingButton type="submit" fullWidth startIcon={<CheckCircleOutlineIcon/>}>
                                         Забронювати тренажер
                                     </StyledBookingButton>
@@ -386,7 +400,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                 <Typography variant="h5" sx={{ fontWeight: '600', color: 'white' }}>Групове Заняття</Typography> {/* Змінив на h5 */}
                             </Box>
                             <Box component="form" onSubmit={handleClassBooking}>
-                                <FormControl fullWidth sx={formControlBaseStyles(isGroupClassFull)}>
+                                <FormControl fullWidth sx={selectControlStyles(isGroupClassFull)}>
                                     <InputLabel id="class-select-label">Оберіть заняття</InputLabel>
                                     <Select
                                         labelId="class-select-label" value={selectedClassId} label="Оберіть заняття"
@@ -438,7 +452,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                                startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: alpha(secondaryPurple,0.9), fontSize:'1.3rem'}}/>
                                            }}
                                 />
-                                <Box sx={{ mt: 1, mb: 5 }}>
+                                <Box sx={{ mt: 2, mb: 5 }}>
                                     <StyledBookingButton type="submit" fullWidth disabled={isGroupClassFull} startIcon={isGroupClassFull ? <EventBusyIcon/> : <CheckCircleOutlineIcon/>}>
                                         {isGroupClassFull ? "Немає місць" : "Забронювати заняття"}
                                     </StyledBookingButton>
