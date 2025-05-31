@@ -26,6 +26,12 @@ const primaryPurple = '#a96cff';
 const secondaryPurple = '#c67eff';
 const lightText = 'rgba(235, 230, 255, 0.9)';
 
+
+// Параметри для скан-ліній
+const scanLineColor = alpha(primaryPurple, 0.04); // Колір скан-ліній (дуже прозорий)
+const scanLineThickness = '1px';                  // Товщина кожної лінії
+const scanLineSpacing = '3px';                    // Відстань між лініями (прозора частина + лінія)
+
 const cardPopIn = keyframes`
     0% { opacity: 0; transform: translateY(25px) scale(0.98); }
     100% { opacity: 1; transform: translateY(0) scale(1); }
@@ -70,8 +76,8 @@ const ClassCard = styled(Card)(({ theme, isFull }) => {
     const cardAnimationDelay = `${theme.transitions.duration.standard}ms`;
     return {
         width: '100%',
-        maxWidth: '600px', // Фіксована максимальна ширина, як у FoodPage
-        minHeight: '600px', // Забезпечує однакову висоту
+        maxWidth: '600px',
+        minHeight: '600px',
         background: 'rgba(35, 28, 50, 0.85)',
         borderRadius: '20px',
         border: `1px solid ${isFull ? alpha('#E53935', 0.5) : alpha('#a96cff', 0.35)}`,
@@ -131,8 +137,31 @@ const Classes = ({ groupClasses, onBookClass }) => {
     );
 
     return (
-        <Box sx={{ py: { xs: 4, md: 6 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 5, backgroundColor: 'rgba(18, 9, 29, 0.8)' }}>
-            <Container maxWidth="xl">
+        <Box sx={{
+            py: { xs: 4, md: 6 },
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 0,
+                // Горизонтальні скан-лінії
+                backgroundImage: `repeating-linear-gradient(
+                    to bottom, /* напрямок градієнту - зверху вниз */
+                    ${scanLineColor}, /* колір лінії */
+                    ${scanLineColor} ${scanLineThickness}, /* лінія займає scanLineThickness */
+                    transparent ${scanLineThickness}, /* після лінії починається прозора частина */
+                    transparent ${scanLineSpacing} /* прозора частина триває до scanLineSpacing */
+                )`,
+                // Розмір фонового зображення тут не потрібен, бо repeating-linear-gradient сам заповнить простір
+                // opacity: 1, // Колір лінії вже дуже прозорий, тому додаткова прозорість може не знадобитися
+            }
+        }}>
+            <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1, px: { xs: 2, sm: 3 } }}>
                 <Typography
                     variant="h2"
                     component="h2"
@@ -157,7 +186,7 @@ const Classes = ({ groupClasses, onBookClass }) => {
                     justifyContent="center"
                     alignItems="stretch"
                 >
-                    {currentClasses.map((sClass, index) => {
+                    {currentClasses.map((sClass) => {
                         const bookedPercentage = sClass.maxCapacity > 0 ? (sClass.bookedUserIds.length / sClass.maxCapacity) * 100 : 0;
                         const isFull = sClass.maxCapacity > 0 && sClass.bookedUserIds.length >= sClass.maxCapacity;
                         return (
@@ -176,7 +205,7 @@ const Classes = ({ groupClasses, onBookClass }) => {
                                     <Box sx={{
                                         position: 'relative',
                                         width: '100%',
-                                        paddingTop: '56.25%', // Співвідношення 16:9
+                                        paddingTop: '56.25%',
                                         overflow: 'hidden',
                                     }}>
                                         <CardMedia
@@ -228,19 +257,19 @@ const Classes = ({ groupClasses, onBookClass }) => {
                                             />
                                             <Grid container spacing={1} sx={{ mb: 2.5 }}>
                                                 <Grid item xs={12} sx={{ display: 'flex', alignItems: 'center' }}>
-                                                    <CalendarTodayIcon sx={{ fontSize: '1.1rem', mr: 1, opacity: 0.8 }} />
+                                                    <CalendarTodayIcon sx={{ fontSize: '1.1rem', mr: 1, opacity: 0.8, color: lightText }} />
                                                     <Typography variant="body2" sx={{ fontSize: '0.88rem', color: 'rgba(235, 230, 245, 0.95)' }}>
                                                         {new Date(sClass.date).toLocaleDateString('uk-UA', { weekday: 'long', day: '2-digit', month: 'long' })}
                                                     </Typography>
                                                 </Grid>
                                                 <Grid item xs={12} sx={{ display: 'flex', alignItems: 'center' }}>
-                                                    <AccessTimeIcon sx={{ fontSize: '1.1rem', mr: 1, opacity: 0.8 }} />
+                                                    <AccessTimeIcon sx={{ fontSize: '1.1rem', mr: 1, opacity: 0.8, color: lightText }} />
                                                     <Typography variant="body2" sx={{ fontSize: '0.88rem', color: 'rgba(235, 230, 245, 0.95)' }}>
                                                         {sClass.startTime} - {sClass.endTime} ({sClass.durationMinutes} хв)
                                                     </Typography>
                                                 </Grid>
                                                 <Grid item xs={12} sx={{ display: 'flex', alignItems: 'center' }}>
-                                                    <PeopleAltIcon sx={{ fontSize: '1.1rem', mr: 1, opacity: 0.8 }} />
+                                                    <PeopleAltIcon sx={{ fontSize: '1.1rem', mr: 1, opacity: 0.8, color: lightText }} />
                                                     <Typography variant="body2" sx={{
                                                         fontSize: '0.88rem',
                                                         color: 'rgba(235, 230, 245, 0.95)',

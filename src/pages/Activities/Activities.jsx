@@ -5,7 +5,7 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import CssBaseline from '@mui/material/CssBaseline';
 import Divider from '@mui/material/Divider';
-import { keyframes, alpha, styled } from '@mui/material/styles'; // Додав styled
+import { keyframes, alpha, styled } from '@mui/material/styles';
 
 import AppTheme from '../../shared-theme/AppTheme'; // Перевір шлях
 import Footer from '../../components/Footer'; // Перевір шлях
@@ -21,19 +21,18 @@ import { parse } from "date-fns";
 
 const gridLineGlow = keyframes`0% { opacity: 0.04; } 50% { opacity: 0.08; } 100% { opacity: 0.04; }`;
 
-// Анімація для заголовка та підзаголовка
-const titleTextPopIn = keyframes` // Нова анімація для заголовка
-                                      0% { opacity: 0; transform: translateY(30px) scale(0.9); }
-                                      60% { opacity: 0.8; transform: translateY(-8px) scale(1.05); }
-                                      100% { opacity: 1; transform: translateY(0) scale(1); }
+const titleTextPopIn = keyframes`
+    0% { opacity: 0; transform: translateY(30px) scale(0.9); }
+    60% { opacity: 0.8; transform: translateY(-8px) scale(1.05); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
-const subTextFadeInSmooth = keyframes` // Нова анімація для підзаголовка
-                                           from { opacity: 0; transform: translateY(20px); }
-                                           to { opacity: 1; transform: translateY(0); }
+const subTextFadeInSmooth = keyframes`
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 `;
 
-const pageGlobalBackgroundStyles = { /* ... (залишається без змін) ... */
+const pageGlobalBackgroundStyles = {
     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: -1, backgroundSize: '70px 70px',
     backgroundImage: `
         linear-gradient(to right, rgba(138, 43, 226, 0.025) 1px, transparent 1px),
@@ -51,7 +50,7 @@ const pageGlobalBackgroundStyles = { /* ... (залишається без зм�
     },
 };
 
-const sectionStyles = (isPrimary = true) => ({ /* ... (залишається без змін) ... */
+const sectionStyles = (isPrimary = true) => ({
     backgroundColor: isPrimary ? 'rgba(18, 9, 29, 0.88)' : 'rgba(26, 18, 46, 0.88)',
     backdropFilter: 'blur(8px)',
     borderRadius: '32px',
@@ -62,22 +61,15 @@ const sectionStyles = (isPrimary = true) => ({ /* ... (залишається б
     overflow: 'hidden',
 });
 
-// Стилізований span для слова GRIND
 const GrindSpan = styled('span')(({ theme }) => ({
-    color: '#c67eff', // Той самий колір, що й у цитаті на Home
-    // WebkitTextFillColor: '#c67eff', // Для Safari, якщо градієнт не потрібен
-    textShadow: '0 0 12px rgba(198,126,255,0.7)', // Тінь для "неонового" ефекту
-    // Якщо потрібен градієнт, як на головному заголовку Home:
-    // background: 'linear-gradient(120deg, #e6ceff 30%, #c67eff 70%, #a96cff 100%)',
-    // WebkitBackgroundClip: 'text',
-    // WebkitTextFillColor: 'transparent',
-    fontStyle: 'italic', // Можна додати, якщо хочеш
-    fontWeight: 'bold', // Можна посилити
+    color: '#c67eff',
+    textShadow: '0 0 12px rgba(198,126,255,0.7)',
+    fontStyle: 'italic',
+    fontWeight: 'bold',
 }));
 
 
 function ActivitiesPage(props) {
-    // ... (стейт та хендлери залишаються без змін) ...
     const [bookingTarget, setBookingTarget] = useState(null);
     const [currentGroupClasses, setCurrentGroupClasses] = useState(mockGroupClasses);
 
@@ -126,28 +118,53 @@ function ActivitiesPage(props) {
             <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
                 <Box sx={pageGlobalBackgroundStyles} />
 
-                <Container maxWidth="xl" sx={{ pt: { xs: 6, md: 9 }, pb: {xs:4, md:6}, position: 'relative', zIndex: 1 }}> {/* Збільшив верхній pt */}
-                    <Box sx={{ textAlign: 'center', mb: { xs: 7, md: 10 } }}> {/* Збільшив нижній відступ */}
+                <Container maxWidth="xl" sx={{ pt: { xs: 6, md: 9 }, pb: {xs:4, md:6}, position: 'relative', zIndex: 1 }}>
+                    <Box sx={{
+                        textAlign: 'center',
+                        mb: { xs: 7, md: 10 },
+                        position: 'relative',
+                        // Додамо трохи падінгу, щоб світіння не обрізалося краями Box, якщо текст близько
+                        // Це може бути не обов'язково, залежить від розмірів світіння і тексту
+                        // py: { xs: 2, md: 3 }, // Вертикальний падінг для Box
+
+                        '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            // Збільшимо розміри та інтенсивність
+                            width: 'clamp(400px, 70vw, 850px)', // Трохи ширше
+                            height: 'clamp(220px, 35vh, 380px)', // Трохи вище
+                            // Змінюємо градієнт: робимо його більш насиченим в центрі (0.12) і розширюємо до 70%
+                            background: 'radial-gradient(ellipse at center, rgba(198, 126, 255, 0.12) 0%, transparent 70%)',
+                            filter: 'blur(25px)', // Трохи зменшимо блюр, щоб краї були чіткішими, або збільшимо, якщо хочемо м'якше
+                            zIndex: -1,
+                            opacity: 1, // Залишимо opacity псевдоелемента на 1, контролюємо прозорість через градієнт
+                        },
+                    }}>
                         <Typography variant="h1" component="h1" sx={{
+                            position: 'relative', // Залишаємо для гарантії контексту стекування
+                            zIndex: 0,            // Залишаємо
                             fontWeight: 'bold',
-                            fontSize: { xs: '3rem', sm: '3.8rem', md: '4.5rem' }, // Повернув розмір
+                            fontSize: { xs: '3rem', sm: '3.8rem', md: '4.5rem' },
                             lineHeight: 1.2,
-                            // Основний градієнт для тексту, крім слова GRIND
                             background: 'linear-gradient(125deg, #fdeaff 0%, #e9d8ff 30%, #d8bfff 60%, #c6aeff 100%)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             mb: 2.5,
-                            textShadow: '0 0 35px rgba(198, 126, 255, 0.45)', // Легка загальна тінь
-                            animation: `${titleTextPopIn} 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s backwards` // Змінив ease
+                            textShadow: '0 0 35px rgba(198, 126, 255, 0.45)',
+                            animation: `${titleTextPopIn} 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s backwards`
                         }}>
                             Твоя Зона для <GrindSpan>GRIND</GrindSpan>-у
                         </Typography>
                         <Typography variant="h5" component="p" sx={{
-                            // Стилі, схожі на підзаголовок з Home.jsx
-                            color: 'rgba(230, 220, 255, 0.9)', // Трохи яскравіше
+                            position: 'relative', // Залишаємо
+                            zIndex: 0,            // Залишаємо
+                            color: 'rgba(230, 220, 255, 0.9)',
                             maxWidth: '700px',
                             mx: 'auto',
-                            fontSize: { xs: '1.15rem', sm: '1.3rem', md: '1.45rem' }, // Трохи збільшив
+                            fontSize: { xs: '1.15rem', sm: '1.3rem', md: '1.45rem' },
                             lineHeight: 1.75,
                             fontWeight: 600,
                             letterSpacing: '0.2px',
@@ -175,7 +192,7 @@ function ActivitiesPage(props) {
                         />
                     </Box>
                     <StyledDivider />
-                    <Box sx={sectionStyles(false)}> <Classes groupClasses={upcomingClasses} onBookClass={handleBookClass} /> </Box>
+                    <Box sx={sectionStyles(true)}> <Classes groupClasses={upcomingClasses} onBookClass={handleBookClass} /> </Box>
                     <StyledDivider />
                     <Box sx={sectionStyles(true)}> <InfoCardsSection infoCards={mockInfoCards} /> </Box>
                 </Container>
@@ -185,7 +202,7 @@ function ActivitiesPage(props) {
     );
 }
 
-const StyledDivider = () => ( /* ... (залишається без змін) ... */
+const StyledDivider = () => (
     <Divider sx={{
         my: { xs: 5, md: 8 },
         borderColor: alpha('#8A2BE2', 0.15),
