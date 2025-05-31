@@ -280,9 +280,11 @@ function CommunityPage(props) {
 
         let mediaData = null;
         if (selectedFile && previewMediaUrl && previewMediaType) {
+            // Створюємо новий blob URL для поста, щоб не залежати від previewMediaUrl
+            const postMediaUrl = URL.createObjectURL(selectedFile);
             mediaData = {
                 type: previewMediaType,
-                url: previewMediaUrl
+                url: postMediaUrl
             };
         }
 
@@ -302,11 +304,7 @@ function CommunityPage(props) {
         setPosts(prevPosts => [newPost, ...prevPosts]);
         setNewPostText("");
         setNewPostType('text');
-        setSelectedFile(null);
-        const fileInput = document.getElementById('file-input-for-post');
-        if (fileInput) {
-            fileInput.value = "";
-        }
+        clearPreviewMedia(); // Очищаємо прев’ю, але пост зберігає свій URL
         if (currentPage !== 1) setCurrentPage(1);
     };
 
@@ -315,11 +313,16 @@ function CommunityPage(props) {
         if (postToDelete && postToDelete.media && postToDelete.media.url.startsWith('blob:')) {
             URL.revokeObjectURL(postToDelete.media.url);
         }
-        setPosts(posts.filter(post => post.id !== postId));
-        const newComments = { ...comments };
-        delete newComments[postId];
-        setComments(newComments);
-        handleClosePostMenu();
+        // Спочатку закриваємо меню
+        setAnchorElPostMenu(null);
+        setSelectedPostForMenu(null);
+        // Затримуємо оновлення стану постів
+        setTimeout(() => {
+            setPosts(posts.filter(post => post.id !== postId));
+            const newComments = { ...comments };
+            delete newComments[postId];
+            setComments(newComments);
+        }, 0);
     };
 
     const handleReportPost = (postId) => {
@@ -534,11 +537,14 @@ function CommunityPage(props) {
                             <CardHeader
                                 avatar={<Avatar src={post.isAnonymous ? "/static/images/avatar/anonymous.png" : post.author?.avatarUrl} sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.2), color: theme.palette.secondary.main, border: `1px solid ${alpha(theme.palette.secondary.main, 0.4)}` }}>{post.isAnonymous ? 'A' : post.author?.name?.charAt(0)}</Avatar>}
                                 action={isAuthenticated && <IconButton aria-label="post-menu" onClick={(e) => handleOpenPostMenu(e, post)} sx={{color: 'rgba(255,255,255,0.6)', '&:hover': {backgroundColor: 'rgba(255,255,255,0.1)'}}}><MoreVertIcon /></IconButton>}
-                                title={<Box sx={{display: 'flex', alignItems: 'center'}}>{getPostTypeIconElement(post.type)}<Typography variant="subtitle1" component="span" sx={{fontWeight: '600', color: 'white'}}>{post.isAnonymous ? "Анонімний Користувач" : post.author?.name}</Typography></Box>}
-                                subheader={<Typography variant="caption" sx={{color: 'rgba(255,255,255,0.5)'}}>{formatTimestamp(post.timestamp)}</Typography>}
-                                sx={{pb: 1, alignItems: 'flex-start'}}
-                            />
-                            <CardContent sx={{pt: 0, pb: 1}}>
+                                title={<Box sx={{display: 'flex', alignItems: 'center', marginLeft: -1}}>{getPostTypeIconElement(post.type)}<Typography variant="subtitle1" component="span" sx={{fontWeight: '600', color: 'white'}}>{post.isAnonymous ? "Анонімний Користувач" : post.author?.name}</Typography></Box>}
+                                subheader={<Typography variant="caption" sx={{color: 'rgba(255,255,255,0.5)', marginLeft: -0.7}}>{formatTimestamp(post.timestamp)}</Typography>}
+                                sx={{
+                                    pb: 1,
+                                    pl: 0.5,
+                                    alignItems: 'center',
+                                }}/>
+                            <CardContent sx={{ pt: 0, pb: 1, pl: 0.5 }}>
                                 <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', color: 'rgba(230, 220, 255, 0.9)', lineHeight: 1.65, mb: post.media || (post.tags && post.tags.length > 0) ? 1.5 : 0, wordBreak: 'break-word' }}>{post.text}</Typography>
                                 {post.tags && post.tags.length > 0 && (
                                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt:1 }}>
@@ -572,11 +578,40 @@ function CommunityPage(props) {
                     }
                 </Container>
 
-                <Menu anchorEl={anchorElPostMenu} open={Boolean(anchorElPostMenu)} onClose={handleClosePostMenu} PaperProps={{sx: {backgroundColor: 'rgba(45,38,65,0.95)', backdropFilter: 'blur(10px)', color:'white', border:'1px solid rgba(138,43,226,0.3)', borderRadius:'10px'}}}>
-                    {selectedPostForMenu && currentUser && (selectedPostForMenu.author?.id === currentUser.id || (selectedPostForMenu.isAnonymous && !isAuthenticated)) ? (
-                        <MenuItem onClick={() => handleDeletePost(selectedPostForMenu.id)} sx={{'&:hover':{backgroundColor:alpha(theme.palette.error.dark,0.25)}}}> <DeleteIcon sx={{mr:1, color: alpha(theme.palette.error.light,0.8)}}/> Видалити пост</MenuItem>
-                    ) : (
-                        <MenuItem onClick={() => handleReportPost(selectedPostForMenu?.id)} sx={{'&:hover':{backgroundColor:alpha(theme.palette.warning.dark,0.25)}}}> <FlagIcon sx={{mr:1, color: alpha(theme.palette.warning.light,0.8)}}/> Поскаржитись</MenuItem>
+                <Menu
+                    anchorEl={anchorElPostMenu}
+                    open={Boolean(anchorElPostMenu) && Boolean(selectedPostForMenu)}
+                    onClose={handleClosePostMenu}
+                    PaperProps={{
+                        sx: {
+                            backgroundColor: 'rgba(45,38,65,0.95)',
+                            backdropFilter: 'blur(10px)',
+                            color: 'white',
+                            border: '1px solid rgba(138,43,226,0.3)',
+                            borderRadius: '10px'
+                        }
+                    }}
+                >
+                    {selectedPostForMenu && currentUser && (
+                        <Box>
+                            {selectedPostForMenu.author?.id === currentUser.id || (selectedPostForMenu.isAnonymous && !isAuthenticated) ? (
+                                <MenuItem
+                                    onClick={() => handleDeletePost(selectedPostForMenu.id)}
+                                    sx={{ '&:hover': { backgroundColor: alpha(theme.palette.error.dark, 0.25) } }}
+                                >
+                                    <DeleteIcon sx={{ mr: 1, color: alpha(theme.palette.error.light, 0.8) }} />
+                                    Видалити пост
+                                </MenuItem>
+                            ) : (
+                                <MenuItem
+                                    onClick={() => handleReportPost(selectedPostForMenu?.id)}
+                                    sx={{ '&:hover': { backgroundColor: alpha(theme.palette.warning.dark, 0.25) } }}
+                                >
+                                    <FlagIcon sx={{ mr: 1, color: alpha(theme.palette.warning.light, 0.8) }} />
+                                    Поскаржитись
+                                </MenuItem>
+                            )}
+                        </Box>
                     )}
                 </Menu>
 
