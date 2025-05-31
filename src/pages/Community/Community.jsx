@@ -448,8 +448,8 @@ function CommunityPage(props) {
                 <Box sx={gridBackgroundStyles} />
 
                 <Container maxWidth="md" sx={{ py: { xs: 3, md: 5 }, position: 'relative', zIndex: 5, flexGrow: 1 }}>
-                    <Typography variant="h3" component="h1" sx={{ textAlign: 'center', mb: 1, fontWeight: 'bold', color: 'white', textShadow: '0 0 15px rgba(198, 126, 255, 0.4)' }}>Стрічка Спільноти</Typography>
-                    <Typography variant="h6" component="p" sx={{ textAlign: 'center', mb: {xs:3, md:4}, color: 'rgba(230, 220, 255, 0.85)', fontSize: { xs: '1rem', sm: '1.1rem' } }}>Діліться думками, знаннями та досягненнями!</Typography>
+                    <Typography variant="h1" component="h1" sx={{ textAlign: 'center', mb: 1, fontWeight: 'bold', fontSize: { xs: '3rem', sm: '3.8rem', md: '4.5rem' }, color: 'white', textShadow: '0 0 15px rgba(198, 126, 255, 0.4)' }}>Стрічка Спільноти</Typography>
+                    <Typography variant="h3" component="p" sx={{ textAlign: 'center', mb: {xs:3, md:4, lg:7}, color: 'rgba(230, 220, 255, 0.85)', fontSize: { xs: '1.15rem', sm: '1.3rem', md: '1.45rem' }, fontWeight: '600' }}>Діліться думками, знаннями та досягненнями!</Typography>
 
                     <Paper sx={{ p: {xs: 2, sm: 2.5}, mb: {xs:3, md:4}, backgroundColor: 'hsl(220, 30%, 6%)', backdropFilter: 'blur(10px)', borderRadius: '16px', border: '1px solid rgba(138, 43, 226, 0.25)', boxShadow: '0 10px 35px rgba(0, 0, 0, 0.25)', }}>
                         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1.5 }}>

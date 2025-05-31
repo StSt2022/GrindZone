@@ -141,9 +141,8 @@ function App() {
                         <Route
                             path="/community"
                             element={
-                                <ProtectedRoute isAuthenticated={isAuthenticated}>
+
                                     <Community />
-                                </ProtectedRoute>
                             }
                         />
 
