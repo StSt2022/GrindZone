@@ -34,12 +34,13 @@ import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 
 // Фіолетова палітра (близька до твого AppTheme)
-const primaryPurple = '#8a2be2'; // Залишаємо насичений фіолетовий
-const secondaryPurple = '#7b1fa2'; // Темніший фіолетовий, без рожевого відтінку
-const hoverPurple = '#6a1b9a'; // Ще темніший для наведення
+const primaryPurple = '#8737c9';
+const secondaryPurple = '#601ab6'; // Для кнопки
+const hoverPurple = '#550f8d'; // Для кнопки
 const cardBg = 'rgba(20, 15, 40, 0.95)';
 const lightText = 'rgba(220, 210, 255, 0.9)';
 const subtleText = 'rgba(220, 210, 255, 0.7)';
+const iconColor = '#e1d2f5'; // Легкий фіолетовий для іконок і стрілок
 
 const formControlBaseStyles = (isDisabled = false) => ({
     mb: 2.5,
@@ -72,11 +73,11 @@ const formControlBaseStyles = (isDisabled = false) => ({
             '& fieldset': { borderColor: `${alpha(primaryPurple, 0.25)} !important` },
         },
         '& .MuiInputAdornment-root .MuiSvgIcon-root': {
-            color: isDisabled ? alpha(secondaryPurple, 0.5) : alpha(secondaryPurple, 0.85),
+            color: isDisabled ? alpha(iconColor, 0.5) : iconColor, // Для іконок у полях
         },
     },
     '& .MuiSelect-icon': {
-        color: isDisabled ? alpha(secondaryPurple, 0.5) : alpha(secondaryPurple, 0.85),
+        color: isDisabled ? alpha(iconColor, 0.5) : iconColor, // Для стрілок
     },
     '& .MuiInputLabel-outlined.MuiInputLabel-shrink': {
         transform: 'translate(14px, -9px) scale(0.75)',
@@ -87,9 +88,12 @@ const formControlBaseStyles = (isDisabled = false) => ({
 });
 
 const selectControlStyles = (isDisabled = false) => ({
-    ...formControlBaseStyles(isDisabled), // Успадковуємо стилі
+    ...formControlBaseStyles(isDisabled),
     '& .MuiInputLabel-outlined:not(.MuiInputLabel-shrink)': {
         transform: 'translate(14px, 9px) scale(1)', // Центрування для Select
+    },
+    '& .MuiSelect-icon': {
+        color: isDisabled ? alpha(iconColor, 0.5) : iconColor, // Для стрілок
     },
 });
 
@@ -118,22 +122,22 @@ const StyledBookingButton = styled(Button)(({ theme, disabled }) => ({
     textTransform: 'none',
     color: theme.palette.common.white,
     background: disabled
-        ? alpha(primaryPurple, 0.3)
+        ? alpha(secondaryPurple, 0.3)
         : `linear-gradient(45deg, ${secondaryPurple} 0%, ${primaryPurple} 100%)`,
     boxShadow: disabled
         ? 'none'
-        : `0 6px 20px -5px ${alpha(primaryPurple, 0.5)}, inset 0 -2px 5px rgba(0,0,0,0.1)`,
+        : `0 6px 20px -5px ${alpha(secondaryPurple, 0.5)}, inset 0 -2px 5px rgba(0,0,0,0.1)`,
     transition: 'all 0.25s ease-in-out',
-    border: `1px solid ${disabled ? alpha(primaryPurple, 0.2) : alpha(theme.palette.common.white, 0.2)}`,
+    border: `1px solid ${disabled ? alpha(secondaryPurple, 0.2) : alpha(theme.palette.common.white, 0.2)}`,
     '&:hover': {
         background: disabled
-            ? alpha(primaryPurple, 0.3)
+            ? alpha(secondaryPurple, 0.3)
             : `linear-gradient(45deg, ${hoverPurple} 0%, ${alpha(primaryPurple, 0.9)} 100%)`,
         boxShadow: disabled
             ? 'none'
             : `0 8px 25px -5px ${alpha(hoverPurple, 0.6)}, inset 0 -2px 8px rgba(0,0,0,0.15)`,
         transform: disabled ? 'none' : 'translateY(-2px) scale(1.01)',
-        borderColor: disabled ? alpha(primaryPurple, 0.2) : alpha(theme.palette.common.white, 0.3),
+        borderColor: disabled ? alpha(secondaryPurple, 0.2) : alpha(theme.palette.common.white, 0.3),
     },
     '&.Mui-disabled': {
         color: alpha(theme.palette.common.white, 0.5),
@@ -310,7 +314,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                         WebkitTextFillColor: 'transparent',
                     }}
                 >
-                    Забронювати Активність
+                    Забронюйте Тренажер або Заняття!
                 </Typography>
 
                 <Box sx={{
@@ -330,8 +334,8 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                     <BookingFormCard>
                         <CardContent sx={{ p: { xs: 3, sm: 4, md: 4.5 }}}>
                             <Box sx={{display: 'flex', alignItems: 'center', color: lightText, mb: 4.5}}>
-                                <FitnessCenterIcon sx={{fontSize: '3rem', mr: 2, color: primaryPurple}}/>
-                                <Typography variant="h5" sx={{ fontWeight: '600', color: 'white' }}>Тренажер</Typography> {/* Змінив на h5 */}
+                                <FitnessCenterIcon sx={{fontSize: '3rem', mr: 2, color: iconColor}}/>
+                                <Typography variant="h5" sx={{ fontWeight: '600', color: iconColor }}>Тренажер</Typography>
                             </Box>
                             <Box component="form" onSubmit={handleEquipmentBooking}>
                                 <FormControl fullWidth sx={selectControlStyles()}>
@@ -371,7 +375,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                             <InputLabel id="duration-select-label">Тривалість</InputLabel>
                                             <Select labelId="duration-select-label" value={equipmentDuration} label="Тривалість"
                                                     onChange={(e) => setEquipmentDuration(e.target.value)} required MenuProps={menuProps}
-                                                    startAdornment={<ScheduleIcon sx={{mr:1.2, ml:0.5, color: alpha(secondaryPurple,0.9), fontSize:'1.3rem'}} />}
+                                                    startAdornment={<ScheduleIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}} />}
                                             >
                                                 {durationOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
                                             </Select>
@@ -381,7 +385,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                 <TextField label="Ваш телефон" type="tel" fullWidth required sx={formControlBaseStyles()}
                                            value={equipmentBookerPhone} onChange={(e) => setEquipmentBookerPhone(e.target.value)} placeholder="+380 XX XXX XX XX"
                                            InputProps={{
-                                               startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: alpha(secondaryPurple,0.9), fontSize:'1.3rem'}}/>
+                                               startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}}/>
                                            }}
                                 />
                                 <Box sx={{ mt: 2, mb: 5 }}>
@@ -396,8 +400,8 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                     <BookingFormCard>
                         <CardContent sx={{ p: { xs: 3, sm: 4, md: 4.5 }}}>
                             <Box sx={{display: 'flex', alignItems: 'center', color: lightText, mb: 4.5}}>
-                                <Diversity3Icon sx={{fontSize: '3rem', mr: 2, color: secondaryPurple}}/>
-                                <Typography variant="h5" sx={{ fontWeight: '600', color: 'white' }}>Групове Заняття</Typography> {/* Змінив на h5 */}
+                                <Diversity3Icon sx={{fontSize: '3rem', mr: 2, color: iconColor}}/>
+                                <Typography variant="h5" sx={{ fontWeight: '600', color: iconColor }}>Групове Заняття</Typography>
                             </Box>
                             <Box component="form" onSubmit={handleClassBooking}>
                                 <FormControl fullWidth sx={selectControlStyles(isGroupClassFull)}>
@@ -449,7 +453,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                 <TextField label="Ваш телефон" type="tel" fullWidth required sx={formControlBaseStyles()}
                                            value={classBookerPhone} onChange={(e) => setClassBookerPhone(e.target.value)} placeholder="+380 XX XXX XX XX"
                                            InputProps={{
-                                               startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: alpha(secondaryPurple,0.9), fontSize:'1.3rem'}}/>
+                                               startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}}/>
                                            }}
                                 />
                                 <Box sx={{ mt: 2, mb: 5 }}>
