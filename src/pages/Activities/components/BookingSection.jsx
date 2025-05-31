@@ -12,7 +12,7 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import FormHelperText from '@mui/material/FormHelperText';
-import { styled, alpha, keyframes } from '@mui/material/styles'; // Додав keyframes
+import { styled, alpha } from '@mui/material/styles';
 
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -21,7 +21,6 @@ import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { uk } from 'date-fns/locale';
 import { addMinutes, format, parse } from 'date-fns';
 
-// ... (іконки залишаються)
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import Diversity3Icon from '@mui/icons-material/Diversity3';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
@@ -31,66 +30,66 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 
-
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 
-// Фіолетова палітра
-const primaryPurple = '#a96cff';
-const secondaryPurple = '#c67eff';
-const darkPurpleBgField = 'rgba(48, 38, 80, 0.75) !important'; // Фон для полів (зробив трохи темнішим і насиченішим)
-const cardBg = 'rgba(26, 19, 44, 0.9) !important'; // Фон для карток (зробив темнішим)
-const lightText = 'rgba(235, 230, 255, 0.9)'; // Трохи яскравіший текст
-const subtleText = 'rgba(220, 210, 245, 0.7)'; // Трохи яскравіший subtle
+// Фіолетова палітра (близька до твого AppTheme)
+const primaryPurple = '#a96cff'; // Основний фіолетовий
+const secondaryPurple = '#c67eff'; // Світліший фіолетовий
+const darkPurpleBg = 'rgba(45, 35, 75, 0.8)'; // Фон для полів
+const cardBg = 'rgba(30, 22, 52, 0.92)'; // Фон для карток
+const lightText = 'rgba(230, 220, 255, 0.85)';
+const subtleText = 'rgba(230, 220, 255, 0.65)';
 
 const formControlBaseStyles = (isDisabled = false) => ({
     mb: 2.5,
     width: '100%',
     '& .MuiInputLabel-root': {
-        color: isDisabled ? alpha(subtleText, 0.7) : subtleText,
+        color: isDisabled ? alpha(lightText, 0.5) : subtleText,
         fontWeight: 500,
         fontSize: '0.95rem',
-        '&.Mui-focused': {
-            color: secondaryPurple,
-        },
     },
     '& .MuiOutlinedInput-root': {
-        color: isDisabled ? alpha(lightText, 0.7) : 'white',
-        backgroundColor: isDisabled ? alpha(darkPurpleBgField, 0.6) : darkPurpleBgField,
+        color: isDisabled ? alpha(lightText, 0.6) : 'white',
         borderRadius: '14px',
         fontSize: '1rem',
-        transition: 'background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
+        transition: 'border-color 0.3s ease',
         '& fieldset': {
-            borderColor: isDisabled ? alpha(primaryPurple, 0.4) : alpha(primaryPurple, 0.6),
+            borderColor: isDisabled ? alpha(primaryPurple, 0.3) : alpha(primaryPurple, 0.5),
             borderWidth: '1px',
             transition: 'border-color 0.3s ease',
         },
         '&:hover fieldset': {
-            borderColor: isDisabled ? alpha(primaryPurple, 0.4) : secondaryPurple,
+            borderColor: isDisabled ? alpha(primaryPurple, 0.3) : secondaryPurple,
         },
         '&.Mui-focused fieldset': {
             borderColor: secondaryPurple,
-            boxShadow: `0 0 0 3px ${alpha(secondaryPurple, 0.2)}`, // Змінив тінь фокусу
+            boxShadow: `0 0 0 2.5px ${alpha(secondaryPurple, 0.25)}`,
         },
         '&.Mui-disabled': {
-            backgroundColor: alpha(darkPurpleBgField, 0.5),
-            WebkitTextFillColor: alpha(lightText, 0.6),
-            color: alpha(lightText, 0.6),
-            '& fieldset': { borderColor: `${alpha(primaryPurple, 0.3)} !important` },
+            WebkitTextFillColor: alpha(lightText, 0.55),
+            color: alpha(lightText, 0.55),
+            '& fieldset': { borderColor: `${alpha(primaryPurple, 0.25)} !important` },
         },
         '& .MuiInputAdornment-root .MuiSvgIcon-root': {
-            color: isDisabled ? alpha(secondaryPurple, 0.6) : secondaryPurple,
+            color: isDisabled ? alpha(secondaryPurple, 0.5) : alpha(secondaryPurple, 0.85),
         },
     },
     '& .MuiSelect-icon': {
-        color: isDisabled ? alpha(secondaryPurple, 0.6) : secondaryPurple,
+        color: isDisabled ? alpha(secondaryPurple, 0.5) : alpha(secondaryPurple, 0.85),
+    },
+    '& .MuiInputLabel-outlined.MuiInputLabel-shrink': {
+        transform: 'translate(14px, -9px) scale(0.75)',
+    },
+    '& .MuiInputLabel-outlined:not(.MuiInputLabel-shrink)': {
+        transform: 'translate(14px, 16px) scale(1)',
     },
 });
 
-const menuProps = { /* ... (залишається як було) ... */
+const menuProps = {
     PaperProps: {
         sx: {
-            backgroundColor: alpha(cardBg, 0.98),
+            bgcolor: alpha(cardBg, 0.98),
             backdropFilter: 'blur(10px)',
             color: lightText,
             border: `1px solid ${alpha(primaryPurple, 0.6)}`,
@@ -104,7 +103,7 @@ const menuProps = { /* ... (залишається як було) ... */
     },
 };
 
-const StyledBookingButton = styled(Button)(({ theme, disabled }) => ({ /* ... (залишається як було) ... */
+const StyledBookingButton = styled(Button)(({ theme, disabled }) => ({
     padding: theme.spacing(1.75, 4),
     borderRadius: '16px',
     fontWeight: '600',
@@ -112,7 +111,7 @@ const StyledBookingButton = styled(Button)(({ theme, disabled }) => ({ /* ... (�
     textTransform: 'none',
     color: theme.palette.common.white,
     background: disabled
-        ? alpha(primaryPurple, 0.3)
+        ? alpha(primaryPurple, 0.3) // Затемнений фіолетовий для disabled
         : `linear-gradient(45deg, ${secondaryPurple} 0%, ${primaryPurple} 100%)`,
     boxShadow: disabled
         ? 'none'
@@ -131,7 +130,7 @@ const StyledBookingButton = styled(Button)(({ theme, disabled }) => ({ /* ... (�
     },
     '&.Mui-disabled': {
         color: alpha(theme.palette.common.white, 0.5),
-        background: alpha(darkPurpleBgField, 0.6), // Використовуємо той самий фон, що й для полів
+        background: alpha(darkPurpleBg, 0.6),
     },
     '& .MuiButton-startIcon': {
         marginRight: theme.spacing(1.2),
@@ -139,49 +138,28 @@ const StyledBookingButton = styled(Button)(({ theme, disabled }) => ({ /* ... (�
     }
 }));
 
-// Анімація для градієнтної рамки
-const animatedGradientBorder = keyframes`
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-`;
-
 const BookingFormCard = styled(Card)(({ theme }) => ({
     width: '100%',
     maxWidth: '720px',
-    background: cardBg, // Основний темний фон
-    backdropFilter: 'blur(16px)',
+    background: cardBg,
+    backdropFilter: 'blur(18px)',
     borderRadius: '28px',
-    border: '2px solid transparent', // Зробив рамку трохи товщою для кращої видимості градієнта
-    padding: 0, // Padding тепер не потрібен, бо градієнт буде на самій рамці
-    backgroundImage: `linear-gradient(${cardBg}, ${cardBg}), 
-                     linear-gradient(100deg, ${alpha(secondaryPurple,0.7)} 0%, ${alpha(primaryPurple,0.8)} 33%, ${alpha(secondaryPurple,0.7)} 66%, ${alpha(primaryPurple,0.8)} 100%)`,
-    backgroundOrigin: 'border-box',
-    backgroundClip: 'content-box, border-box',
-    backgroundSize: 'auto, 200% 200%', // Для анімації градієнту рамки
-    animation: `${animatedGradientBorder} 4s linear infinite`, // Застосовуємо анімацію
-    boxShadow: `0 18px 50px ${alpha(theme.palette.common.black, 0.45)}`, // Більш насичена тінь
+    border: `1px solid ${alpha(primaryPurple, 0.6)}`, // Статична рамка
+    boxShadow: `0 18px 50px ${alpha(theme.palette.common.black, 0.35)}`,
     position: 'relative',
-    '&::before': { // Внутрішнє ледь помітне світіння (зменшив інтенсивність)
+    '&::before': {
         content: '""',
         position: 'absolute',
-        inset: '2px',
-        borderRadius: '26px',
-        background: `radial-gradient(ellipse at 50% 20%, ${alpha(primaryPurple, 0.05)} 0%, transparent 65%)`,
-        opacity: 0.7,
+        inset: '1px',
+        borderRadius: '27px',
+        background: `radial-gradient(ellipse at 50% 0%, ${alpha(primaryPurple, 0.07)} 0%, transparent 70%)`,
+        opacity: 0.9,
         zIndex: 0,
     },
     '& > .MuiCardContent-root': {
         position: 'relative',
         zIndex: 1,
-        padding: theme.spacing(3, 4, 4), // Встановлюємо падінги тут
-        [theme.breakpoints.up('sm')]: {
-            padding: theme.spacing(4, 5, 5),
-        },
-        [theme.breakpoints.up('md')]: {
-            padding: theme.spacing(5, 6, 6),
-        },
-    }
+    },
 }));
 
 
@@ -313,9 +291,9 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                 <Typography variant="h2" component="h2" sx={{
                     textAlign: 'center', fontWeight: 'bold', color: 'white',
                     mb: { xs: 5, md: 7 },
-                    textShadow: `0 0 25px ${alpha(primaryPurple, 0.55)}`,
+                    textShadow: `0 0 25px ${alpha(primaryPurple, 0.5)}`,
                     fontSize: { xs: '2.3rem', sm: '2.9rem', md: '3.3rem' },
-                    background: `linear-gradient(120deg, ${alpha(secondaryPurple, 0.9)} 0%, ${primaryPurple} 60%, ${alpha(primaryPurple, 0.7)} 100%)`,
+                    background: `linear-gradient(120deg, ${secondaryPurple} 0%, ${primaryPurple} 60%, ${alpha(primaryPurple, 0.8)} 100%)`,
                     WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                 }}>
                     Забронювати Активність
@@ -325,17 +303,25 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: { xs: 5, md: 7 }
+                    gap: { xs: 4, md: 6 },
+                    // Горизонтальний градієнт між картками (якщо картки розташовані поруч)
+                    // Для колонок це не так актуально, але можна залишити як декоративний фон для секції
+                    // backgroundImage: `linear-gradient(90deg,
+                    //     ${alpha(cardBg, 0.5)} 0%,
+                    //     ${alpha(primaryPurple, 0.03)} 30%,
+                    //     ${alpha(primaryPurple, 0.03)} 70%,
+                    //     ${alpha(cardBg, 0.5)} 100%)`,
+                    // padding: '0 20px' // Щоб градієнт був видимий по боках, якщо потрібно
                 }}>
                     <BookingFormCard>
-                        <CardContent> {/* Падінги тепер керуються в BookingFormCard sx */}
-                            <Box sx={{display: 'flex', alignItems: 'center', color: lightText, mb: 4}}>
-                                <FitnessCenterIcon sx={{fontSize: '2.8rem', mr: 2, color: primaryPurple}}/>
-                                <Typography variant="h5" sx={{ fontWeight: '600', color: 'white' }}>Тренажер</Typography>
+                        <CardContent sx={{ p: { xs: 3, sm: 4, md: 4.5 }}}>
+                            <Box sx={{display: 'flex', alignItems: 'center', color: lightText, mb: 4.5}}>
+                                <FitnessCenterIcon sx={{fontSize: '3rem', mr: 2, color: primaryPurple}}/>
+                                <Typography variant="h5" sx={{ fontWeight: '600', color: 'white' }}>Тренажер</Typography> {/* Змінив на h5 */}
                             </Box>
                             <Box component="form" onSubmit={handleEquipmentBooking}>
                                 <FormControl fullWidth sx={formControlBaseStyles()}>
-                                    <InputLabel id="equipment-select-label" >Оберіть тренажер</InputLabel>
+                                    <InputLabel id="equipment-select-label">Оберіть тренажер</InputLabel>
                                     <Select
                                         labelId="equipment-select-label" value={selectedEquipmentId} label="Оберіть тренажер"
                                         onChange={(e) => setSelectedEquipmentId(e.target.value)} required MenuProps={menuProps}
@@ -351,7 +337,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                     slots={{ openPickerIcon: EventNoteIcon }}
                                     slotProps={{
                                         textField: { sx: formControlBaseStyles(), required: true, fullWidth: true },
-                                        openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5} }
+                                        openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
                                     }}
                                 />
                                 <Grid container spacing={2.5} alignItems="center">
@@ -394,10 +380,10 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                     </BookingFormCard>
 
                     <BookingFormCard>
-                        <CardContent> {/* Падінги тепер керуються в BookingFormCard sx */}
-                            <Box sx={{display: 'flex', alignItems: 'center', color: lightText, mb: 4}}>
-                                <Diversity3Icon sx={{fontSize: '2.8rem', mr: 2, color: secondaryPurple}}/>
-                                <Typography variant="h5" sx={{ fontWeight: '600', color: 'white' }}>Групове Заняття</Typography>
+                        <CardContent sx={{ p: { xs: 3, sm: 4, md: 4.5 }}}>
+                            <Box sx={{display: 'flex', alignItems: 'center', color: lightText, mb: 4.5}}>
+                                <Diversity3Icon sx={{fontSize: '3rem', mr: 2, color: secondaryPurple}}/>
+                                <Typography variant="h5" sx={{ fontWeight: '600', color: 'white' }}>Групове Заняття</Typography> {/* Змінив на h5 */}
                             </Box>
                             <Box component="form" onSubmit={handleClassBooking}>
                                 <FormControl fullWidth sx={formControlBaseStyles(isGroupClassFull)}>
