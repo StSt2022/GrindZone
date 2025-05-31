@@ -4,6 +4,7 @@ import SignUp from './pages/SignUp/SignUp.jsx';
 import SignIn from './pages/SignIn/SignIn.jsx';
 import Home from './pages/Home/Home';
 import Profile from './pages/Profile/Profile';
+import Activities from './pages/Activities/Activities';
 import Food from './pages/Food/Food';
 import Community from './pages/Community/Community';
 import AppTheme from './shared-theme/AppTheme.jsx';
@@ -126,9 +127,7 @@ function App() {
                         <Route
                             path="/activities"
                             element={
-                                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                                    <Home />
-                                </ProtectedRoute>
+                                <Activities />
                             }
                         />
                         <Route
