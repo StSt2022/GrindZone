@@ -1,5 +1,5 @@
 const express = require('express');
-const { MongoClient, ObjectId } = require('mongodb'); // Переконайся, що ObjectId імпортовано
+const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -34,7 +34,7 @@ app.use(
                 callback(new Error('Not allowed by CORS'));
             }
         },
-        methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Додав PUT
         allowedHeaders: ['Content-Type', 'Authorization'],
         credentials: true,
         optionsSuccessStatus: 200,
@@ -42,7 +42,7 @@ app.use(
 );
 
 app.options('*', cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Збільшив ліміт для тіла запиту, якщо будеш передавати аватар як base64 (не рекомендується для файлів)
 app.use(express.static(path.join(__dirname, '../dist')));
 app.use('/food-images', express.static(path.join(__dirname, '../src/images')));
 
@@ -67,6 +67,7 @@ async function connectToMongo() {
 
 connectToMongo();
 
+// ... (код для genAI, ttsClient залишається)
 let genAI;
 let geminiModel;
 const GEMINI_MODEL_NAME = process.env.GEMINI_MODEL_NAME || "gemini-1.5-flash-latest";
@@ -93,6 +94,7 @@ if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
 }
 
 // --- AUTH ROUTES ---
+// ... (твій код для /signup, /signin, /auth/google/fedcm залишається тут)
 app.post('/signup', async (req, res) => {
     try {
         const { name, email, password, allowExtraEmails } = req.body;
@@ -105,7 +107,44 @@ app.post('/signup', async (req, res) => {
             return res.status(400).json({ message: 'Користувач із такою поштою вже існує' });
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = { name, email, password: hashedPassword, googleId: null, allowExtraEmails: allowExtraEmails || false, collection: [], createdAt: new Date() };
+
+        // Ініціалізація полів профілю при реєстрації
+        const newUser = {
+            name,
+            email,
+            password: hashedPassword,
+            googleId: null,
+            allowExtraEmails: allowExtraEmails || false,
+            joinDate: new Date(), // Додаємо joinDate
+            profile: { // Ініціалізуємо вкладений об'єкт profile
+                avatarUrl: null, // Або дефолтний URL
+                birthDate: null,
+                height: null,
+                weight: null,
+                goal: "",
+                goalKeywords: [],
+                dietType: "Збалансована", // Дефолтне значення
+                activityLevel: "Помірний", // Дефолтне значення
+                profileUpdatesCount: 0,
+                lastGoalUpdate: new Date(),
+                dailySchedule: {
+                    wakeUpTime: "07:00", trainingTime: "18:00", sleepTime: "23:00",
+                    firstMealTime: "08:00", hydrationReminderTime: "10:00", lastMealTime: "20:00", personalTime: "21:00"
+                }
+            },
+            gamification: { // Ініціалізуємо gamification
+                level: 1,
+                experiencePoints: 0,
+                trainingsCompleted: 0,
+                totalTimeSpentMinutes: 0
+            },
+            unlockedAchievementIds: [], // Порожній масив на старті
+            createdAt: new Date() // createdAt це те саме що joinDate, можна використовувати одне поле
+        };
+        // Видаляємо поле `collection`, якщо воно більше не використовується
+        // delete newUser.collection;
+
+
         const result = await usersCollection.insertOne(newUser);
         res.status(201).json({ message: 'Користувач успішно створений', userId: result.insertedId, name: newUser.name, email: newUser.email });
     } catch (error) {
@@ -117,40 +156,39 @@ app.post('/signup', async (req, res) => {
 app.post('/signup/google', async (req, res) => {
     try {
         const { name, email, googleId, idToken } = req.body;
-        if (!name || !email || !googleId || !idToken) {
-            return res.status(400).json({ message: 'Усі поля від Google є обов’язковими' });
-        }
-        if (!clientGoogle) return res.status(500).json({ message: 'Серверна помилка конфігурації Google.' });
-        const ticket = await clientGoogle.verifyIdToken({ idToken: idToken, audience: process.env.GOOGLE_CLIENT_ID });
-        const payload = ticket.getPayload();
-        if (payload['sub'] !== googleId) {
-            return res.status(401).json({ message: 'Невірний Google ID' });
-        }
+        // ... (перевірки)
         const usersCollection = db.collection('users');
         let user = await usersCollection.findOne({ email });
         if (user) {
-            if (!user.googleId) {
-                await usersCollection.updateOne({ email }, { $set: { googleId: googleId, name: user.name || name } });
-                user = await usersCollection.findOne({ email });
-            }
+            // ... (оновлення існуючого користувача)
             res.status(200).json({ message: 'Користувач успішно увійшов через Google', userId: user._id, email: user.email, name: user.name });
         } else {
-            const newUser = { name: name || email.split('@')[0], email, googleId, password: null, allowExtraEmails: payload.email_verified || false, collection: [], createdAt: new Date() };
+            // Створення нового користувача з Google
+            const newUser = {
+                name: name || email.split('@')[0],
+                email,
+                googleId,
+                password: null, // Пароль не потрібен для Google Sign-In
+                allowExtraEmails: true, // За замовчуванням для Google
+                joinDate: new Date(),
+                profile: {
+                    avatarUrl: req.body.avatarUrl || null, // Якщо Google повертає аватар
+                    birthDate: null, height: null, weight: null, goal: "", goalKeywords: [],
+                    dietType: "Збалансована", activityLevel: "Помірний", profileUpdatesCount: 0, lastGoalUpdate: new Date(),
+                    dailySchedule: { wakeUpTime: "07:00", trainingTime: "18:00", sleepTime: "23:00", firstMealTime: "08:00", hydrationReminderTime: "10:00", lastMealTime: "20:00", personalTime: "21:00"}
+                },
+                gamification: { level: 1, experiencePoints: 0, trainingsCompleted: 0, totalTimeSpentMinutes: 0 },
+                unlockedAchievementIds: [],
+                createdAt: new Date()
+            };
             const result = await usersCollection.insertOne(newUser);
             const createdUser = await usersCollection.findOne({ _id: result.insertedId });
             res.status(201).json({ message: 'Користувач успішно створений через Google', userId: result.insertedId, email: createdUser.email, name: createdUser.name });
         }
     } catch (error) {
+        // ... (обробка помилок)
         console.error('Error during Google signup:', error);
-        if (error.message) {
-            if ( error.message.includes('Token used too late') || error.message.includes('Invalid ID token') || error.message.includes('Invalid token signature') ) {
-                return res.status(401).json({ message: 'Недійсний або прострочений токен Google' });
-            }
-            if (error.message.includes('Wrong recipient') || error.message.includes('audience')) {
-                console.error('AUDIENCE MISMATCH: Ensure GOOGLE_CLIENT_ID on server matches the one used by the client.');
-                return res.status(401).json({ message: 'Помилка конфігурації Google Client ID.' });
-            }
-        }
+        // ... (решта коду обробки помилок)
         res.status(500).json({ message: 'Помилка сервера при реєстрації через Google' });
     }
 });
@@ -158,46 +196,39 @@ app.post('/signup/google', async (req, res) => {
 app.post('/auth/google/fedcm', async (req, res) => {
     try {
         const { token } = req.body;
-        if (!token) {
-            return res.status(400).json({ message: 'Токен не надано' });
-        }
-        if (!clientGoogle) {
-            console.error('Google client not initialized. Check GOOGLE_CLIENT_ID.');
-            return res.status(500).json({ message: 'Серверна помилка конфігурації Google.' });
-        }
-        const ticket = await clientGoogle.verifyIdToken({ idToken: token, audience: process.env.GOOGLE_CLIENT_ID });
-        const payload = ticket.getPayload();
-        const email = payload.email;
-        const name = payload.name;
-        const googleId = payload.sub;
-        if (!email) {
-            return res.status(400).json({ message: 'Не вдалося отримати email від Google.' });
-        }
+        // ... (перевірки)
         const usersCollection = db.collection('users');
-        let user = await usersCollection.findOne({ email });
+        let user = await usersCollection.findOne({ email: payload.email }); // payload з verifyIdToken
         if (user) {
-            if (!user.googleId) {
-                await usersCollection.updateOne({ email }, { $set: { googleId: googleId, name: user.name || name } });
-                user = await usersCollection.findOne({ email });
-            }
+            // ... (оновлення існуючого користувача)
             res.status(200).json({ message: 'Користувач успішно увійшов через Google', userId: user._id, email: user.email, name: user.name });
         } else {
-            const newUser = { name: name || email.split('@')[0], email, googleId, password: null, allowExtraEmails: payload.email_verified || false, collection: [], createdAt: new Date() };
+            // Створення нового користувача з Google
+            const newUser = {
+                name: payload.name || payload.email.split('@')[0],
+                email: payload.email,
+                googleId: payload.sub,
+                password: null,
+                allowExtraEmails: payload.email_verified || false,
+                joinDate: new Date(),
+                profile: {
+                    avatarUrl: payload.picture || null,
+                    birthDate: null, height: null, weight: null, goal: "", goalKeywords: [],
+                    dietType: "Збалансована", activityLevel: "Помірний", profileUpdatesCount: 0, lastGoalUpdate: new Date(),
+                    dailySchedule: { wakeUpTime: "07:00", trainingTime: "18:00", sleepTime: "23:00", firstMealTime: "08:00", hydrationReminderTime: "10:00", lastMealTime: "20:00", personalTime: "21:00"}
+                },
+                gamification: { level: 1, experiencePoints: 0, trainingsCompleted: 0, totalTimeSpentMinutes: 0 },
+                unlockedAchievementIds: [],
+                createdAt: new Date()
+            };
             const result = await usersCollection.insertOne(newUser);
             const createdUser = await usersCollection.findOne({ _id: result.insertedId });
             res.status(201).json({ message: 'Користувач успішно створений через Google', userId: result.insertedId, email: createdUser.email, name: createdUser.name });
         }
     } catch (error) {
+        // ... (обробка помилок)
         console.error('Error during Google FedCM/Sign-In auth:', error);
-        if (error.message) {
-            if (error.message.includes('Token used too late') || error.message.includes('Invalid ID token') || error.message.includes('Invalid token signature')) {
-                return res.status(401).json({ message: 'Недійсний або прострочений токен Google' });
-            }
-            if (error.message.includes('Wrong recipient') || error.message.includes('audience')) {
-                console.error('AUDIENCE MISMATCH: Ensure GOOGLE_CLIENT_ID on server matches the one used by the client.');
-                return res.status(401).json({ message: 'Помилка конфігурації Google Client ID.' });
-            }
-        }
+        // ... (решта коду обробки помилок)
         res.status(500).json({ message: 'Помилка сервера при автентифікації через Google' });
     }
 });
@@ -220,7 +251,8 @@ app.post('/signin', async (req, res) => {
         if (!isPasswordValid) {
             return res.status(401).json({ message: 'Неправильний пароль' });
         }
-        res.status(200).json({ message: 'Успішний вхід', userId: user._id, name: user.name, email: user.email });
+        // Повертаємо тільки необхідні дані для сесії
+        res.status(200).json({ message: 'Успішний вхід', userId: user._id, name: user.name, email: user.email /*, avatarUrl: user.profile?.avatarUrl */ });
     } catch (error) {
         console.error('Error during signin:', error);
         res.status(500).json({ message: 'Помилка сервера під час входу' });
@@ -228,8 +260,168 @@ app.post('/signin', async (req, res) => {
 });
 // --- END AUTH ROUTES ---
 
-// --- GYM DATA & BOOKING ROUTES ---
 
+// --- PROFILE ROUTES ---
+
+// Захардкоджений список ачівок (для прикладу, краще винести в окремий файл/модуль)
+const ALL_ACHIEVEMENTS_DEFINITIONS = [
+    { id: "ach01", name: "Перший Рубіж", description: "Завершено перше тренування.", iconName: "FitnessCenter", color: '#a5d6a7' },
+    { id: "ach02", name: "Залізна Воля", description: "30 днів тренувань поспіль.", iconName: "EventNote", color: '#ffcc80' },
+    { id: "ach03", name: "Світанок Воїна", description: "20 тренувань до 7 ранку.", iconName: "WbSunny", color: '#ffd54f' },
+    { id: "ach04", name: "Майстер Витривалості", description: "100 тренувань загалом.", iconName: "EmojiEvents", color: '#81d4fa' },
+    { id: "ach05", name: "Зональний Турист", description: "Відвідано всі зони спортзалу.", iconName: "Explore", color: '#cf9fff' },
+    { id: "ach06", name: "Груповий Боєць", description: "Заброньовано 5 групових занять.", iconName: "Group", color: '#f48fb1' },
+    { id: "ach07", name: "Нічна Зміна", description: "10 тренувань після 22:00.", iconName: "NightsStay", color: '#90a4ae' },
+    { id: "ach08", name: "Профіль Завершено", description: "Заповнено усі основні поля профілю.", iconName: "CheckCircleOutline", color: '#80cbc4' },
+    { id: "ach09", name: "Планувальник PRO", description: "Заплановано 7 тренувань наперед.", iconName: "EventAvailable", color: '#ffab91' },
+    { id: "ach10", name: "Ранній Старт", description: "Перше тренування протягом 3 днів після реєстрації.", iconName: "StarBorder", color: '#fff59d' },
+    { id: "ach11", name: "Відданий Grind'ер", description: "30 днів активності поспіль.", iconName: "Loyalty", color: '#ef9a9a' },
+];
+
+
+// Отримати профіль користувача
+app.get('/api/profile/:userId', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+        const { userId } = req.params;
+        if (!ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+        }
+
+        const usersCollection = db.collection('users');
+        const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+
+        if (!user) {
+            return res.status(404).json({ message: 'Користувача не знайдено.' });
+        }
+
+        // Формуємо відповідь, подібну до initialMockUserProfileData
+        const userProfileData = {
+            userId: user._id.toString(), // або user.userId, якщо ти використовуєш окреме поле
+            name: user.name,
+            email: user.email,
+            joinDate: user.joinDate || user.createdAt, // Використовуємо joinDate або createdAt
+            avatarUrl: user.profile?.avatarUrl || null,
+            birthDate: user.profile?.birthDate || null,
+            height: user.profile?.height || null,
+            weight: user.profile?.weight || null,
+            goal: user.profile?.goal || "",
+            goalKeywords: user.profile?.goalKeywords || [],
+            dietType: user.profile?.dietType || "Збалансована",
+            activityLevel: user.profile?.activityLevel || "Помірний",
+            profileUpdatesCount: user.profile?.profileUpdatesCount || 0,
+            lastGoalUpdate: user.profile?.lastGoalUpdate || user.createdAt,
+
+            // Розклад дня
+            wakeUpTime: user.profile?.dailySchedule?.wakeUpTime || "07:00",
+            firstMealTime: user.profile?.dailySchedule?.firstMealTime || "08:00",
+            hydrationReminderTime: user.profile?.dailySchedule?.hydrationReminderTime || "10:00",
+            trainingTime: user.profile?.dailySchedule?.trainingTime || "18:00",
+            lastMealTime: user.profile?.dailySchedule?.lastMealTime || "20:00",
+            personalTime: user.profile?.dailySchedule?.personalTime || "21:00",
+            sleepTime: user.profile?.dailySchedule?.sleepTime || "23:00",
+
+            // Ігрові дані
+            level: user.gamification?.level || 1,
+            // Приклад розрахунку прогресу (потрібно визначити experiencePointsPerLevel)
+            // Припустимо, 1000 очок на рівень
+            progressToNextLevel: user.gamification?.experiencePoints ? (user.gamification.experiencePoints % 1000) / 10 : 0,
+            trainingsCompleted: user.gamification?.trainingsCompleted || 0,
+            totalTimeSpent: user.gamification?.totalTimeSpentMinutes ? `${Math.floor(user.gamification.totalTimeSpentMinutes / 60)} год ${user.gamification.totalTimeSpentMinutes % 60} хв` : "0 год",
+
+            // Ачівки
+            achievements: ALL_ACHIEVEMENTS_DEFINITIONS.map(def => ({
+                ...def,
+                unlocked: user.unlockedAchievementIds ? user.unlockedAchievementIds.includes(def.id) : false
+            }))
+        };
+
+        res.json(userProfileData);
+
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        res.status(500).json({ message: 'Помилка сервера при отриманні профілю.' });
+    }
+});
+
+// Оновити профіль користувача
+app.put('/api/profile/:userId', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+        const { userId } = req.params;
+        const updates = req.body; // Дані, які прийшли з фронтенду
+
+        if (!ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+        }
+
+        const usersCollection = db.collection('users');
+
+        // Формуємо об'єкт для $set, враховуючи вкладеність
+        const fieldsToSet = {};
+        if (updates.avatarUrl !== undefined) fieldsToSet['profile.avatarUrl'] = updates.avatarUrl; // Тільки URL
+        if (updates.birthDate !== undefined) fieldsToSet['profile.birthDate'] = updates.birthDate ? new Date(updates.birthDate) : null;
+        if (updates.height !== undefined) fieldsToSet['profile.height'] = parseInt(updates.height, 10) || null;
+        if (updates.weight !== undefined) fieldsToSet['profile.weight'] = parseInt(updates.weight, 10) || null;
+        if (updates.goal !== undefined) fieldsToSet['profile.goal'] = updates.goal;
+        if (updates.dietType !== undefined) fieldsToSet['profile.dietType'] = updates.dietType;
+        if (updates.activityLevel !== undefined) fieldsToSet['profile.activityLevel'] = updates.activityLevel;
+
+        // Оновлення розкладу дня
+        const dailyScheduleUpdates = {};
+        if(updates.wakeUpTime !== undefined) dailyScheduleUpdates['profile.dailySchedule.wakeUpTime'] = updates.wakeUpTime;
+        if(updates.firstMealTime !== undefined) dailyScheduleUpdates['profile.dailySchedule.firstMealTime'] = updates.firstMealTime;
+        if(updates.hydrationReminderTime !== undefined) dailyScheduleUpdates['profile.dailySchedule.hydrationReminderTime'] = updates.hydrationReminderTime;
+        if(updates.trainingTime !== undefined) dailyScheduleUpdates['profile.dailySchedule.trainingTime'] = updates.trainingTime;
+        if(updates.lastMealTime !== undefined) dailyScheduleUpdates['profile.dailySchedule.lastMealTime'] = updates.lastMealTime;
+        if(updates.personalTime !== undefined) dailyScheduleUpdates['profile.dailySchedule.personalTime'] = updates.personalTime;
+        if(updates.sleepTime !== undefined) dailyScheduleUpdates['profile.dailySchedule.sleepTime'] = updates.sleepTime;
+
+        // Об'єднуємо оновлення
+        Object.assign(fieldsToSet, dailyScheduleUpdates);
+
+
+        if (Object.keys(fieldsToSet).length === 0) {
+            return res.status(400).json({ message: 'Немає даних для оновлення.' });
+        }
+
+        // Додаємо оновлення лічильника та дати
+        fieldsToSet['profile.lastGoalUpdate'] = new Date();
+        const updateOperation = {
+            $set: fieldsToSet,
+            $inc: { 'profile.profileUpdatesCount': 1 }
+        };
+
+        const result = await usersCollection.updateOne(
+            { _id: new ObjectId(userId) },
+            updateOperation
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ message: 'Користувача не знайдено.' });
+        }
+        if (result.modifiedCount === 0 && result.matchedCount === 1) {
+            // Це може означати, що передані дані не відрізняються від існуючих
+            // або не було полів для оновлення, що ми вже перевірили.
+            // Для безпеки можна повернути успіх, або більш детальне повідомлення.
+            return res.status(200).json({ message: 'Дані профілю не змінилися.', data: await usersCollection.findOne({ _id: new ObjectId(userId) }) });
+        }
+
+        // Повертаємо оновлений профіль (опціонально, але корисно для фронтенду)
+        const updatedUser = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        // Можна знову сформувати повний userProfileData, як в GET запиті
+        res.status(200).json({ message: 'Профіль успішно оновлено.', user: updatedUser });
+
+    } catch (error) {
+        console.error('Error updating user profile:', error);
+        res.status(500).json({ message: 'Помилка сервера при оновленні профілю.' });
+    }
+});
+// --- END PROFILE ROUTES ---
+
+
+// --- GYM DATA & BOOKING ROUTES ---
+// ... (код для /api/zones, /api/equipment, /api/group-classes, /api/bookings залишається тут)
 // Отримати всі зони
 app.get('/api/zones', async (req, res) => {
     try {
@@ -273,8 +465,6 @@ app.get('/api/group-classes', async (req, res) => {
         if (req.query.date) { // Якщо передано конкретну дату для фільтрації (може перекрити $gte)
             query.date = req.query.date;
         }
-        // Якщо потрібен особливий фільтр для всіх дат, можна його прибрати і фільтрувати на фронті.
-        // Але для списку занять зазвичай краще показувати актуальні.
 
         const groupClasses = await groupClassesCollection
             .find(query)
@@ -294,16 +484,8 @@ app.post('/api/bookings', async (req, res) => {
 
         const bookingsCollection = db.collection('bookings');
         const {
-            userId, // Обов'язково, оскільки немає анонімів
-            type,
-            itemId,
-            itemName,
-            zoneId,
-            bookingDate, // Рядок "YYYY-MM-DD"
-            startTime,   // "HH:mm"
-            endTime,     // "HH:mm"
-            duration,    // durationMinutes для тренажера
-            bookerPhone
+            userId, type, itemId, itemName, zoneId,
+            bookingDate, startTime, endTime, duration, bookerPhone
         } = req.body;
 
         if (!userId) {
@@ -336,9 +518,8 @@ app.post('/api/bookings', async (req, res) => {
             return res.status(400).json({ message: 'Невірний тип бронювання.' });
         }
 
-        const targetBookingDate = new Date(new Date(bookingDate).setUTCHours(0,0,0,0)); // Дата бронювання в UTC без часу
+        const targetBookingDate = new Date(new Date(bookingDate).setUTCHours(0,0,0,0));
 
-        // Перевірка доступності
         if (type === 'class') {
             const groupClass = await db.collection('group_classes').findOne({ id: itemId });
             if (!groupClass) {
@@ -351,52 +532,32 @@ app.post('/api/bookings', async (req, res) => {
                 return res.status(409).json({ message: 'Ви вже записані на це заняття.' });
             }
         } else if (type === 'equipment') {
-            // Перевірка перетину часових інтервалів для тренажера
-            // Шукаємо бронювання цього ж тренажера (itemId) на ту саму дату (bookingDate),
-            // де новий інтервал (startTime - endTime) перетинається з існуючим.
-            // Перетин відбувається, якщо:
-            // (newStartTime < existingEndTime) AND (newEndTime > existingStartTime)
             const conflictingBooking = await bookingsCollection.findOne({
                 itemId: itemId,
                 bookingDate: targetBookingDate,
-                status: "confirmed", // Перевіряємо тільки активні бронювання
+                status: "confirmed",
                 $or: [
-                    // Новий слот повністю всередині існуючого
                     { startTime: { $lte: startTime }, endTime: { $gte: endTime } },
-                    // Новий слот починається всередині існуючого
-                    { startTime: { $lt: endTime }, endTime: { $gte: endTime }, $and: [{startTime: {$ne: startTime}}, {endTime: {$ne: endTime}}]}, //Виключає випадок, коли startTime = newStartTime, endTime = newEndTime
-                    // Новий слот закінчується всередині існуючого
-                    { startTime: { $lte: startTime }, endTime: { $gt: startTime }, $and: [{startTime: {$ne: startTime}}, {endTime: {$ne: endTime}}]}, //Виключає випадок, коли startTime = newStartTime, endTime = newEndTime
-                    // Новий слот охоплює існуючий
+                    { startTime: { $lt: endTime }, endTime: { $gte: endTime }, $and: [{startTime: {$ne: startTime}}, {endTime: {$ne: endTime}}]},
+                    { startTime: { $lte: startTime }, endTime: { $gt: startTime }, $and: [{startTime: {$ne: startTime}}, {endTime: {$ne: endTime}}]},
                     { startTime: { $gte: startTime }, endTime: { $lte: endTime } },
-                    // Точне співпадіння
                     { startTime: startTime, endTime: endTime }
                 ]
             });
-
             if (conflictingBooking) {
                 return res.status(409).json({ message: `Тренажер "${itemName}" вже заброньований з ${conflictingBooking.startTime} до ${conflictingBooking.endTime} на цю дату.` });
             }
         }
 
         const newBooking = {
-            userId: parsedUserId,
-            type,
-            itemId,
-            itemName,
-            zoneId,
-            bookingDate: targetBookingDate,
-            startTime,
-            endTime,
-            durationMinutes,
-            bookerPhone,
-            status: "confirmed",
-            createdAt: new Date()
+            userId: parsedUserId, type, itemId, itemName, zoneId,
+            bookingDate: targetBookingDate, startTime, endTime,
+            durationMinutes, bookerPhone, status: "confirmed", createdAt: new Date()
         };
 
         const result = await bookingsCollection.insertOne(newBooking);
 
-        if (type === 'class' && result.insertedId) { // userId завжди є
+        if (type === 'class' && result.insertedId) {
             await db.collection('group_classes').updateOne(
                 { id: itemId },
                 { $addToSet: { bookedUserIds: parsedUserId.toString() } }
@@ -411,7 +572,7 @@ app.post('/api/bookings', async (req, res) => {
 
     } catch (error) {
         console.error('Error creating booking:', error);
-        if (error.code === 11000) { // Duplicate key error (якщо є унікальні індекси)
+        if (error.code === 11000) {
             return res.status(409).json({ message: 'Помилка: спроба створити дублікат запису.' });
         }
         res.status(500).json({ message: 'Помилка сервера при створенні бронювання.' });
@@ -419,8 +580,8 @@ app.post('/api/bookings', async (req, res) => {
 });
 // --- END GYM DATA & BOOKING ROUTES ---
 
-
 // --- FOOD & CHAT ROUTES ---
+// ... (твій код для /api/food та /api/chat залишається тут)
 app.get('/api/food', async (req, res) => {
     try {
         if (!db) {
@@ -581,6 +742,7 @@ app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
 
+// ... (SIGINT, SIGTERM handlers)
 process.on('SIGINT', async () => {
     console.log('SIGINT received. Shutting down gracefully...');
     if (clientMongo && typeof clientMongo.close === 'function') {

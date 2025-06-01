@@ -1,5 +1,6 @@
+// src/pages/Profile/Profile.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Додано імпорт Link
 import {
     Box, Typography, Container, Button, CssBaseline, Card, CardContent,
     Grid, Avatar, Paper, IconButton, Divider, Tooltip, LinearProgress,
@@ -7,12 +8,18 @@ import {
 } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
 import { keyframes } from '@emotion/react';
-import { format, formatDistanceToNow, parseISO, differenceInYears } from 'date-fns';
+import { format, formatDistanceToNow, parseISO, differenceInYears, isValid as isValidDateFn } from 'date-fns';
 import { uk } from 'date-fns/locale';
 
 import AppTheme from '../../shared-theme/AppTheme';
 import Footer from "../../components/Footer";
+import { useAuth } from '../../context/AuthContext';
 
+// Firebase (розкоментуй та налаштуй, коли будеш інтегрувати)
+// import { storage } from '../../firebase-config';
+// import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+
+// Icons (всі іконки залишаються)
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -52,6 +59,7 @@ import LoyaltyIcon from '@mui/icons-material/Loyalty';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 
 
+// ... (keyframes, styled компоненти, iconMap, motivationalMessages, activityLevelDescriptions залишаються без змін)
 const gridLineGlow = keyframes`0% { opacity: 0.03; } 50% { opacity: 0.07; } 100% { opacity: 0.03; }`;
 const textFadeInUp = keyframes`from {opacity: 0; transform: translateY(15px) translateZ(0);} to {opacity: 1; transform: translateY(0) translateZ(0);}`;
 const pulseEffect = keyframes`
@@ -131,13 +139,13 @@ const EditableTextField = styled(TextField)(({theme}) => ({
             boxShadow: `0 0 0 2px ${alpha('#a96cff', 0.2)}`
         },
         '&.MuiInputBase-multiline': {
-            padding: '12.5px 14px', // Adjust padding for multiline
+            padding: '12.5px 14px',
         },
     },
     '& .MuiInputLabel-root': {
         color: 'rgba(230, 220, 255, 0.6)',
     },
-    '& .MuiInputLabel-outlined.MuiInputLabel-shrink': { // Ensure label shrinks correctly for multiline
+    '& .MuiInputLabel-outlined.MuiInputLabel-shrink': {
         transform: 'translate(14px, -9px) scale(0.75)',
     },
 }));
@@ -198,52 +206,6 @@ const SecondaryButton = styled(Button)(({ theme }) => ({
         transform: 'translateY(-2px)',
     },
 }));
-
-
-const mockAuthenticatedUser = {
-    _id: "user123xyz",
-    name: "Alex 'Grinder' Bell",
-    email: "alex.grinder@grindzone.app",
-    joinDate: "2023-03-15T10:00:00.000Z",
-};
-
-const initialMockUserProfileData = {
-    userId: "user123xyz",
-    avatarUrl: `https://source.unsplash.com/random/250x250?sig=${Math.floor(Math.random() * 300)}&avatar,person,fitness,neon,tech`,
-    birthDate: "1993-08-22T00:00:00.000Z", // Перемістили сюди
-    height: 180,
-    weight: 78, // Зробили цілим
-    goal: "Набрати 3кг м'язової маси та покращити витривалість.",
-    goalKeywords: ["маса", "витривалість"],
-    dietType: "Високобілкова",
-    activityLevel: "Помірний",
-    profileUpdatesCount: 5,
-    lastGoalUpdate: "2024-06-20T15:30:00.000Z",
-    wakeUpTime: "06:30",
-    trainingTime: "17:00",
-    firstMealTime: "07:30",
-    hydrationReminderTime: "10:00",
-    lastMealTime: "20:00",
-    personalTime: "21:00",
-    sleepTime: "22:00",
-    level: 72,
-    progressToNextLevel: 55,
-    trainingsCompleted: 152,
-    totalTimeSpent: "310 год",
-    achievements: [
-        { id: "ach01", name: "Перший Рубіж", description: "Завершено перше тренування.", iconName: "FitnessCenter", unlocked: true, color: '#a5d6a7' },
-        { id: "ach02", name: "Залізна Воля", description: "30 днів тренувань поспіль.", iconName: "EventNote", unlocked: true, color: '#ffcc80' },
-        { id: "ach03", name: "Світанок Воїна", description: "20 тренувань до 7 ранку.", iconName: "WbSunny", unlocked: true, color: '#ffd54f' },
-        { id: "ach04", name: "Майстер Витривалості", description: "100 тренувань загалом.", iconName: "EmojiEvents", unlocked: false, color: '#81d4fa' },
-        { id: "ach05", name: "Зональний Турист", description: "Відвідано всі зони спортзалу.", iconName: "Explore", unlocked: false, color: '#cf9fff' },
-        { id: "ach06", name: "Груповий Боєць", description: "Заброньовано 5 групових занять.", iconName: "Group", unlocked: true, color: '#f48fb1' },
-        { id: "ach07", name: "Нічна Зміна", description: "10 тренувань після 22:00.", iconName: "NightsStay", unlocked: false, color: '#90a4ae' },
-        { id: "ach08", name: "Профіль Завершено", description: "Заповнено усі основні поля профілю.", iconName: "CheckCircleOutline", unlocked: true, color: '#80cbc4' },
-        { id: "ach09", name: "Планувальник PRO", description: "Заплановано 7 тренувань наперед.", iconName: "EventAvailable", unlocked: false, color: '#ffab91' },
-        { id: "ach10", name: "Ранній Старт", description: "Перше тренування протягом 3 днів після реєстрації.", iconName: "StarBorder", unlocked: true, color: '#fff59d' },
-        { id: "ach11", name: "Відданий Grind'ер", description: "30 днів активності поспіль.", iconName: "Loyalty", unlocked: false, color: '#ef9a9a' },
-    ],
-};
 
 const iconMap = {
     FitnessCenter: FitnessCenterIcon, EmojiEvents: EmojiEventsIcon, QueryStats: QueryStatsIcon,
@@ -314,63 +276,142 @@ function a11yProps(index) {
     };
 }
 
+
 function ProfilePage(props) {
     const navigate = useNavigate();
-    const { currentUser: authenticatedUserFromApp } = props;
+    const { currentUser: authenticatedUser, logout, isLoadingAuth } = useAuth();
 
-    const [authenticatedUser, setAuthenticatedUser] = useState(
-        authenticatedUserFromApp || mockAuthenticatedUser
-    );
     const [userProfile, setUserProfile] = useState(null);
     const [editableProfile, setEditableProfile] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingData, setIsLoadingData] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
     const [tabValue, setTabValue] = useState(0);
     const fileInputRef = useRef(null);
     const [age, setAge] = useState(null);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (authenticatedUserFromApp) {
-            setAuthenticatedUser(authenticatedUserFromApp);
+        if (isLoadingAuth) {
+            return;
         }
-    }, [authenticatedUserFromApp]);
+        if (!authenticatedUser || !authenticatedUser.userId) {
+            setIsLoadingData(false);
+            return;
+        }
 
-    useEffect(() => {
-        setIsLoading(true);
-        const timer = setTimeout(() => {
-            const profileWithAge = {...initialMockUserProfileData };
-            if (profileWithAge.birthDate) {
-                const userBirthDate = parseISO(profileWithAge.birthDate);
-                setAge(differenceInYears(new Date(), userBirthDate));
+        const fetchUserProfile = async () => {
+            setIsLoadingData(true);
+            setError(null);
+            try {
+                const response = await fetch(`/api/profile/${authenticatedUser.userId}`);
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.message || `Помилка завантаження профілю: ${response.statusText}`);
+                }
+                const data = await response.json();
+                setUserProfile(data);
+                setEditableProfile(JSON.parse(JSON.stringify(data)));
+
+                if (data.birthDate) {
+                    const userBirthDate = parseISO(data.birthDate);
+                    if (isValidDateFn(userBirthDate)) {
+                        setAge(differenceInYears(new Date(), userBirthDate));
+                    } else {
+                        setAge(null);
+                    }
+                } else {
+                    setAge(null);
+                }
+
+            } catch (err) {
+                console.error("Failed to fetch profile:", err);
+                setError(err.message);
+            } finally {
+                setIsLoadingData(false);
             }
-            setUserProfile(profileWithAge);
-            setEditableProfile(profileWithAge);
-            setIsLoading(false);
-        }, 800);
-        return () => clearTimeout(timer);
-    }, [authenticatedUser]);
+        };
+
+        fetchUserProfile();
+    }, [authenticatedUser, isLoadingAuth]); // Видалив navigate з залежностей, він стабільний
 
     const handleTabChange = (event, newValue) => {
         setTabValue(newValue);
     };
 
     const handleEditToggle = () => {
-        if (isEditing) {
-            setEditableProfile(userProfile);
+        if (isEditing && userProfile) { // Додав перевірку на userProfile
+            setEditableProfile(JSON.parse(JSON.stringify(userProfile)));
         }
         setIsEditing(!isEditing);
     };
 
-    const handleSave = () => {
-        if (editableProfile.birthDate) {
-            const userBirthDate = parseISO(editableProfile.birthDate);
-            setAge(differenceInYears(new Date(), userBirthDate));
+    const handleSave = async () => {
+        if (!authenticatedUser || !authenticatedUser.userId || !editableProfile) { // Додав перевірку на editableProfile
+            setError("Дані для збереження не готові або користувач не авторизований.");
+            return;
         }
-        setUserProfile(editableProfile);
-        setIsEditing(false);
-        const updatedProfile = {...editableProfile, profileUpdatesCount: (editableProfile.profileUpdatesCount || 0) + 1, lastGoalUpdate: new Date().toISOString()};
-        setUserProfile(updatedProfile);
-        setEditableProfile(updatedProfile);
+        setIsSaving(true);
+        setError(null);
+
+        const profileUpdates = {
+            avatarUrl: editableProfile.avatarUrl,
+            birthDate: editableProfile.birthDate,
+            height: editableProfile.height,
+            weight: editableProfile.weight,
+            goal: editableProfile.goal,
+            dietType: editableProfile.dietType,
+            activityLevel: editableProfile.activityLevel,
+            wakeUpTime: editableProfile.wakeUpTime,
+            firstMealTime: editableProfile.firstMealTime,
+            hydrationReminderTime: editableProfile.hydrationReminderTime,
+            trainingTime: editableProfile.trainingTime,
+            lastMealTime: editableProfile.lastMealTime,
+            personalTime: editableProfile.personalTime,
+            sleepTime: editableProfile.sleepTime,
+        };
+
+        try {
+            const response = await fetch(`/api/profile/${authenticatedUser.userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(profileUpdates),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || `Помилка збереження профілю: ${response.statusText}`);
+            }
+
+            // Оновлюємо userProfile даними з відповіді сервера, якщо вони є
+            // Або оновлюємо тим, що відправили + лічильник
+            const updatedProfileData = data.user || {
+                ...userProfile, // Беремо поточний userProfile за основу
+                ...profileUpdates, // Накладаємо зміни, що були відправлені
+                // Сервер має оновити profileUpdatesCount та lastGoalUpdate,
+                // тому краще покладатися на дані з data.user
+                profileUpdatesCount: data.user?.profile?.profileUpdatesCount || (userProfile?.profileUpdatesCount || 0) + 1,
+                lastGoalUpdate: data.user?.profile?.lastGoalUpdate || new Date().toISOString()
+            };
+
+            setUserProfile(updatedProfileData);
+            setEditableProfile(JSON.parse(JSON.stringify(updatedProfileData)));
+            setIsEditing(false);
+
+            if (updatedProfileData.birthDate) {
+                const userBirthDate = parseISO(updatedProfileData.birthDate);
+                if (isValidDateFn(userBirthDate)) {
+                    setAge(differenceInYears(new Date(), userBirthDate));
+                }
+            }
+            // Можна показати Snackbar з повідомленням про успіх
+            // showSnackbar("Профіль успішно оновлено!", "success"); // Якщо є функція showSnackbar
+        } catch (err) {
+            console.error("Failed to save profile:", err);
+            setError(err.message);
+            // showSnackbar(`Помилка збереження: ${err.message}`, "error");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleInputChange = (e) => {
@@ -380,21 +421,33 @@ function ProfilePage(props) {
 
     const handleNumericInputChange = (e) => {
         const { name, value } = e.target;
-        let numValue = value === '' ? '' : parseInt(value, 10); // Використовуємо parseInt
-        if (name === 'weight' && value !== '') { // для ваги може бути і не ціле, якщо треба, але зараз ціле
-            numValue = value === '' ? '' : parseInt(value, 10);
-        } else if (name === 'height' && value !== '') {
-            numValue = value === '' ? '' : parseInt(value, 10);
-        }
-
-        if (value === '' || (!isNaN(numValue) && numValue >= 0)) {
+        const numValue = value === '' ? '' : parseInt(value, 10);
+        if (value === '' || (!isNaN(numValue) && numValue >= 0 && numValue <= 300)) {
             setEditableProfile(prev => ({ ...prev, [name]: numValue }));
         }
     };
 
-    const handleAvatarFileChange = (event) => {
+    const handleAvatarFileChange = async (event) => {
         const file = event.target.files[0];
         if (file && file.type.startsWith("image/")) {
+            // Для реального завантаження:
+            // setIsLoadingData(true); // Або окремий isUploadingAvatar
+            // setError(null);
+            // try {
+            //     const storageRef = ref(storage, `avatars/${authenticatedUser.userId}/${Date.now()}_${file.name}`);
+            //     await uploadBytes(storageRef, file);
+            //     const downloadURL = await getDownloadURL(storageRef);
+            //     setEditableProfile(prev => ({ ...prev, avatarUrl: downloadURL }));
+            //     // Після цього можна або автоматично викликати handleSave для avatarUrl,
+            //     // або просто оновити editableProfile і чекати, поки користувач натисне "Зберегти"
+            // } catch (firebaseError) {
+            //     console.error("Помилка завантаження аватара на Firebase:", firebaseError);
+            //     setError("Помилка завантаження зображення.");
+            // } finally {
+            //     // setIsLoadingData(false);
+            // }
+
+            // Тимчасова заглушка для відображення локального файлу
             const reader = new FileReader();
             reader.onload = (e) => {
                 setEditableProfile(prev => ({ ...prev, avatarUrl: e.target.result }));
@@ -403,25 +456,71 @@ function ProfilePage(props) {
         }
     };
 
-    const handleLogout = () => navigate('/');
+    const handleLogoutClick = () => {
+        logout();
+        navigate('/');
+    };
 
-
-    if (isLoading || !userProfile || !editableProfile) {
+    if (isLoadingAuth || isLoadingData) {
         return (
             <AppTheme {...props}>
                 <CssBaseline enableColorScheme />
                 <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', alignItems: 'center', justifyContent: 'center', background: 'rgba(10, 5, 18, 0.98)' }}>
                     <Box sx={gridBackgroundStyles} />
                     <CircularProgress sx={{color: '#a96cff', mb: 2}} size={60} thickness={4}/>
-                    <Typography variant="h5" sx={{color: 'rgba(230, 220, 255, 0.8)', animation: `${textFadeInUp} 1s ease-out`}}>Завантаження профілю...</Typography>
+                    <Typography variant="h5" sx={{color: 'rgba(230, 220, 255, 0.8)', animation: `${textFadeInUp} 1s ease-out`}}>
+                        {isLoadingAuth ? "Автентифікація..." : "Завантаження профілю..."}
+                    </Typography>
                 </Box>
             </AppTheme>
         );
     }
 
+    if (error) {
+        return (
+            <AppTheme {...props}>
+                <CssBaseline enableColorScheme />
+                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', alignItems: 'center', justifyContent: 'center', p:3 }}>
+                    <Box sx={gridBackgroundStyles} />
+                    <Alert severity="error" sx={{mb: 2, width: '100%', maxWidth: '600px'}}>Помилка: {error}</Alert>
+                    <Button variant="contained" onClick={() => window.location.reload()}>Перезавантажити сторінку</Button>
+                </Box>
+            </AppTheme>
+        );
+    }
+
+    if (!authenticatedUser || !userProfile) {
+        return (
+            <AppTheme {...props}>
+                <CssBaseline enableColorScheme />
+                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', alignItems: 'center', justifyContent: 'center', p:3 }}>
+                    <Box sx={gridBackgroundStyles} />
+                    <Typography variant="h6" sx={{color: 'rgba(230,220,255,0.7)'}}>
+                        Профіль недоступний. Будь ласка, спробуйте <Button component={Link} to="/signin">увійти</Button> знову.
+                    </Typography>
+                </Box>
+            </AppTheme>
+        );
+    }
+
+    const displayName = userProfile.name || 'Користувач'; // Беремо з userProfile
+    const displayEmail = userProfile.email || 'Не вказано'; // Беремо з userProfile
+    const displayJoinDate = userProfile.joinDate ? format(parseISO(userProfile.joinDate), 'd MMMM yyyy', { locale: uk }) : 'Невідомо';
+
+    // Деструктуризація для полів, що відображаються та редагуються
+    const {
+        avatarUrl, birthDate, height, weight, goal, dietType, activityLevel,
+        wakeUpTime, trainingTime, sleepTime, firstMealTime, hydrationReminderTime, lastMealTime, personalTime
+        // profileUpdatesCount та lastGoalUpdate тепер будуть братися з userProfile для відображення
+    } = isEditing ? editableProfile : userProfile;
+
+    // Ці поля завжди беремо з userProfile для відображення, бо вони оновлюються сервером або розраховуються
+    const displayProfileUpdatesCount = userProfile.profileUpdatesCount || 0;
+    const displayLastGoalUpdate = userProfile.lastGoalUpdate ? formatDistanceToNow(parseISO(userProfile.lastGoalUpdate), { addSuffix: true, locale: uk }) : 'Не оновлювалось';
+
+
     const currentMotivationalMessage = getMotivationalMessage(userProfile.goal, userProfile.goalKeywords);
-    const { name, email, joinDate } = authenticatedUser;
-    const { avatarUrl, birthDate, height, weight, goal, dietType, activityLevel, wakeUpTime, trainingTime, sleepTime, profileUpdatesCount, lastGoalUpdate, firstMealTime, hydrationReminderTime, lastMealTime, personalTime } = isEditing ? editableProfile : userProfile;
+
 
     return (
         <AppTheme {...props}>
@@ -434,8 +533,8 @@ function ProfilePage(props) {
                         <Box sx={{display: 'flex', alignItems: 'center', mb: {xs: 2, sm: 0}}}>
                             <AvatarUploader onClick={() => isEditing && fileInputRef.current.click()}>
                                 <Avatar
-                                    alt={name}
-                                    src={avatarUrl}
+                                    alt={displayName}
+                                    src={avatarUrl || '/default-avatar.png'}
                                     sx={{ width: '100%', height: '100%', border: `4px solid ${isEditing ? '#ffc107' : 'rgba(138, 43, 226, 0.7)'}`, animation: isEditing ? 'none' : `${pulseEffect} 2.5s infinite` }}
                                 />
                                 {isEditing && (
@@ -448,16 +547,20 @@ function ProfilePage(props) {
                             </AvatarUploader>
                             <Box sx={{ml: 3}}>
                                 <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'white', fontSize: { xs: '1.8rem', sm: '2.2rem', md: '2.5rem' } }}>
-                                    {name}
+                                    {displayName}
                                 </Typography>
-                                <Chip icon={<EmailIcon />} label={email} size="small" sx={{ color: 'rgba(230, 220, 255, 0.7)', borderColor: 'rgba(138, 43, 226, 0.3)', mt: 0.5, background: 'rgba(255,255,255,0.05)' }}/>
+                                <Chip icon={<EmailIcon />} label={displayEmail} size="small" sx={{ color: 'rgba(230, 220, 255, 0.7)', borderColor: 'rgba(138, 43, 226, 0.3)', mt: 0.5, background: 'rgba(255,255,255,0.05)' }}/>
                             </Box>
                         </Box>
                         <Box sx={{display: 'flex', gap: 1.5, mt: {xs: 2, sm: 0}}}>
                             {isEditing ? (
                                 <>
-                                    <PrimaryButton startIcon={<SaveIcon />} onClick={handleSave}>Зберегти</PrimaryButton>
-                                    <SecondaryButton startIcon={<CancelIcon />} onClick={handleEditToggle} variant="outlined">Скасувати</SecondaryButton>
+                                    <PrimaryButton startIcon={isSaving ? <CircularProgress size={20} color="inherit"/> : <SaveIcon />} onClick={handleSave} disabled={isSaving}>
+                                        {isSaving ? "Збереження..." : "Зберегти"}
+                                    </PrimaryButton>
+                                    <SecondaryButton startIcon={<CancelIcon />} onClick={handleEditToggle} variant="outlined" disabled={isSaving}>
+                                        Скасувати
+                                    </SecondaryButton>
                                 </>
                             ) : (
                                 <PrimaryButton startIcon={<EditIcon />} onClick={handleEditToggle}>Редагувати профіль</PrimaryButton>
@@ -483,11 +586,12 @@ function ProfilePage(props) {
                             <Grid container spacing={3}>
                                 <Grid item xs={12} md={7}>
                                     <Typography variant="h6" gutterBottom sx={{color: '#e0c7ff', mb: 2}}>Основна інформація</Typography>
-                                    <InfoDisplay label="В GrindЗоні з" value={format(parseISO(joinDate), 'd MMMM yyyy', { locale: uk })} icon={<CalendarMonthIcon />}/>
-                                    <InfoDisplay label="Оновлень профілю" value={profileUpdatesCount.toString()} icon={<UpdateIcon />}/>
-                                    <InfoDisplay label="Останнє оновлення цілей" value={formatDistanceToNow(parseISO(lastGoalUpdate), { addSuffix: true, locale: uk })} icon={<TrendingUpIcon />}/>
+                                    <InfoDisplay label="В GrindЗоні з" value={displayJoinDate} icon={<CalendarMonthIcon />}/>
+                                    {/* Тепер використовуємо displayProfileUpdatesCount та displayLastGoalUpdate */}
+                                    <InfoDisplay label="Оновлень профілю" value={displayProfileUpdatesCount.toString()} icon={<UpdateIcon />}/>
+                                    <InfoDisplay label="Останнє оновлення цілей" value={displayLastGoalUpdate} icon={<TrendingUpIcon />}/>
                                     <Box mt={2.5}>
-                                        <EditableItem label="Моя головна ціль" name="goal" value={goal} onChange={handleInputChange} isEditing={isEditing} icon={<FlagIcon />} InputProps={{ sx: { overflowY: 'auto', maxHeight: '30px' } }}/>
+                                        <EditableItem label="Моя головна ціль" name="goal" value={goal} onChange={handleInputChange} isEditing={isEditing} icon={<FlagIcon />} multiline rows={2} InputProps={{ sx: { overflowY: 'auto' } }}/>
                                     </Box>
                                 </Grid>
                                 <Grid item xs={12} md={5}>
@@ -497,6 +601,9 @@ function ProfilePage(props) {
                             </Grid>
                         </TabPanel>
 
+                        {/* ... (решта TabPanel залишається такою ж, як у твоєму коді,
+                                але переконайся, що використовуєш змінні `birthDate`, `height` і т.д.
+                                з деструктуризації, а не напряму з userProfile/editableProfile, якщо ти їх вже витягнув) ... */}
                         <TabPanel value={tabValue} index={1}>
                             <Typography variant="h6" gutterBottom sx={{color: '#e0c7ff', mb: 2}}>Мої параметри</Typography>
                             <Grid container spacing={isEditing ? 2 : 3} direction="column">
@@ -505,10 +612,10 @@ function ProfilePage(props) {
                                     {!isEditing && age !== null && <Typography variant="caption" sx={{color: 'rgba(230,220,255,0.6)', display: 'block', mt: -1.5, ml: '40px' }}>Повних років: {age}</Typography>}
                                 </Grid>
                                 <Grid item xs={12} md={isEditing ? 12 : 6} lg={isEditing ? 6 : 4}>
-                                    <EditableItem label="Зріст (см)" name="height" value={height} onChange={handleNumericInputChange} isEditing={isEditing} icon={<HeightIcon />} unit="см" type="number"/>
+                                    <EditableItem label="Зріст (см)" name="height" value={height || ''} onChange={handleNumericInputChange} isEditing={isEditing} icon={<HeightIcon />} unit="см" type="number"/>
                                 </Grid>
                                 <Grid item xs={12} md={isEditing ? 12 : 6} lg={isEditing ? 6 : 4}>
-                                    <EditableItem label="Вага (кг)" name="weight" value={weight} onChange={handleNumericInputChange} isEditing={isEditing} icon={<ScaleIcon />} unit="кг" type="number"/>
+                                    <EditableItem label="Вага (кг)" name="weight" value={weight || ''} onChange={handleNumericInputChange} isEditing={isEditing} icon={<ScaleIcon />} unit="кг" type="number"/>
                                 </Grid>
                                 <Grid item xs={12} md={isEditing ? 12 : 6} lg={isEditing ? 6 : 6}>
                                     <EditableItemSelect label="Тип дієти" name="dietType" value={dietType} onChange={handleInputChange} isEditing={isEditing} icon={<RestaurantMenuIcon />}
@@ -534,19 +641,19 @@ function ProfilePage(props) {
                         </TabPanel>
 
                         <TabPanel value={tabValue} index={2}>
-                            <Grid container spacing={3} alignItems="stretch"> {/* alignItems="stretch" */}
+                            <Grid container spacing={3} alignItems="stretch">
                                 <Grid item xs={12} md={6}>
                                     <Card sx={{background: alpha('#82eefd', 0.05), p:2.5, borderRadius: '12px', border: `1px solid ${alpha('#82eefd', 0.2)}`, height: '100%'}}>
-                                        <Typography variant="h6" gutterBottom sx={{color: '#c0f5ff', fontWeight: 500, mb:2}}>Прогрес Рівня ({userProfile.level})</Typography>
-                                        <LinearProgress variant="determinate" value={userProfile.progressToNextLevel} sx={{height: 12, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.1)', mb: 0.5, '& .MuiLinearProgress-bar': {backgroundColor: '#82eefd'}}} />
-                                        <Typography variant="caption" sx={{color: 'rgba(192, 245, 255, 0.8)', display: 'block', textAlign: 'right'}}>{userProfile.progressToNextLevel}% до рівня {userProfile.level + 1}</Typography>
+                                        <Typography variant="h6" gutterBottom sx={{color: '#c0f5ff', fontWeight: 500, mb:2}}>Прогрес Рівня ({userProfile.level || 1})</Typography>
+                                        <LinearProgress variant="determinate" value={userProfile.progressToNextLevel || 0} sx={{height: 12, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.1)', mb: 0.5, '& .MuiLinearProgress-bar': {backgroundColor: '#82eefd'}}} />
+                                        <Typography variant="caption" sx={{color: 'rgba(192, 245, 255, 0.8)', display: 'block', textAlign: 'right'}}>{userProfile.progressToNextLevel || 0}% до рівня {(userProfile.level || 1) + 1}</Typography>
                                     </Card>
                                 </Grid>
                                 <Grid item xs={12} md={6}>
                                     <Card sx={{background: alpha('#ffab91', 0.05), p:2.5, borderRadius: '12px', border: `1px solid ${alpha('#ffab91', 0.2)}`, height: '100%'}}>
                                         <Typography variant="h6" gutterBottom sx={{color: '#ffe0d3', fontWeight: 500, mb:2}}>Статистика Тренувань</Typography>
-                                        <InfoDisplay label="Завершено тренувань" value={userProfile.trainingsCompleted.toString()} icon={<FitnessCenterIcon sx={{color: '#ffab91 !important'}} />}/>
-                                        <InfoDisplay label="Загальний час в Grind" value={userProfile.totalTimeSpent} icon={<WatchLaterIcon sx={{color: '#ffab91 !important'}} />}/>
+                                        <InfoDisplay label="Завершено тренувань" value={(userProfile.trainingsCompleted || 0).toString()} icon={<FitnessCenterIcon sx={{color: '#ffab91 !important'}} />}/>
+                                        <InfoDisplay label="Загальний час в Grind" value={userProfile.totalTimeSpent || '0 год'} icon={<WatchLaterIcon sx={{color: '#ffab91 !important'}} />}/>
                                     </Card>
                                 </Grid>
                             </Grid>
@@ -564,10 +671,11 @@ function ProfilePage(props) {
                                 <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem label="Час сну" name="sleepTime" value={sleepTime} onChange={handleInputChange} isEditing={isEditing} icon={<BedtimeIcon />} type="time" /></Grid>
                             </Grid>
                         </TabPanel>
+
                     </ProfileSectionCard>
 
                     <Box sx={{mt: 3, display: 'flex', justifyContent: 'flex-end'}}>
-                        <SecondaryButton startIcon={<ExitToAppIcon />} onClick={handleLogout} variant="outlined">
+                        <SecondaryButton startIcon={<ExitToAppIcon />} onClick={handleLogoutClick} variant="outlined">
                             Вийти з GrindZone
                         </SecondaryButton>
                     </Box>
@@ -583,7 +691,7 @@ const InfoDisplay = ({ label, value, icon, sx }) => (
     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.8, '&:last-child': {mb: 0}, ...sx }}>
         {React.cloneElement(icon, { sx: { mr: 1.5, color: '#a96cff', fontSize: '1.3rem' } })}
         <Typography variant="body2" sx={{ color: 'rgba(230, 220, 255, 0.7)' }}>{label}:</Typography>
-        <Typography variant="body1" sx={{ fontWeight: '500', color: 'white', ml: 1, wordBreak: 'break-word' }}>{value}</Typography>
+        <Typography variant="body1" sx={{ fontWeight: '500', color: 'white', ml: 1, wordBreak: 'break-word' }}>{value || 'Не вказано'}</Typography>
     </Box>
 );
 
@@ -594,7 +702,7 @@ const EditableItem = ({ label, name, value, onChange, isEditing, icon, unit = ''
                 fullWidth
                 label={label}
                 name={name}
-                value={value === null || value === undefined ? '' : value} // Handle null/undefined for controlled inputs
+                value={value === null || value === undefined ? '' : value}
                 onChange={onChange}
                 variant="outlined"
                 size="small"
@@ -617,14 +725,13 @@ const EditableItemSelect = ({ label, name, value, onChange, isEditing, icon, opt
     if (isEditing) {
         return (
             <FormControl fullWidth variant="outlined" size="small" sx={{mb: 2, ...sx}}>
-                <InputLabel id={`${name}-label`} sx={{color: 'rgba(230,220,255,0.6)'}}>{label}</InputLabel>
+                <InputLabel id={`${name}-select-label`} sx={{color: 'rgba(230,220,255,0.6)'}}>{label}</InputLabel>
                 <Select
-                    labelId={`${name}-label`}
+                    labelId={`${name}-select-label`}
                     name={name}
-                    value={value}
+                    value={value || ''}
                     onChange={onChange}
                     label={label}
-                    // IconComponent={() => null} // Прибирає стандартну стрілку, якщо хочемо замінити
                     startAdornment={React.cloneElement(icon, { sx: { mr: 1, ml:1, color: 'rgba(230,220,255,0.5)' } })}
                     sx={{
                         color: 'rgba(230,220,255,0.9)',
@@ -633,8 +740,8 @@ const EditableItemSelect = ({ label, name, value, onChange, isEditing, icon, opt
                         '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(138, 43, 226, 0.4)' },
                         '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(169, 108, 255, 0.7)' },
                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#a96cff', boxShadow: `0 0 0 2px ${alpha('#a96cff', 0.2)}`},
-                        '.MuiSelect-icon': { color: 'rgba(230,220,255,0.7)'}, // Стандартна стрілка
-                        '.MuiSelect-select': { paddingLeft: '14px' } // Компенсуємо startAdornment
+                        '.MuiSelect-icon': { color: 'rgba(230,220,255,0.7)'},
+                        '.MuiSelect-select': { paddingLeft: '14px' }
                     }}
                     MenuProps={{
                         PaperProps: {
@@ -652,7 +759,7 @@ const EditableItemSelect = ({ label, name, value, onChange, isEditing, icon, opt
             </FormControl>
         );
     }
-    return <InfoDisplay label={label} value={value} icon={icon} sx={sx}/>;
+    return <InfoDisplay label={label} value={value || 'Не вказано'} icon={icon} sx={sx}/>;
 };
 
 const AchievementsList = ({ achievements }) => (
