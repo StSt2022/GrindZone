@@ -1,5 +1,5 @@
 // src/components/activities/BookingSection.jsx
-import React, { useState, useEffect } from 'react'; // useContext тут не потрібен, якщо використовуємо useAuth
+import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
@@ -34,8 +34,7 @@ import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 
-// Імпортуємо хук useAuth
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '../../../context/AuthContext'; // Перевір шлях
 
 // ... (стилі залишаються такими ж)
 const primaryPurple = '#8737c9';
@@ -177,7 +176,7 @@ const BookingFormCard = styled(Card)(({ theme }) => ({
 
 
 const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onBookingConfirmed, onClearTarget }) => {
-    const { currentUser, isAuthenticated } = useAuth(); // Отримуємо дані користувача та стан автентифікації
+    const { currentUser, isAuthenticated } = useAuth();
 
     const [selectedEquipmentId, setSelectedEquipmentId] = useState('');
     const [equipmentDate, setEquipmentDate] = useState(null);
@@ -216,6 +215,15 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
         setClassBookerPhone('');
     };
 
+    // Функція для обробки введення номера телефону (тільки цифри та обмеження довжини)
+    const handlePhoneInputChange = (event, setter) => {
+        const rawValue = event.target.value;
+        const numericValue = rawValue.replace(/[^0-9]/g, ''); // Видаляємо всі нецифрові символи
+        // Можна додати обмеження довжини, наприклад, до 12-13 символів (для +380XXXXXXXXX)
+        setter(numericValue.slice(0, 12)); // Приклад: обмежуємо до 12 цифр
+    };
+
+
     useEffect(() => {
         if (initialTarget) {
             if (initialTarget.type === 'equipment') {
@@ -246,6 +254,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                         setClassDate(null); setClassStartTime(null); setClassEndTime(null);
                     }
                 } catch (error) {
+                    console.error('Error parsing class time:', error);
                     setClassDate(null); setClassStartTime(null); setClassEndTime(null);
                 }
             }
@@ -256,13 +265,16 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
 
     const handleEquipmentBooking = async (e) => {
         e.preventDefault();
-
-        if (!isAuthenticated || !currentUser?.userId) { // Перевірка автентифікації та наявності userId
+        if (!isAuthenticated || !currentUser?.userId) {
             showSnackbar("Для бронювання потрібно авторизуватися.", "error");
             return;
         }
         if (!selectedEquipmentId || !equipmentDate || !equipmentStartTime || !equipmentDuration || !equipmentBookerPhone) {
             showSnackbar("Будь ласка, заповніть усі обов'язкові поля для тренажера.", "error");
+            return;
+        }
+        if (equipmentBookerPhone.length < 9 || equipmentBookerPhone.length > 12) { // Приклад валідації довжини
+            showSnackbar("Номер телефону має містити від 9 до 12 цифр.", "error");
             return;
         }
 
@@ -276,7 +288,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
         const calculatedEndTime = addMinutes(equipmentStartTime, equipmentDuration);
 
         const payload = {
-            userId: currentUser.userId, // Використовуємо userId з AuthContext
+            userId: currentUser.userId,
             type: 'equipment',
             itemId: selectedEquipmentId,
             itemName: equipmentDetails.name,
@@ -285,7 +297,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
             startTime: format(equipmentStartTime, 'HH:mm'),
             endTime: format(calculatedEndTime, 'HH:mm'),
             duration: equipmentDuration,
-            bookerPhone: equipmentBookerPhone
+            bookerPhone: equipmentBookerPhone // Вже тільки цифри
         };
 
         try {
@@ -295,7 +307,6 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                 body: JSON.stringify(payload)
             });
             const data = await response.json();
-
             if (response.ok) {
                 showSnackbar(`Тренажер "${equipmentDetails.name}" успішно заброньовано!`, "success");
                 if (onBookingConfirmed) onBookingConfirmed(data.bookingDetails);
@@ -305,7 +316,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                 showSnackbar(data.message || "Помилка бронювання тренажера.", "error");
             }
         } catch (error) {
-            console.error("Equipment booking error:", error);
+            console.error(`[${new Date().toISOString()}] Помилка в /api/bookings:`, error);
             showSnackbar("Помилка мережі або сервера при бронюванні тренажера.", "error");
         } finally {
             setIsEquipmentBooking(false);
@@ -314,13 +325,16 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
 
     const handleClassBooking = async (e) => {
         e.preventDefault();
-
-        if (!isAuthenticated || !currentUser?.userId) { // Перевірка автентифікації та наявності userId
+        if (!isAuthenticated || !currentUser?.userId) {
             showSnackbar("Для бронювання потрібно авторизуватися.", "error");
             return;
         }
         if (!selectedClassId || !classBookerPhone) {
             showSnackbar("Будь ласка, оберіть заняття та вкажіть телефон.", "error");
+            return;
+        }
+        if (classBookerPhone.length < 9 || classBookerPhone.length > 12) { // Приклад валідації довжини
+            showSnackbar("Номер телефону має містити від 9 до 12 цифр.", "error");
             return;
         }
 
@@ -338,7 +352,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
         }
 
         const payload = {
-            userId: currentUser.userId, // Використовуємо userId з AuthContext
+            userId: currentUser.userId,
             type: 'class',
             itemId: selectedClassId,
             itemName: classDetails.title,
@@ -346,7 +360,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
             bookingDate: classDetails.date,
             startTime: classDetails.startTime,
             endTime: classDetails.endTime,
-            bookerPhone: classBookerPhone
+            bookerPhone: classBookerPhone // Вже тільки цифри
         };
 
         try {
@@ -356,7 +370,6 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                 body: JSON.stringify(payload)
             });
             const data = await response.json();
-
             if (response.ok) {
                 showSnackbar(`Ви успішно записані на заняття "${classDetails.title}"!`, "success");
                 if (onBookingConfirmed) onBookingConfirmed(data.bookingDetails);
@@ -366,7 +379,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                 showSnackbar(data.message || "Помилка запису на заняття.", "error");
             }
         } catch (error) {
-            console.error("Class booking error:", error);
+            console.error(`[${new Date().toISOString()}] Помилка в /api/bookings:`, error);
             showSnackbar("Помилка мережі або сервера при записі на заняття.", "error");
         } finally {
             setIsClassBooking(false);
@@ -474,12 +487,21 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                         </FormControl>
                                     </Grid>
                                 </Grid>
-                                <TextField label="Ваш телефон" type="tel" fullWidth required sx={formControlBaseStyles(isEquipmentBooking)}
-                                           value={equipmentBookerPhone} onChange={(e) => setEquipmentBookerPhone(e.target.value)} placeholder="+380 XX XXX XX XX"
-                                           disabled={isEquipmentBooking}
-                                           InputProps={{
-                                               startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}}/>
-                                           }}
+                                <TextField
+                                    label="Ваш телефон"
+                                    type="tel" // Залишаємо type="tel" для семантики та потенційної мобільної клавіатури
+                                    inputMode="numeric" // Підказка для браузера про тип клавіатури
+                                    pattern="[0-9]*"    // Додаткова підказка для валідації (не завжди працює як очікується для блокування)
+                                    fullWidth
+                                    required
+                                    sx={formControlBaseStyles(isEquipmentBooking)}
+                                    value={equipmentBookerPhone}
+                                    onChange={(e) => handlePhoneInputChange(e, setEquipmentBookerPhone)}
+                                    placeholder="+380 XX XXX XX XX" // Можна залишити для формату
+                                    disabled={isEquipmentBooking}
+                                    InputProps={{
+                                        startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}}/>
+                                    }}
                                 />
                                 <Box sx={{ mt: 2, mb: 5 }}>
                                     <StyledBookingButton type="submit" fullWidth startIcon={isEquipmentBooking ? null : <CheckCircleOutlineIcon/>} disabled={isEquipmentBooking}>
@@ -543,12 +565,21 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                         />
                                     </Grid>
                                 </Grid>
-                                <TextField label="Ваш телефон" type="tel" fullWidth required sx={formControlBaseStyles(isClassBooking)}
-                                           value={classBookerPhone} onChange={(e) => setClassBookerPhone(e.target.value)} placeholder="+380 XX XXX XX XX"
-                                           disabled={isClassBooking}
-                                           InputProps={{
-                                               startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}}/>
-                                           }}
+                                <TextField
+                                    label="Ваш телефон"
+                                    type="tel"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    fullWidth
+                                    required
+                                    sx={formControlBaseStyles(isClassBooking)}
+                                    value={classBookerPhone}
+                                    onChange={(e) => handlePhoneInputChange(e, setClassBookerPhone)}
+                                    placeholder="+380 XX XXX XX XX"
+                                    disabled={isClassBooking}
+                                    InputProps={{
+                                        startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}}/>
+                                    }}
                                 />
                                 <Box sx={{ mt: 2, mb: 5 }}>
                                     <StyledBookingButton type="submit" fullWidth disabled={isClassBooking || isGroupClassFull} startIcon={isClassBooking ? null : (isGroupClassFull ? <EventBusyIcon/> : <CheckCircleOutlineIcon/>)}>
