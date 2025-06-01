@@ -1,5 +1,5 @@
 // src/components/activities/BookingSection.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react'; // Додав useContext (приклад)
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
@@ -13,13 +13,14 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import FormHelperText from '@mui/material/FormHelperText';
 import { styled, alpha } from '@mui/material/styles';
+import CircularProgress from '@mui/material/CircularProgress'; // Для індикатора завантаження в кнопці
 
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { uk } from 'date-fns/locale';
-import { addMinutes, format, parse } from 'date-fns';
+import { addMinutes, format, parse, isValid as isValidDate } from 'date-fns'; // Додав isValidDate
 
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import Diversity3Icon from '@mui/icons-material/Diversity3';
@@ -33,14 +34,17 @@ import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 
-// Фіолетова палітра (близька до твого AppTheme)
+// Припустимо, у тебе є AuthContext для отримання userId
+// import { AuthContext } from '../../context/AuthContext'; // Адаптуй шлях!
+
+// ... (стилі залишаються такими ж)
 const primaryPurple = '#8737c9';
 const secondaryPurple = '#601ab6'; // Для кнопки
 const hoverPurple = '#550f8d'; // Для кнопки
 const cardBg = 'rgba(20, 15, 40, 0.95)';
 const lightText = 'rgba(220, 210, 255, 0.9)';
 const subtleText = 'rgba(220, 210, 255, 0.7)';
-const iconColor = '#e1d2f5'; // Легкий фіолетовий для іконок і стрілок
+const iconColor = '#e1d2f5';
 
 const formControlBaseStyles = (isDisabled = false) => ({
     mb: 2.5,
@@ -73,11 +77,11 @@ const formControlBaseStyles = (isDisabled = false) => ({
             '& fieldset': { borderColor: `${alpha(primaryPurple, 0.25)} !important` },
         },
         '& .MuiInputAdornment-root .MuiSvgIcon-root': {
-            color: isDisabled ? alpha(iconColor, 0.5) : iconColor, // Для іконок у полях
+            color: isDisabled ? alpha(iconColor, 0.5) : iconColor,
         },
     },
     '& .MuiSelect-icon': {
-        color: isDisabled ? alpha(iconColor, 0.5) : iconColor, // Для стрілок
+        color: isDisabled ? alpha(iconColor, 0.5) : iconColor,
     },
     '& .MuiInputLabel-outlined.MuiInputLabel-shrink': {
         transform: 'translate(14px, -9px) scale(0.75)',
@@ -90,10 +94,7 @@ const formControlBaseStyles = (isDisabled = false) => ({
 const selectControlStyles = (isDisabled = false) => ({
     ...formControlBaseStyles(isDisabled),
     '& .MuiInputLabel-outlined:not(.MuiInputLabel-shrink)': {
-        transform: 'translate(14px, 9px) scale(1)', // Центрування для Select
-    },
-    '& .MuiSelect-icon': {
-        color: isDisabled ? alpha(iconColor, 0.5) : iconColor, // Для стрілок
+        transform: 'translate(14px, 9px) scale(1)',
     },
 });
 
@@ -121,6 +122,7 @@ const StyledBookingButton = styled(Button)(({ theme, disabled }) => ({
     fontSize: '1.05rem',
     textTransform: 'none',
     color: theme.palette.common.white,
+    position: 'relative', // Для CircularProgress
     background: disabled
         ? alpha(secondaryPurple, 0.3)
         : `linear-gradient(45deg, ${secondaryPurple} 0%, ${primaryPurple} 100%)`,
@@ -155,7 +157,7 @@ const BookingFormCard = styled(Card)(({ theme }) => ({
     background: cardBg,
     backdropFilter: 'blur(18px)',
     borderRadius: '28px',
-    border: `1px solid ${alpha(primaryPurple, 0.6)}`, // Статична рамка
+    border: `1px solid ${alpha(primaryPurple, 0.6)}`,
     boxShadow: `0 18px 50px ${alpha(theme.palette.common.black, 0.35)}`,
     position: 'relative',
     '&::before': {
@@ -175,18 +177,25 @@ const BookingFormCard = styled(Card)(({ theme }) => ({
 
 
 const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onBookingConfirmed, onClearTarget }) => {
-    // ... (стейт та useEffects залишаються без змін) ...
+    // const { user } = useContext(AuthContext); // Приклад отримання користувача з AuthContext
+    // const userId = user?._id; // Або user?.id, залежно від структури
+    // ТИМЧАСОВО для тестування, заміни на реальний userId
+    const TEMPORARY_USER_ID_FOR_TESTING = "ЗАМІНИ_ЦЕ_НА_ID_КОРИСТУВАЧА_З_КОНТЕКСТУ_АБО_STORE";
+
+
     const [selectedEquipmentId, setSelectedEquipmentId] = useState('');
     const [equipmentDate, setEquipmentDate] = useState(null);
     const [equipmentStartTime, setEquipmentStartTime] = useState(null);
-    const [equipmentDuration, setEquipmentDuration] = useState(30);
+    const [equipmentDuration, setEquipmentDuration] = useState(30); // в хвилинах
     const [equipmentBookerPhone, setEquipmentBookerPhone] = useState('');
+    const [isEquipmentBooking, setIsEquipmentBooking] = useState(false);
 
     const [selectedClassId, setSelectedClassId] = useState('');
-    const [classDate, setClassDate] = useState(null);
-    const [classStartTime, setClassStartTime] = useState(null);
-    const [classEndTime, setClassEndTime] = useState(null);
+    const [classDate, setClassDate] = useState(null); // Дата з обраного класу
+    const [classStartTime, setClassStartTime] = useState(null); // Час початку з обраного класу
+    const [classEndTime, setClassEndTime] = useState(null); // Час кінця з обраного класу
     const [classBookerPhone, setClassBookerPhone] = useState('');
+    const [isClassBooking, setIsClassBooking] = useState(false);
 
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -198,36 +207,58 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
         setSnackbarOpen(true);
     };
 
+    const resetEquipmentForm = () => {
+        setSelectedEquipmentId('');
+        setEquipmentDate(null);
+        setEquipmentStartTime(null);
+        setEquipmentDuration(30);
+        setEquipmentBookerPhone('');
+    };
+
+    const resetClassForm = () => {
+        setSelectedClassId('');
+        // classDate, classStartTime, classEndTime оновлюються в useEffect
+        setClassBookerPhone('');
+    };
+
     useEffect(() => {
         if (initialTarget) {
             if (initialTarget.type === 'equipment') {
                 setSelectedEquipmentId(initialTarget.item.id);
-                setEquipmentDate(new Date());
-                setSelectedClassId('');
-                setClassBookerPhone('');
+                setEquipmentDate(new Date()); // Встановити сьогоднішню дату
+                // Очистити форму класу
+                resetClassForm();
             } else if (initialTarget.type === 'class') {
                 const classItem = initialTarget.item;
                 setSelectedClassId(classItem.id);
-                setSelectedEquipmentId('');
-                setEquipmentDate(null); setEquipmentStartTime(null); setEquipmentDuration(30);
-                setEquipmentBookerPhone('');
+                // Очистити форму тренажера
+                resetEquipmentForm();
             }
         } else {
-            setSelectedEquipmentId(''); setEquipmentDate(null); setEquipmentStartTime(null); setEquipmentDuration(30);
-            setEquipmentBookerPhone('');
-            setSelectedClassId('');
-            setClassBookerPhone('');
+            // Якщо немає initialTarget, можливо, не варто скидати все,
+            // а лише якщо користувач сам цього хоче.
+            // resetEquipmentForm();
+            // resetClassForm();
         }
     }, [initialTarget]);
 
     useEffect(() => {
-        if (selectedClassId) {
+        if (selectedClassId && allClasses?.length > 0) {
             const sClass = allClasses.find(c => c.id === selectedClassId);
             if (sClass) {
                 try {
-                    setClassDate(parse(sClass.date, 'yyyy-MM-dd', new Date()));
-                    setClassStartTime(parse(`${sClass.date} ${sClass.startTime}`, 'yyyy-MM-dd HH:mm', new Date()));
-                    setClassEndTime(parse(`${sClass.date} ${sClass.endTime}`, 'yyyy-MM-dd HH:mm', new Date()));
+                    // Переконуємось, що дата валідна перед парсингом
+                    const parsedDate = parse(sClass.date, 'yyyy-MM-dd', new Date());
+                    if (isValidDate(parsedDate)) {
+                        setClassDate(parsedDate);
+                        const parsedStartTime = parse(`${sClass.date} ${sClass.startTime}`, 'yyyy-MM-dd HH:mm', new Date());
+                        if (isValidDate(parsedStartTime)) setClassStartTime(parsedStartTime); else setClassStartTime(null);
+                        const parsedEndTime = parse(`${sClass.date} ${sClass.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
+                        if (isValidDate(parsedEndTime)) setClassEndTime(parsedEndTime); else setClassEndTime(null);
+                    } else {
+                        console.error("Invalid date string for class:", sClass.date);
+                        setClassDate(null); setClassStartTime(null); setClassEndTime(null);
+                    }
                 } catch (error) {
                     console.error("Error parsing class date/time:", error, sClass);
                     setClassDate(null); setClassStartTime(null); setClassEndTime(null);
@@ -238,63 +269,149 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
         }
     }, [selectedClassId, allClasses]);
 
-    const handleEquipmentBooking = (e) => { /* ... */
+    const handleEquipmentBooking = async (e) => {
         e.preventDefault();
         if (!selectedEquipmentId || !equipmentDate || !equipmentStartTime || !equipmentDuration || !equipmentBookerPhone) {
-            showSnackbar("Будь ласка, заповніть усі обов'язкові поля.", "error");
+            showSnackbar("Будь ласка, заповніть усі обов'язкові поля для тренажера.", "error");
             return;
         }
+        // !!! ЗАМІНИ ЦЕ НА РЕАЛЬНИЙ userId !!!
+        const userId = TEMPORARY_USER_ID_FOR_TESTING; // Або з useContext(AuthContext).user._id;
+        if (!userId || userId === "ЗАМІНИ_ЦЕ_НА_ID_КОРИСТУВАЧА_З_КОНТЕКСТУ_АБО_STORE") {
+            showSnackbar("Помилка: ID користувача не визначено. Увійдіть в систему.", "error");
+            return;
+        }
+
+        setIsEquipmentBooking(true);
         const equipmentDetails = allEquipment.find(eq => eq.id === selectedEquipmentId);
+        if (!equipmentDetails) {
+            showSnackbar("Обраний тренажер не знайдено.", "error");
+            setIsEquipmentBooking(false);
+            return;
+        }
         const calculatedEndTime = addMinutes(equipmentStartTime, equipmentDuration);
 
-        onBookingConfirmed({
-            type: 'equipment', itemId: selectedEquipmentId, itemName: equipmentDetails?.name || 'Тренажер',
-            date: format(equipmentDate, 'dd.MM.yyyy'),
+        const payload = {
+            userId: userId,
+            type: 'equipment',
+            itemId: selectedEquipmentId,
+            itemName: equipmentDetails.name,
+            zoneId: equipmentDetails.zoneId,
+            bookingDate: format(equipmentDate, 'yyyy-MM-dd'),
             startTime: format(equipmentStartTime, 'HH:mm'),
             endTime: format(calculatedEndTime, 'HH:mm'),
-            duration: equipmentDuration,
+            duration: equipmentDuration, // На сервері це поле називається duration, тут передаємо equipmentDuration
             bookerPhone: equipmentBookerPhone
-        });
-        showSnackbar(`Тренажер "${equipmentDetails?.name}" успішно заброньовано!`, "success");
-        if (onClearTarget) onClearTarget();
+        };
+
+        try {
+            const response = await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showSnackbar(`Тренажер "${equipmentDetails.name}" успішно заброньовано!`, "success");
+                if (onBookingConfirmed) onBookingConfirmed(data.bookingDetails); // Передаємо деталі підтвердженого бронювання
+                if (onClearTarget) onClearTarget();
+                resetEquipmentForm();
+            } else {
+                showSnackbar(data.message || "Помилка бронювання тренажера.", "error");
+            }
+        } catch (error) {
+            console.error("Equipment booking error:", error);
+            showSnackbar("Помилка мережі або сервера при бронюванні тренажера.", "error");
+        } finally {
+            setIsEquipmentBooking(false);
+        }
     };
-    const handleClassBooking = (e) => { /* ... */
+
+    const handleClassBooking = async (e) => {
         e.preventDefault();
         if (!selectedClassId || !classBookerPhone) {
             showSnackbar("Будь ласка, оберіть заняття та вкажіть телефон.", "error");
             return;
         }
+        // !!! ЗАМІНИ ЦЕ НА РЕАЛЬНИЙ userId !!!
+        const userId = TEMPORARY_USER_ID_FOR_TESTING; // Або з useContext(AuthContext).user._id;
+        if (!userId || userId === "ЗАМІНИ_ЦЕ_НА_ID_КОРИСТУВАЧА_З_КОНТЕКСТУ_АБО_STORE") {
+            showSnackbar("Помилка: ID користувача не визначено. Увійдіть в систему.", "error");
+            return;
+        }
+
+        setIsClassBooking(true);
         const classDetails = allClasses.find(c => c.id === selectedClassId);
         if (!classDetails) {
             showSnackbar("Обране заняття не знайдено.", "error");
+            setIsClassBooking(false);
             return;
         }
+        // Перевірку на isFull вже робить сервер, але можна залишити і тут для швидкого фідбеку
         if (classDetails.bookedUserIds.length >= classDetails.maxCapacity) {
             showSnackbar("На жаль, на це заняття вже немає вільних місць.", "warning");
+            setIsClassBooking(false);
             return;
         }
 
-        onBookingConfirmed({
-            type: 'class', itemId: selectedClassId, itemName: classDetails?.title || 'Групове заняття',
-            date: classDate ? format(classDate, 'dd.MM.yyyy') : 'N/A',
-            startTime: classStartTime ? format(classStartTime, 'HH:mm') : 'N/A',
-            endTime: classEndTime ? format(classEndTime, 'HH:mm') : 'N/A',
+        const payload = {
+            userId: userId,
+            type: 'class',
+            itemId: selectedClassId,
+            itemName: classDetails.title,
+            zoneId: classDetails.zoneId,
+            bookingDate: classDetails.date, // Беремо дату з об'єкта класу
+            startTime: classDetails.startTime,
+            endTime: classDetails.endTime,
+            // duration для класу не передаємо, сервер сам візьме з classDetails.durationMinutes
             bookerPhone: classBookerPhone
-        });
-        showSnackbar(`Ви успішно записані на заняття "${classDetails?.title}"!`, "success");
+        };
 
-        if (onClearTarget) onClearTarget();
+        try {
+            const response = await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showSnackbar(`Ви успішно записані на заняття "${classDetails.title}"!`, "success");
+                if (onBookingConfirmed) onBookingConfirmed(data.bookingDetails);
+                if (onClearTarget) onClearTarget();
+                resetClassForm();
+            } else {
+                showSnackbar(data.message || "Помилка запису на заняття.", "error");
+            }
+        } catch (error) {
+            console.error("Class booking error:", error);
+            showSnackbar("Помилка мережі або сервера при записі на заняття.", "error");
+        } finally {
+            setIsClassBooking(false);
+        }
     };
 
-    const selectedGroupClass = allClasses.find(c => c.id === selectedClassId);
-    const isGroupClassFull = selectedGroupClass && (selectedGroupClass.bookedUserIds.length >= selectedGroupClass.maxCapacity);
+    const selectedGroupClass = selectedClassId ? allClasses.find(c => c.id === selectedClassId) : null;
+    const isGroupClassFull = selectedGroupClass ? (selectedGroupClass.bookedUserIds.length >= selectedGroupClass.maxCapacity) : false;
 
-    const durationOptions = [ /* ... */
+    const durationOptions = [
         { value: 30, label: '30 хвилин' },
         { value: 45, label: '45 хвилин' },
         { value: 60, label: '1 година' },
         { value: 90, label: '1.5 години' },
     ];
+
+    // Перевіряємо, чи дані для селектів вже завантажені
+    if (!allEquipment || !allClasses || !allZones) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
+                <CircularProgress />
+                <Typography sx={{ml: 2}}>Завантаження форм бронювання...</Typography>
+            </Box>
+        );
+    }
+
 
     return (
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={uk}>
@@ -307,9 +424,9 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                         fontWeight: 'bold',
                         color: 'white',
                         mb: { xs: 5, md: 7 },
-                        textShadow: '0 0 20px rgba(198, 126, 255, 0.4)', // Зберігаємо тінь із Zones.jsx
-                        fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' }, // Узгоджуємо розміри з Zones.jsx
-                        background: 'linear-gradient(120deg, #e6ceff 0%, #c67eff 60%, #a96cff 100%)', // Градієнт із Zones.jsx
+                        textShadow: '0 0 20px rgba(198, 126, 255, 0.4)',
+                        fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
+                        background: 'linear-gradient(120deg, #e6ceff 0%, #c67eff 60%, #a96cff 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                     }}
@@ -322,15 +439,8 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: { xs: 4, md: 6 },
-                    // Горизонтальний градієнт між картками (якщо картки розташовані поруч)
-                    // Для колонок це не так актуально, але можна залишити як декоративний фон для секції
-                    // backgroundImage: `linear-gradient(90deg,
-                    //     ${alpha(cardBg, 0.5)} 0%,
-                    //     ${alpha(primaryPurple, 0.03)} 30%,
-                    //     ${alpha(primaryPurple, 0.03)} 70%,
-                    //     ${alpha(cardBg, 0.5)} 100%)`,
-                    // padding: '0 20px' // Щоб градієнт був видимий по боках, якщо потрібно
                 }}>
+                    {/* Форма бронювання тренажера */}
                     <BookingFormCard>
                         <CardContent sx={{ p: { xs: 3, sm: 4, md: 4.5 }}}>
                             <Box sx={{display: 'flex', alignItems: 'center', color: lightText, mb: 4.5}}>
@@ -338,11 +448,12 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                 <Typography variant="h5" sx={{ fontWeight: '600', color: iconColor }}>Тренажер</Typography>
                             </Box>
                             <Box component="form" onSubmit={handleEquipmentBooking}>
-                                <FormControl fullWidth sx={selectControlStyles()}>
+                                <FormControl fullWidth sx={selectControlStyles(isEquipmentBooking)}>
                                     <InputLabel id="equipment-select-label">Оберіть тренажер</InputLabel>
                                     <Select
                                         labelId="equipment-select-label" value={selectedEquipmentId} label="Оберіть тренажер"
                                         onChange={(e) => setSelectedEquipmentId(e.target.value)} required MenuProps={menuProps}
+                                        disabled={isEquipmentBooking}
                                     >
                                         {allEquipment.map((eq) => {
                                             const zone = allZones.find(z => z.id === eq.zoneId);
@@ -352,9 +463,10 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                 </FormControl>
                                 <DatePicker
                                     label="Дата" value={equipmentDate} onChange={setEquipmentDate} minDate={new Date()}
+                                    disabled={isEquipmentBooking}
                                     slots={{ openPickerIcon: EventNoteIcon }}
                                     slotProps={{
-                                        textField: { sx: formControlBaseStyles(), required: true, fullWidth: true },
+                                        textField: { sx: formControlBaseStyles(isEquipmentBooking), required: true, fullWidth: true },
                                         openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
                                     }}
                                 />
@@ -363,18 +475,20 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                         <TimePicker
                                             label="Час початку" value={equipmentStartTime} onChange={setEquipmentStartTime}
                                             ampm={false} minutesStep={15}
+                                            disabled={isEquipmentBooking}
                                             slots={{ openPickerIcon: AccessTimeFilledIcon }}
                                             slotProps={{
-                                                textField: { sx: formControlBaseStyles(), required: true, fullWidth: true },
+                                                textField: { sx: formControlBaseStyles(isEquipmentBooking), required: true, fullWidth: true },
                                                 openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
                                             }}
                                         />
                                     </Grid>
                                     <Grid item xs={12} sm={5}>
-                                        <FormControl fullWidth sx={formControlBaseStyles()}>
+                                        <FormControl fullWidth sx={formControlBaseStyles(isEquipmentBooking)}>
                                             <InputLabel id="duration-select-label">Тривалість</InputLabel>
                                             <Select labelId="duration-select-label" value={equipmentDuration} label="Тривалість"
                                                     onChange={(e) => setEquipmentDuration(e.target.value)} required MenuProps={menuProps}
+                                                    disabled={isEquipmentBooking}
                                                     startAdornment={<ScheduleIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}} />}
                                             >
                                                 {durationOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
@@ -382,21 +496,23 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                         </FormControl>
                                     </Grid>
                                 </Grid>
-                                <TextField label="Ваш телефон" type="tel" fullWidth required sx={formControlBaseStyles()}
+                                <TextField label="Ваш телефон" type="tel" fullWidth required sx={formControlBaseStyles(isEquipmentBooking)}
                                            value={equipmentBookerPhone} onChange={(e) => setEquipmentBookerPhone(e.target.value)} placeholder="+380 XX XXX XX XX"
+                                           disabled={isEquipmentBooking}
                                            InputProps={{
                                                startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}}/>
                                            }}
                                 />
                                 <Box sx={{ mt: 2, mb: 5 }}>
-                                    <StyledBookingButton type="submit" fullWidth startIcon={<CheckCircleOutlineIcon/>}>
-                                        Забронювати тренажер
+                                    <StyledBookingButton type="submit" fullWidth startIcon={isEquipmentBooking ? null : <CheckCircleOutlineIcon/>} disabled={isEquipmentBooking}>
+                                        {isEquipmentBooking ? <CircularProgress size={24} color="inherit" /> : "Забронювати тренажер"}
                                     </StyledBookingButton>
                                 </Box>
                             </Box>
                         </CardContent>
                     </BookingFormCard>
 
+                    {/* Форма бронювання групового заняття */}
                     <BookingFormCard>
                         <CardContent sx={{ p: { xs: 3, sm: 4, md: 4.5 }}}>
                             <Box sx={{display: 'flex', alignItems: 'center', color: lightText, mb: 4.5}}>
@@ -404,12 +520,12 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                 <Typography variant="h5" sx={{ fontWeight: '600', color: iconColor }}>Групове Заняття</Typography>
                             </Box>
                             <Box component="form" onSubmit={handleClassBooking}>
-                                <FormControl fullWidth sx={selectControlStyles(isGroupClassFull)}>
+                                <FormControl fullWidth sx={selectControlStyles(isClassBooking || (isGroupClassFull && !selectedClassId))}>
                                     <InputLabel id="class-select-label">Оберіть заняття</InputLabel>
                                     <Select
                                         labelId="class-select-label" value={selectedClassId} label="Оберіть заняття"
                                         onChange={(e) => setSelectedClassId(e.target.value)} required MenuProps={menuProps}
-                                        disabled={isGroupClassFull && !selectedClassId}
+                                        disabled={isClassBooking || (isGroupClassFull && !selectedClassId)} // Блокуємо, якщо йде бронювання АБО якщо обране заняття повне
                                     >
                                         {allClasses.map((sClass) => (
                                             <MenuItem key={sClass.id} value={sClass.id} disabled={sClass.bookedUserIds.length >= sClass.maxCapacity}>
@@ -424,7 +540,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                     label="Дата заняття" value={classDate} readOnly disabled
                                     slots={{ openPickerIcon: EventNoteIcon }}
                                     slotProps={{
-                                        textField: { sx: formControlBaseStyles(true), fullWidth: true },
+                                        textField: { sx: formControlBaseStyles(true), fullWidth: true }, // Завжди disabled
                                         openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
                                     }}
                                 />
@@ -434,7 +550,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                             label="Час початку" value={classStartTime} readOnly disabled ampm={false}
                                             slots={{ openPickerIcon: AccessTimeFilledIcon }}
                                             slotProps={{
-                                                textField: { sx: formControlBaseStyles(true), fullWidth: true },
+                                                textField: { sx: formControlBaseStyles(true), fullWidth: true }, // Завжди disabled
                                                 openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
                                             }}
                                         />
@@ -444,21 +560,22 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                             label="Час закінчення" value={classEndTime} readOnly disabled ampm={false}
                                             slots={{ openPickerIcon: AccessTimeFilledIcon }}
                                             slotProps={{
-                                                textField: { sx: formControlBaseStyles(true), fullWidth: true },
+                                                textField: { sx: formControlBaseStyles(true), fullWidth: true }, // Завжди disabled
                                                 openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
                                             }}
                                         />
                                     </Grid>
                                 </Grid>
-                                <TextField label="Ваш телефон" type="tel" fullWidth required sx={formControlBaseStyles()}
+                                <TextField label="Ваш телефон" type="tel" fullWidth required sx={formControlBaseStyles(isClassBooking)}
                                            value={classBookerPhone} onChange={(e) => setClassBookerPhone(e.target.value)} placeholder="+380 XX XXX XX XX"
+                                           disabled={isClassBooking}
                                            InputProps={{
                                                startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}}/>
                                            }}
                                 />
                                 <Box sx={{ mt: 2, mb: 5 }}>
-                                    <StyledBookingButton type="submit" fullWidth disabled={isGroupClassFull} startIcon={isGroupClassFull ? <EventBusyIcon/> : <CheckCircleOutlineIcon/>}>
-                                        {isGroupClassFull ? "Немає місць" : "Забронювати заняття"}
+                                    <StyledBookingButton type="submit" fullWidth disabled={isClassBooking || isGroupClassFull} startIcon={isClassBooking ? null : (isGroupClassFull ? <EventBusyIcon/> : <CheckCircleOutlineIcon/>)}>
+                                        {isClassBooking ? <CircularProgress size={24} color="inherit" /> : (isGroupClassFull ? "Немає місць" : "Забронювати заняття")}
                                     </StyledBookingButton>
                                 </Box>
                             </Box>
@@ -466,7 +583,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                     </BookingFormCard>
                 </Box>
             </Box>
-            <Snackbar /* ... */
+            <Snackbar
                 open={snackbarOpen} autoHideDuration={6000} onClose={() => setSnackbarOpen(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >
                 <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} variant="filled" sx={{ width: '100%', boxShadow: 6, '.MuiAlert-icon': {fontSize: '1.5rem'} }}>
