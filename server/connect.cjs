@@ -1,5 +1,5 @@
 const express = require('express');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb'); // Переконайся, що ObjectId імпортовано
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -92,6 +92,7 @@ if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     console.warn('WARN: GOOGLE_APPLICATION_CREDENTIALS is not set. Voice generation will be disabled.');
 }
 
+// --- AUTH ROUTES ---
 app.post('/signup', async (req, res) => {
     try {
         const { name, email, password, allowExtraEmails } = req.body;
@@ -225,7 +226,201 @@ app.post('/signin', async (req, res) => {
         res.status(500).json({ message: 'Помилка сервера під час входу' });
     }
 });
+// --- END AUTH ROUTES ---
 
+// --- GYM DATA & BOOKING ROUTES ---
+
+// Отримати всі зони
+app.get('/api/zones', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
+        const zonesCollection = db.collection('zones');
+        const zones = await zonesCollection.find({}).toArray();
+        res.json(zones);
+    } catch (error) {
+        console.error('Error fetching zones:', error);
+        res.status(500).json({ message: 'Помилка сервера при отриманні зон' });
+    }
+});
+
+// Отримати все обладнання
+app.get('/api/equipment', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
+        const equipmentCollection = db.collection('equipment');
+        const query = {};
+        if (req.query.zoneId) {
+            query.zoneId = req.query.zoneId;
+        }
+        const equipment = await equipmentCollection.find(query).toArray();
+        res.json(equipment);
+    } catch (error) {
+        console.error('Error fetching equipment:', error);
+        res.status(500).json({ message: 'Помилка сервера при отриманні обладнання' });
+    }
+});
+
+// Отримати всі групові заняття (тільки майбутні або сьогоднішні)
+app.get('/api/group-classes', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
+        const groupClassesCollection = db.collection('group_classes');
+        const currentDate = new Date().toISOString().split('T')[0]; // Сьогоднішня дата в форматі YYYY-MM-DD
+
+        const query = {
+            date: { $gte: currentDate } // Показувати тільки майбутні або сьогоднішні заняття
+        };
+        if (req.query.date) { // Якщо передано конкретну дату для фільтрації (може перекрити $gte)
+            query.date = req.query.date;
+        }
+        // Якщо потрібен особливий фільтр для всіх дат, можна його прибрати і фільтрувати на фронті.
+        // Але для списку занять зазвичай краще показувати актуальні.
+
+        const groupClasses = await groupClassesCollection
+            .find(query)
+            .sort({ date: 1, startTime: 1 })
+            .toArray();
+        res.json(groupClasses);
+    } catch (error) {
+        console.error('Error fetching group classes:', error);
+        res.status(500).json({ message: 'Помилка сервера при отриманні групових занять' });
+    }
+});
+
+// Створити нове бронювання
+app.post('/api/bookings', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
+
+        const bookingsCollection = db.collection('bookings');
+        const {
+            userId, // Обов'язково, оскільки немає анонімів
+            type,
+            itemId,
+            itemName,
+            zoneId,
+            bookingDate, // Рядок "YYYY-MM-DD"
+            startTime,   // "HH:mm"
+            endTime,     // "HH:mm"
+            duration,    // durationMinutes для тренажера
+            bookerPhone
+        } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Користувач не авторизований.' });
+        }
+        if (!type || !itemId || !itemName || !bookingDate || !startTime || !endTime || !bookerPhone || !zoneId) {
+            return res.status(400).json({ message: 'Не всі обов\'язкові поля для бронювання надані.' });
+        }
+
+        let parsedUserId;
+        try {
+            parsedUserId = new ObjectId(userId);
+        } catch (e) {
+            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+        }
+
+        let durationMinutes;
+        if (type === 'equipment') {
+            durationMinutes = parseInt(duration, 10);
+            if (isNaN(durationMinutes) || durationMinutes <= 0) {
+                return res.status(400).json({ message: 'Невірна тривалість для тренажера.' });
+            }
+        } else if (type === 'class') {
+            const classDetails = await db.collection('group_classes').findOne({ id: itemId });
+            if (!classDetails) {
+                return res.status(404).json({ message: 'Групове заняття не знайдено для визначення тривалості.' });
+            }
+            durationMinutes = classDetails.durationMinutes;
+        } else {
+            return res.status(400).json({ message: 'Невірний тип бронювання.' });
+        }
+
+        const targetBookingDate = new Date(new Date(bookingDate).setUTCHours(0,0,0,0)); // Дата бронювання в UTC без часу
+
+        // Перевірка доступності
+        if (type === 'class') {
+            const groupClass = await db.collection('group_classes').findOne({ id: itemId });
+            if (!groupClass) {
+                return res.status(404).json({ message: 'Групове заняття не знайдено.' });
+            }
+            if (groupClass.bookedUserIds && groupClass.bookedUserIds.length >= groupClass.maxCapacity) {
+                return res.status(409).json({ message: 'На жаль, на це заняття вже немає вільних місць.' });
+            }
+            if (groupClass.bookedUserIds && groupClass.bookedUserIds.includes(parsedUserId.toString())) {
+                return res.status(409).json({ message: 'Ви вже записані на це заняття.' });
+            }
+        } else if (type === 'equipment') {
+            // Перевірка перетину часових інтервалів для тренажера
+            // Шукаємо бронювання цього ж тренажера (itemId) на ту саму дату (bookingDate),
+            // де новий інтервал (startTime - endTime) перетинається з існуючим.
+            // Перетин відбувається, якщо:
+            // (newStartTime < existingEndTime) AND (newEndTime > existingStartTime)
+            const conflictingBooking = await bookingsCollection.findOne({
+                itemId: itemId,
+                bookingDate: targetBookingDate,
+                status: "confirmed", // Перевіряємо тільки активні бронювання
+                $or: [
+                    // Новий слот повністю всередині існуючого
+                    { startTime: { $lte: startTime }, endTime: { $gte: endTime } },
+                    // Новий слот починається всередині існуючого
+                    { startTime: { $lt: endTime }, endTime: { $gte: endTime }, $and: [{startTime: {$ne: startTime}}, {endTime: {$ne: endTime}}]}, //Виключає випадок, коли startTime = newStartTime, endTime = newEndTime
+                    // Новий слот закінчується всередині існуючого
+                    { startTime: { $lte: startTime }, endTime: { $gt: startTime }, $and: [{startTime: {$ne: startTime}}, {endTime: {$ne: endTime}}]}, //Виключає випадок, коли startTime = newStartTime, endTime = newEndTime
+                    // Новий слот охоплює існуючий
+                    { startTime: { $gte: startTime }, endTime: { $lte: endTime } },
+                    // Точне співпадіння
+                    { startTime: startTime, endTime: endTime }
+                ]
+            });
+
+            if (conflictingBooking) {
+                return res.status(409).json({ message: `Тренажер "${itemName}" вже заброньований з ${conflictingBooking.startTime} до ${conflictingBooking.endTime} на цю дату.` });
+            }
+        }
+
+        const newBooking = {
+            userId: parsedUserId,
+            type,
+            itemId,
+            itemName,
+            zoneId,
+            bookingDate: targetBookingDate,
+            startTime,
+            endTime,
+            durationMinutes,
+            bookerPhone,
+            status: "confirmed",
+            createdAt: new Date()
+        };
+
+        const result = await bookingsCollection.insertOne(newBooking);
+
+        if (type === 'class' && result.insertedId) { // userId завжди є
+            await db.collection('group_classes').updateOne(
+                { id: itemId },
+                { $addToSet: { bookedUserIds: parsedUserId.toString() } }
+            );
+        }
+
+        res.status(201).json({
+            message: 'Бронювання успішно створено!',
+            bookingId: result.insertedId,
+            bookingDetails: newBooking
+        });
+
+    } catch (error) {
+        console.error('Error creating booking:', error);
+        if (error.code === 11000) { // Duplicate key error (якщо є унікальні індекси)
+            return res.status(409).json({ message: 'Помилка: спроба створити дублікат запису.' });
+        }
+        res.status(500).json({ message: 'Помилка сервера при створенні бронювання.' });
+    }
+});
+// --- END GYM DATA & BOOKING ROUTES ---
+
+
+// --- FOOD & CHAT ROUTES ---
 app.get('/api/food', async (req, res) => {
     try {
         if (!db) {
@@ -370,7 +565,9 @@ app.post('/api/chat', async (req, res) => {
         res.status(500).json({ error: "Внутрішня помилка сервера при обробці чат-запиту." });
     }
 });
+// --- END FOOD & CHAT ROUTES ---
 
+// Catch-all for frontend
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'), (err) => {
         if (err) {

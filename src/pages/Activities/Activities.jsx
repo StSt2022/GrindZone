@@ -1,17 +1,19 @@
 // src/pages/ActivitiesPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Додано useEffect
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import CssBaseline from '@mui/material/CssBaseline';
 import Divider from '@mui/material/Divider';
 import { keyframes, alpha, styled } from '@mui/material/styles';
+import CircularProgress from '@mui/material/CircularProgress'; // Для індикатора завантаження
 
-import AppTheme from '../../shared-theme/AppTheme'; // Перевір шлях
-import Footer from '../../components/Footer'; // Перевір шлях
+import AppTheme from '../../shared-theme/AppTheme';
+import Footer from '../../components/Footer';
 
-// Переконайся, що шляхи правильні
-import { mockZones, mockEquipment, mockGroupClasses, mockInfoCards } from './components/mockDb';
+// Видаляємо імпорти mockZones, mockEquipment, mockGroupClasses
+// mockInfoCards залишаємо, якщо вони все ще потрібні напряму
+import { mockInfoCards } from './components/mockDb'; // Залишаємо, якщо InfoCards не через API
 import Zones from './components/Zones';
 import Equipment from './components/Equipment';
 import Classes from './components/Classes';
@@ -19,6 +21,7 @@ import BookingSection from './components/BookingSection';
 import InfoCardsSection from './components/InfoCardsSection';
 import { parse } from "date-fns";
 
+// ... (keyframes та styled компоненти залишаються без змін)
 const gridLineGlow = keyframes`0% { opacity: 0.04; } 50% { opacity: 0.08; } 100% { opacity: 0.04; }`;
 
 const titleTextPopIn = keyframes`
@@ -70,8 +73,50 @@ const GrindSpan = styled('span')(({ theme }) => ({
 
 
 function ActivitiesPage(props) {
+    const [zones, setZones] = useState([]);
+    const [equipment, setEquipment] = useState([]);
+    const [groupClasses, setGroupClasses] = useState([]); // Це буде для ВСІХ класів з API
+    const [upcomingClasses, setUpcomingClasses] = useState([]); // Для відфільтрованих
+
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+
     const [bookingTarget, setBookingTarget] = useState(null);
-    const [currentGroupClasses, setCurrentGroupClasses] = useState(mockGroupClasses);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const [zonesRes, equipmentRes, classesRes] = await Promise.all([
+                    fetch('/api/zones'),
+                    fetch('/api/equipment'),
+                    fetch('/api/group-classes') // Цей ендпоінт вже фільтрує за датою на сервері
+                ]);
+
+                if (!zonesRes.ok) throw new Error(`Failed to fetch zones: ${zonesRes.statusText}`);
+                if (!equipmentRes.ok) throw new Error(`Failed to fetch equipment: ${equipmentRes.statusText}`);
+                if (!classesRes.ok) throw new Error(`Failed to fetch group classes: ${classesRes.statusText}`);
+
+                const zonesData = await zonesRes.json();
+                const equipmentData = await equipmentRes.json();
+                const classesData = await classesRes.json();
+
+                setZones(zonesData);
+                setEquipment(equipmentData);
+                setGroupClasses(classesData); // Зберігаємо всі завантажені класи (вже відфільтровані сервером)
+                setUpcomingClasses(classesData); // Поки що те саме, але можна додати клієнтську фільтрацію/сортування якщо треба
+
+            } catch (err) {
+                console.error("Error fetching activities data:", err);
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []); // Пустий масив залежностей, щоб виконалось один раз при монтуванні
 
     const handleBookEquipment = (equipmentItem) => {
         setBookingTarget({ type: 'equipment', item: equipmentItem });
@@ -86,31 +131,51 @@ function ActivitiesPage(props) {
     const handleBookingConfirmed = (bookingDetails) => {
         console.log("Бронювання підтверджено (ActivitiesPage):", bookingDetails);
         if (bookingDetails.type === 'class') {
-            setCurrentGroupClasses(prevClasses =>
-                prevClasses.map(cls =>
-                    cls.id === bookingDetails.itemId
-                        ? { ...cls, bookedUserIds: [...cls.bookedUserIds, `mockUser_${Date.now()}`] }
-                        : cls
-                )
-            );
+            // Оновлюємо стан groupClasses та upcomingClasses, щоб відобразити зміну
+            // (наприклад, кількість заброньованих місць, якщо сервер повертає оновлений об'єкт класу)
+            // Або просто перезавантажуємо дані про класи:
+            const fetchClassesAgain = async () => {
+                try {
+                    const classesRes = await fetch('/api/group-classes');
+                    if (!classesRes.ok) throw new Error('Failed to refetch classes');
+                    const updatedClassesData = await classesRes.json();
+                    setGroupClasses(updatedClassesData);
+                    setUpcomingClasses(updatedClassesData);
+                } catch (err) {
+                    console.error("Error refetching classes:", err);
+                }
+            };
+            fetchClassesAgain();
         }
+        // Для тренажерів також можна оновлювати дані, якщо є стан їх доступності
         setBookingTarget(null);
     };
 
-    const upcomingClasses = currentGroupClasses.filter(cls => {
-        if (!cls.date || !cls.endTime) return false;
-        try {
-            const classDateTime = parse(`${cls.date} ${cls.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
-            return !isNaN(classDateTime.getTime()) && classDateTime >= new Date();
-        } catch { return false; }
-    }).sort((a,b) => {
-        try {
-            const dateA = parse(`${a.date} ${a.startTime}`, 'yyyy-MM-dd HH:mm', new Date());
-            const dateB = parse(`${b.date} ${b.startTime}`, 'yyyy-MM-dd HH:mm', new Date());
-            return dateA - dateB;
-        } catch { return 0; }
-    });
 
+    if (isLoading) {
+        return (
+            <AppTheme {...props}>
+                <CssBaseline enableColorScheme />
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'background.default' }}>
+                    <CircularProgress size={60} />
+                    <Typography variant="h6" sx={{ ml: 2, color: 'text.secondary' }}>Завантаження даних...</Typography>
+                </Box>
+            </AppTheme>
+        );
+    }
+
+    if (error) {
+        return (
+            <AppTheme {...props}>
+                <CssBaseline enableColorScheme />
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', flexDirection: 'column', p:3, bgcolor: 'background.default' }}>
+                    <Typography variant="h5" color="error" gutterBottom>Помилка завантаження даних</Typography>
+                    <Typography color="error.light" sx={{textAlign: 'center'}}>{error}</Typography>
+                    <Button variant="contained" onClick={() => window.location.reload()} sx={{mt: 3}}>Спробувати ще раз</Button>
+                </Box>
+            </AppTheme>
+        );
+    }
 
     return (
         <AppTheme {...props}>
@@ -123,29 +188,23 @@ function ActivitiesPage(props) {
                         textAlign: 'center',
                         mb: { xs: 7, md: 10 },
                         position: 'relative',
-                        // Додамо трохи падінгу, щоб світіння не обрізалося краями Box, якщо текст близько
-                        // Це може бути не обов'язково, залежить від розмірів світіння і тексту
-                        // py: { xs: 2, md: 3 }, // Вертикальний падінг для Box
-
                         '&::before': {
                             content: '""',
                             position: 'absolute',
                             top: '50%',
                             left: '50%',
                             transform: 'translate(-50%, -50%)',
-                            // Збільшимо розміри та інтенсивність
-                            width: 'clamp(400px, 70vw, 850px)', // Трохи ширше
-                            height: 'clamp(220px, 35vh, 380px)', // Трохи вище
-                            // Змінюємо градієнт: робимо його більш насиченим в центрі (0.12) і розширюємо до 70%
+                            width: 'clamp(400px, 70vw, 850px)',
+                            height: 'clamp(220px, 35vh, 380px)',
                             background: 'radial-gradient(ellipse at center, rgba(198, 126, 255, 0.12) 0%, transparent 70%)',
-                            filter: 'blur(25px)', // Трохи зменшимо блюр, щоб краї були чіткішими, або збільшимо, якщо хочемо м'якше
+                            filter: 'blur(25px)',
                             zIndex: -1,
-                            opacity: 1, // Залишимо opacity псевдоелемента на 1, контролюємо прозорість через градієнт
+                            opacity: 1,
                         },
                     }}>
                         <Typography variant="h1" component="h1" sx={{
-                            position: 'relative', // Залишаємо для гарантії контексту стекування
-                            zIndex: 0,            // Залишаємо
+                            position: 'relative',
+                            zIndex: 0,
                             fontWeight: 'bold',
                             fontSize: { xs: '3rem', sm: '3.8rem', md: '4.5rem' },
                             lineHeight: 1.2,
@@ -159,8 +218,8 @@ function ActivitiesPage(props) {
                             Твоя Зона для <GrindSpan>GRIND</GrindSpan>-у
                         </Typography>
                         <Typography variant="h5" component="p" sx={{
-                            position: 'relative', // Залишаємо
-                            zIndex: 0,            // Залишаємо
+                            position: 'relative',
+                            zIndex: 0,
                             color: 'rgba(230, 220, 255, 0.9)',
                             maxWidth: '700px',
                             mx: 'auto',
@@ -175,17 +234,18 @@ function ActivitiesPage(props) {
                         </Typography>
                     </Box>
 
-                    <Box sx={sectionStyles(true)}> <Zones zones={mockZones} /> </Box>
+                    {/* Передаємо завантажені дані в компоненти */}
+                    <Box sx={sectionStyles(true)}> <Zones zones={zones} allEquipment={equipment} /> </Box>
                     <StyledDivider />
-                    <Box sx={sectionStyles(false)}> <Equipment zones={mockZones} equipment={mockEquipment} onBookEquipment={handleBookEquipment}/> </Box>
+                    <Box sx={sectionStyles(false)}> <Equipment zones={zones} equipment={equipment} onBookEquipment={handleBookEquipment}/> </Box>
 
                     <div id="booking-section-anchor" style={{scrollMarginTop: '100px'}}></div>
                     <StyledDivider />
                     <Box sx={sectionStyles(true)}>
                         <BookingSection
-                            allEquipment={mockEquipment}
-                            allClasses={upcomingClasses}
-                            allZones={mockZones}
+                            allEquipment={equipment}
+                            allClasses={upcomingClasses} // Використовуємо вже відфільтровані/відсортовані класи
+                            allZones={zones}
                             initialTarget={bookingTarget}
                             onBookingConfirmed={handleBookingConfirmed}
                             onClearTarget={() => setBookingTarget(null)}
@@ -194,6 +254,7 @@ function ActivitiesPage(props) {
                     <StyledDivider />
                     <Box sx={sectionStyles(true)}> <Classes groupClasses={upcomingClasses} onBookClass={handleBookClass} /> </Box>
                     <StyledDivider />
+                    {/* mockInfoCards залишаються, якщо вони не через API */}
                     <Box sx={sectionStyles(true)}> <InfoCardsSection infoCards={mockInfoCards} /> </Box>
                 </Container>
                 <Footer />

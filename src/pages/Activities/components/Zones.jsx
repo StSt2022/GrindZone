@@ -5,53 +5,53 @@ import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardMedia from '@mui/material/CardMedia';
-import Grid from '@mui/material/Grid'; // Залишаємо Grid з @mui/material, поки не міняємо
+import Grid from '@mui/material/Grid';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import Chip from '@mui/material/Chip';
+// import Chip from '@mui/material/Chip'; // Chip не використовується, можна видалити
 import { keyframes } from '@emotion/react';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'; // Для списку обладнання
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 
-// Імпортуємо mockEquipment, щоб отримати назви
-import { mockEquipment } from './mockDb.jsx'; // Адаптуй шлях!
+// Видаляємо імпорт mockEquipment, бо отримуємо allEquipment через пропси
+// import { mockEquipment } from './mockDb.jsx'; // ВИДАЛИТИ ЦЕЙ РЯДОК
 
 const fadeInUp = keyframes`
   from { opacity: 0; transform: translateY(30px) translateZ(0); }
   to { opacity: 1; transform: translateY(0) translateZ(0); }
 `;
 
-const ZoneCard = ({ zone, index }) => {
-    const accent = zone.accentColor || 'rgba(138, 43, 226, 0.45)'; // Фолбек колір
+// ZoneCard тепер приймає allEquipment як проп
+const ZoneCard = ({ zone, index, allEquipment }) => {
+    const accent = zone.accentColor || 'rgba(138, 43, 226, 0.45)';
 
     const cardStyles = {
-        background: 'rgba(30, 20, 50, 0.9)', // Трохи змінив фон
+        background: 'rgba(30, 20, 50, 0.9)',
         backdropFilter: 'blur(12px)',
-        borderRadius: '28px', // Трохи збільшив
-        border: `2px solid ${accent}`, // Використовуємо accentColor для рамки
-        boxShadow: `0 10px 35px rgba(0,0,0,0.25), 0 0 20px ${accent}20`, // Тінь з акцентом
+        borderRadius: '28px',
+        border: `2px solid ${accent}`,
+        boxShadow: `0 10px 35px rgba(0,0,0,0.25), 0 0 20px ${accent}20`,
         transition: 'all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
         alignItems: { md: 'stretch' },
-        minHeight: { xs: 'auto', md: '320px' }, // Трохи збільшив висоту
+        minHeight: { xs: 'auto', md: '320px' },
         animation: `${fadeInUp} 0.6s ease-out ${index * 0.15}s backwards`,
         '&:hover': {
             transform: 'translateY(-12px) scale(1.02) translateZ(0)',
             boxShadow: `0 20px 55px ${accent}50, 0 0 35px ${accent}35`,
-            borderColor: `${accent}CC`, // Яскравіша рамка при ховері
+            borderColor: `${accent}CC`,
         },
         position: 'relative',
-        // Градієнтна підсвітка при ховері
         '&::before': {
             content: '""',
             position: 'absolute',
             top: 0, left: 0,
             width: '100%', height: '100%',
             borderRadius: 'inherit',
-            background: `linear-gradient(135deg, ${accent}26 0%, transparent 70%)`, // Градієнт з акцентом
+            background: `linear-gradient(135deg, ${accent}26 0%, transparent 70%)`,
             opacity: 0,
             transition: 'opacity 0.4s ease, background 0.4s ease',
             zIndex: 0,
@@ -61,19 +61,24 @@ const ZoneCard = ({ zone, index }) => {
         }
     };
 
-    // Отримуємо назви обладнання
-    const equipmentList = zone.equipmentIds
-        .map(id => mockEquipment.find(eq => eq.id === id)?.name)
-        .filter(name => name) // Видаляємо undefined, якщо ID не знайдено
+    // Отримуємо список обладнання для цієї зони
+    // Тепер ми не використовуємо zone.equipmentIds, а фільтруємо allEquipment по zone.id
+    const equipmentInZone = allEquipment
+        .filter(eq => eq.zoneId === zone.id)
+        .map(eq => eq.name)
         .slice(0, 4); // Показуємо перші 4 для прикладу
+
+    // Загальна кількість обладнання в зоні
+    const totalEquipmentInZoneCount = allEquipment.filter(eq => eq.zoneId === zone.id).length;
+
 
     return (
         <Card sx={cardStyles}>
             <CardMedia
                 component="img"
                 sx={{
-                    width: { xs: '100%', md: '45%' }, // Можна трохи зменшити, щоб текст мав більше місця
-                    height: '100%', // Фіксована висота для xs, автоматична для md, щоб розтягувалось
+                    width: { xs: '100%', md: '45%' },
+                    height: '100%',
                     maxHeight: '320px',
                     minHeight: 0,
                     alignSelf: 'center',
@@ -93,21 +98,20 @@ const ZoneCard = ({ zone, index }) => {
                 alt={zone.name}
             />
             <CardContent sx={{
-                pl: { xs: 3, sm: 3.5, md: 4 }, // Падінги
+                pl: { xs: 3, sm: 3.5, md: 4 },
                 flexGrow: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between', // Для кращого розподілу контенту
+                justifyContent: 'space-between',
                 position: 'relative',
                 zIndex: 1,
             }}>
                 <Box>
-                    <Typography variant="h4" component="h3" sx={{ // Зменшив до h4 для кращої ієрархії, якщо h2 - заголовок секції
+                    <Typography variant="h4" component="h3" sx={{
                         fontWeight: 'bold',
                         color: 'white',
                         mb: 2,
-                        fontSize: { xs: '1.8rem', sm: '2.2rem', md: '2.4rem' }, // Адаптував розмір
-                        // Використовуємо accentColor для градієнту тексту або тіні
+                        fontSize: { xs: '1.8rem', sm: '2.2rem', md: '2.4rem' },
                         background: `linear-gradient(135deg, #f0e6ff 40%, ${accent} 100%)`,
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
@@ -119,20 +123,20 @@ const ZoneCard = ({ zone, index }) => {
                         color: 'rgba(235, 225, 255, 0.9)',
                         fontSize: { xs: '0.95rem', sm: '1.05rem' },
                         lineHeight: 1.7,
-                        mb: 3, // Збільшив відступ
+                        mb: 3,
                         maxWidth: '65ch'
                     }}>
                         {zone.description}
                     </Typography>
                 </Box>
 
-                {equipmentList.length > 0 && (
-                    <Box mt="auto"> {/* Розміщуємо список внизу */}
+                {equipmentInZone.length > 0 && (
+                    <Box mt="auto">
                         <Typography variant="subtitle1" sx={{ color: accent, fontWeight: '600', mb: 1, fontSize: '1.1rem' }}>
                             Основне обладнання:
                         </Typography>
-                        <List dense disablePadding sx={{mb: -1}}> {/* dense для компактності */}
-                            {equipmentList.map((name, i) => (
+                        <List dense disablePadding sx={{mb: -1}}>
+                            {equipmentInZone.map((name, i) => (
                                 <ListItem key={i} disableGutters sx={{py: 0.3}}>
                                     <ListItemIcon sx={{ minWidth: '30px', color: `${accent}B3` }}>
                                         <CheckCircleOutlineIcon fontSize="small" />
@@ -148,16 +152,17 @@ const ZoneCard = ({ zone, index }) => {
                                 </ListItem>
                             ))}
                         </List>
-                        {zone.equipmentIds.length > equipmentList.length && (
+                        {totalEquipmentInZoneCount > equipmentInZone.length && (
                             <Typography variant="caption" sx={{ color: 'rgba(210, 190, 250, 0.6)', fontStyle: 'italic', display:'block', textAlign: 'right', mt:0.5 }}>
-                                та ще {zone.equipmentIds.length - equipmentList.length} од...
+                                та ще {totalEquipmentInZoneCount - equipmentInZone.length} од...
                             </Typography>
                         )}
                     </Box>
                 )}
-                {equipmentList.length === 0 && zone.equipmentIds && zone.equipmentIds.length > 0 && (
-                    <Typography variant="caption" sx={{ color: 'rgba(210, 190, 250, 0.6)', fontStyle: 'italic', mt: 'auto' }}>
-                        Спеціалізоване обладнання (деталі у адміністратора).
+                {/* Якщо в зоні взагалі немає обладнання (наприклад, Зал групових занять) */}
+                {totalEquipmentInZoneCount === 0 && (
+                    <Typography variant="caption" sx={{ color: 'rgba(210, 190, 250, 0.7)', fontStyle: 'italic', mt: 'auto' }}>
+                        Спеціальний інвентар для групових програм.
                     </Typography>
                 )}
             </CardContent>
@@ -165,9 +170,13 @@ const ZoneCard = ({ zone, index }) => {
     );
 };
 
-const Zones = ({ zones }) => { // `equipment` тут не потрібен, бо ми його імпортуємо напряму в ZoneCard
+// Zones тепер приймає allEquipment як проп
+const Zones = ({ zones, allEquipment }) => {
     if (!zones || zones.length === 0) {
-        return <Typography color="error" sx={{ textAlign: 'center', my: 4 }}>Зони не завантажені.</Typography>;
+        return <Typography color="text.secondary" sx={{ textAlign: 'center', my: 4, fontStyle: 'italic' }}>Інформація про зони наразі недоступна.</Typography>;
+    }
+    if (!allEquipment) { // Додаткова перевірка, хоча isLoading на рівні сторінки має це покрити
+        return <Typography color="text.secondary" sx={{ textAlign: 'center', my: 4, fontStyle: 'italic' }}>Завантаження даних про обладнання...</Typography>;
     }
 
     return (
@@ -183,12 +192,11 @@ const Zones = ({ zones }) => { // `equipment` тут не потрібен, бо
             }}>
                 Наші Тренувальні Зони
             </Typography>
-            <Grid container spacing={{xs: 4, md: 5}} justifyContent="center"> {/* Зменшив spacing між картками */}
+            <Grid container spacing={{xs: 4, md: 5}} justifyContent="center">
                 {zones.map((zone, index) => (
-                    // Обмеження ширини через Grid item
-                    // На md екранах займає 9/12 = 75%, на lg 8/12 ~ 66%
                     <Grid item xs={12} sm={11} md={10} lg={8} key={zone.id} sx={{ width: '80%', height: 'auto' }}>
-                        <ZoneCard zone={zone} index={index} />
+                        {/* Передаємо allEquipment до ZoneCard */}
+                        <ZoneCard zone={zone} index={index} allEquipment={allEquipment} />
                     </Grid>
                 ))}
             </Grid>
