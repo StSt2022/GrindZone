@@ -509,9 +509,61 @@ app.put('/api/profile/:userId', async (req, res) => {
 // --- END PROFILE ROUTES ---
 
 // --- GYM DATA & BOOKING ROUTES ---
-app.get('/api/zones', async (req, res) => { /* ... */ });
-app.get('/api/equipment', async (req, res) => { /* ... */ });
-app.get('/api/group-classes', async (req, res) => { /* ... */ });
+// ... (код для /api/zones, /api/equipment, /api/group-classes, /api/bookings залишається тут)
+// Отримати всі зони
+app.get('/api/zones', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
+        const zonesCollection = db.collection('zones');
+        const zones = await zonesCollection.find({}).toArray();
+        res.json(zones);
+    } catch (error) {
+        console.error('Error fetching zones:', error);
+        res.status(500).json({ message: 'Помилка сервера при отриманні зон' });
+    }
+});
+
+// Отримати все обладнання
+app.get('/api/equipment', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
+        const equipmentCollection = db.collection('equipment');
+        const query = {};
+        if (req.query.zoneId) {
+            query.zoneId = req.query.zoneId;
+        }
+        const equipment = await equipmentCollection.find(query).toArray();
+        res.json(equipment);
+    } catch (error) {
+        console.error('Error fetching equipment:', error);
+        res.status(500).json({ message: 'Помилка сервера при отриманні обладнання' });
+    }
+});
+
+// Отримати всі групові заняття (тільки майбутні або сьогоднішні)
+app.get('/api/group-classes', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
+        const groupClassesCollection = db.collection('group_classes');
+        const currentDate = new Date().toISOString().split('T')[0]; // Сьогоднішня дата в форматі YYYY-MM-DD
+
+        const query = {
+            date: { $gte: currentDate } // Показувати тільки майбутні або сьогоднішні заняття
+        };
+        if (req.query.date) { // Якщо передано конкретну дату для фільтрації (може перекрити $gte)
+            query.date = req.query.date;
+        }
+
+        const groupClasses = await groupClassesCollection
+            .find(query)
+            .sort({ date: 1, startTime: 1 })
+            .toArray();
+        res.json(groupClasses);
+    } catch (error) {
+        console.error('Error fetching group classes:', error);
+        res.status(500).json({ message: 'Помилка сервера при отриманні групових занять' });
+    }
+});
 
 // Функція для нарахування досвіду
 const XP_PER_LEVEL = 1000;
