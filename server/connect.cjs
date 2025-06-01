@@ -8,12 +8,59 @@ const path = require('path');
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
 const TextToSpeech = require('@google-cloud/text-to-speech');
 
+// --- Firebase Admin SDK та Multer ---
+const admin = require('firebase-admin');
+const multer = require('multer');
+// --- КІНЕЦЬ Firebase Admin SDK та Multer ---
+
 dotenv.config({ path: './server/config.env' });
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ... (CORS, static, MongoDB connection, AI clients - все залишається як було) ...
+// --- Ініціалізація Firebase Admin ---
+// Render автоматично встановлює змінну середовища GOOGLE_APPLICATION_CREDENTIALS,
+// якщо ти завантажив FIREBASE_ADMIN_SDK_KEY.json як "Secret File".
+// Firebase Admin SDK автоматично знайде цей файл.
+let bucket; // Оголошуємо bucket тут, щоб він був доступний глобально в модулі
+try {
+    const firebaseAdminConfig = {
+        // credential: admin.credential.cert(require('./path/to/your/FIREBASE_ADMIN_SDK_KEY.json')), // ЛОКАЛЬНО, ЯКЩО GOOGLE_APPLICATION_CREDENTIALS НЕ ВСТАНОВЛЕНО
+        storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET // Переконайся, що ця змінна є в .env для сервера
+    };
+
+    if (!firebaseAdminConfig.storageBucket) {
+        console.error("ERROR: VITE_FIREBASE_STORAGE_BUCKET is not defined in server environment variables! Avatar upload will not work.");
+    } else {
+        // Якщо GOOGLE_APPLICATION_CREDENTIALS встановлено (як на Render), credential не потрібен тут
+        admin.initializeApp(firebaseAdminConfig);
+        bucket = admin.storage().bucket(); // Ініціалізуємо bucket
+        console.log('Firebase Admin SDK initialized successfully. Storage bucket:', bucket.name);
+    }
+} catch (error) {
+    console.error('Error initializing Firebase Admin SDK:', error);
+    // Розглянь можливість зупинити сервер або вимкнути функції, що залежать від Firebase Admin
+}
+// --- КІНЕЦЬ Ініціалізації Firebase Admin ---
+
+
+// --- Налаштування Multer для завантаження файлів в пам'ять ---
+const multerUpload = multer({
+    storage: multer.memoryStorage(), // Зберігаємо файл в буфері пам'яті
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5 MB ліміт на розмір файлу
+    },
+    fileFilter: (req, file, cb) => {
+        // Дозволяємо тільки зображення
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Дозволені тільки файли зображень!'), false);
+        }
+    }
+});
+// --- КІНЕЦЬ Налаштування Multer ---
+
 let clientGoogle;
 if (process.env.GOOGLE_CLIENT_ID) {
     clientGoogle = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -112,7 +159,8 @@ app.post('/signup', async (req, res) => {
             allowExtraEmails: allowExtraEmails || false,
             joinDate: new Date(),
             profile: {
-                avatarUrl: null, birthDate: null, height: null, weight: null, goal: "", goalKeywords: [],
+                avatarUrl: null, // За замовчуванням аватарки немає
+                birthDate: null, height: null, weight: null, goal: "", goalKeywords: [],
                 dietType: "Збалансована", activityLevel: "Помірний", profileUpdatesCount: 0, lastGoalUpdate: new Date(),
                 dailySchedule: { wakeUpTime: "07:00", firstMealTime: "08:00", hydrationReminderTime: "10:00", trainingTime: "18:00", lastMealTime: "20:00", personalTime: "21:00", sleepTime: "23:00" }
             },
@@ -121,12 +169,41 @@ app.post('/signup', async (req, res) => {
             createdAt: new Date()
         };
         const result = await usersCollection.insertOne(newUser);
-        res.status(201).json({ message: 'Користувач успішно створений', userId: result.insertedId, name: newUser.name, email: newUser.email });
+        res.status(201).json({ message: 'Користувач успішно створений', userId: result.insertedId, name: newUser.name, email: newUser.email, avatarUrl: newUser.profile.avatarUrl });
     } catch (error) {
         console.error('Error during signup:', error);
         res.status(500).json({ message: 'Помилка сервера під час реєстрації' });
     }
 });
+
+// Функція для завантаження URL зображення на Firebase Storage
+async function uploadImageToFirebase(imageUrl, userIdForPath, fileNamePrefix = 'google') {
+    if (!imageUrl || !bucket) return null; // bucket перевіряється тут
+
+    try {
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+            console.warn(`Failed to fetch image from ${imageUrl}. Status: ${response.status}`);
+            return null;
+        }
+        const imageBuffer = Buffer.from(await response.arrayBuffer());
+        const fileExtension = imageUrl.split('.').pop().split('?')[0] || 'jpg'; // Отримуємо розширення
+        const imageName = `avatars/${userIdForPath}/${fileNamePrefix}-${Date.now()}.${fileExtension}`;
+        const file = bucket.file(imageName);
+
+        await file.save(imageBuffer, {
+            metadata: { contentType: response.headers.get('content-type') || `image/${fileExtension}` },
+            public: true,
+        });
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${imageName}`;
+        console.log(`Image uploaded to Firebase: ${publicUrl}`);
+        return publicUrl;
+    } catch (uploadError) {
+        console.error(`Error uploading image from ${imageUrl} to Firebase:`, uploadError);
+        return null;
+    }
+}
+
 
 app.post('/signup/google', async (req, res) => {
     try {
@@ -141,18 +218,42 @@ app.post('/signup/google', async (req, res) => {
         const usersCollection = db.collection('users');
         let user = await usersCollection.findOne({ email });
 
-        if (user) {
-            if (!user.googleId) {
-                await usersCollection.updateOne({ email }, { $set: { googleId: googleId, name: user.name || name, 'profile.avatarUrl': user.profile?.avatarUrl || payload.picture || clientAvatarUrl || null } });
-                user = await usersCollection.findOne({ email });
+        let avatarUrlFromGoogle = payload.picture;
+        let finalAvatarUrl = clientAvatarUrl || null; // Починаємо з clientAvatarUrl або null
+
+        if (avatarUrlFromGoogle && avatarUrlFromGoogle.startsWith('https://lh3.googleusercontent.com/')) {
+            const uploadedGoogleAvatar = await uploadImageToFirebase(avatarUrlFromGoogle, googleId, 'google');
+            if (uploadedGoogleAvatar) {
+                finalAvatarUrl = uploadedGoogleAvatar;
             }
-            res.status(200).json({ message: 'Користувач успішно увійшов через Google', userId: user._id, email: user.email, name: user.name });
+        }
+
+
+        if (user) {
+            const updateData = { googleId: googleId, name: user.name || name };
+            // Оновлюємо аватарку, якщо вона нова (з Firebase) або якщо користувач ще не мав аватарки
+            if (finalAvatarUrl && (!user.profile?.avatarUrl || user.profile?.avatarUrl.startsWith('https://lh3.googleusercontent.com/'))) {
+                updateData['profile.avatarUrl'] = finalAvatarUrl;
+            } else if (!user.profile?.avatarUrl && finalAvatarUrl) { // Якщо аватарки не було
+                updateData['profile.avatarUrl'] = finalAvatarUrl;
+            } else if (!finalAvatarUrl && user.profile?.avatarUrl === null) { // Якщо і нова і стара null - нічого не робимо
+                // нічого не робимо
+            } else if (finalAvatarUrl === null && user.profile?.avatarUrl) { // Якщо нова null, а стара була - оновлюємо
+                updateData['profile.avatarUrl'] = null;
+            }
+
+
+            if (!user.googleId || Object.keys(updateData).length > 2) { // >2 бо googleId і name завжди є
+                await usersCollection.updateOne({ email }, { $set: updateData });
+            }
+            user = await usersCollection.findOne({ email }); // Перезавантажуємо користувача
+            res.status(200).json({ message: 'Користувач успішно увійшов через Google', userId: user._id, email: user.email, name: user.name, avatarUrl: user.profile?.avatarUrl });
         } else {
             const newUser = {
                 name: name || payload.name || email.split('@')[0],
                 email, googleId, password: null, allowExtraEmails: payload.email_verified || true, joinDate: new Date(),
                 profile: {
-                    avatarUrl: payload.picture || clientAvatarUrl || null,
+                    avatarUrl: finalAvatarUrl,
                     birthDate: null, height: null, weight: null, goal: "", goalKeywords: [],
                     dietType: "Збалансована", activityLevel: "Помірний", profileUpdatesCount: 0, lastGoalUpdate: new Date(),
                     dailySchedule: { wakeUpTime: "07:00", firstMealTime: "08:00", hydrationReminderTime: "10:00", trainingTime: "18:00", lastMealTime: "20:00", personalTime: "21:00", sleepTime: "23:00"}
@@ -162,7 +263,7 @@ app.post('/signup/google', async (req, res) => {
             };
             const result = await usersCollection.insertOne(newUser);
             const createdUser = await usersCollection.findOne({ _id: result.insertedId });
-            res.status(201).json({ message: 'Користувач успішно створений через Google', userId: result.insertedId, email: createdUser.email, name: createdUser.name });
+            res.status(201).json({ message: 'Користувач успішно створений через Google', userId: result.insertedId, email: createdUser.email, name: createdUser.name, avatarUrl: createdUser.profile?.avatarUrl });
         }
     } catch (error) {
         console.error('Error during Google signup:', error);
@@ -181,25 +282,43 @@ app.post('/auth/google/fedcm', async (req, res) => {
         const email = payload.email;
         const name = payload.name;
         const googleId = payload.sub;
-        const avatarUrl = payload.picture;
+        let avatarUrlFromGoogle = payload.picture;
 
         if (!email) return res.status(400).json({ message: 'Не вдалося отримати email від Google.' });
 
         const usersCollection = db.collection('users');
         let user = await usersCollection.findOne({ email });
 
-        if (user) {
-            if (!user.googleId) {
-                await usersCollection.updateOne({ email }, { $set: { googleId: googleId, name: user.name || name, 'profile.avatarUrl': user.profile?.avatarUrl || avatarUrl || null } });
-                user = await usersCollection.findOne({ email });
+        let finalAvatarUrl = null; // Починаємо з null
+        if (avatarUrlFromGoogle && avatarUrlFromGoogle.startsWith('https://lh3.googleusercontent.com/')) {
+            const uploadedGoogleAvatar = await uploadImageToFirebase(avatarUrlFromGoogle, googleId, 'fedcm');
+            if (uploadedGoogleAvatar) {
+                finalAvatarUrl = uploadedGoogleAvatar;
             }
-            res.status(200).json({ message: 'Користувач успішно увійшов через Google', userId: user._id, email: user.email, name: user.name });
+        }
+
+        if (user) {
+            const updateFields = { googleId: googleId, name: user.name || name };
+            if (finalAvatarUrl && (!user.profile?.avatarUrl || user.profile.avatarUrl.startsWith('https://lh3.googleusercontent.com/'))) {
+                updateFields['profile.avatarUrl'] = finalAvatarUrl;
+            } else if (!user.profile?.avatarUrl && finalAvatarUrl) {
+                updateFields['profile.avatarUrl'] = finalAvatarUrl;
+            } else if (finalAvatarUrl === null && user.profile?.avatarUrl) {
+                updateFields['profile.avatarUrl'] = null;
+            }
+
+
+            if (!user.googleId || Object.keys(updateFields).length > 2) {
+                await usersCollection.updateOne({ email }, { $set: updateFields });
+            }
+            user = await usersCollection.findOne({ email });
+            res.status(200).json({ message: 'Користувач успішно увійшов через Google', userId: user._id, email: user.email, name: user.name, avatarUrl: user.profile?.avatarUrl });
         } else {
             const newUser = {
                 name: name || email.split('@')[0],
                 email, googleId, password: null, allowExtraEmails: payload.email_verified || false, joinDate: new Date(),
                 profile: {
-                    avatarUrl: avatarUrl || null,
+                    avatarUrl: finalAvatarUrl || null,
                     birthDate: null, height: null, weight: null, goal: "", goalKeywords: [],
                     dietType: "Збалансована", activityLevel: "Помірний", profileUpdatesCount: 0, lastGoalUpdate: new Date(),
                     dailySchedule: { wakeUpTime: "07:00", firstMealTime: "08:00", hydrationReminderTime: "10:00", trainingTime: "18:00", lastMealTime: "20:00", personalTime: "21:00", sleepTime: "23:00"}
@@ -209,7 +328,7 @@ app.post('/auth/google/fedcm', async (req, res) => {
             };
             const result = await usersCollection.insertOne(newUser);
             const createdUser = await usersCollection.findOne({ _id: result.insertedId });
-            res.status(201).json({ message: 'Користувач успішно створений через Google', userId: result.insertedId, email: createdUser.email, name: createdUser.name });
+            res.status(201).json({ message: 'Користувач успішно створений через Google', userId: result.insertedId, email: createdUser.email, name: createdUser.name, avatarUrl: createdUser.profile?.avatarUrl });
         }
     } catch (error) {
         console.error('Error during Google FedCM/Sign-In auth:', error);
@@ -230,7 +349,7 @@ app.post('/signin', async (req, res) => {
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) return res.status(401).json({ message: 'Неправильний пароль' });
 
-        res.status(200).json({ message: 'Успішний вхід', userId: user._id, name: user.name, email: user.email });
+        res.status(200).json({ message: 'Успішний вхід', userId: user._id, name: user.name, email: user.email, avatarUrl: user.profile?.avatarUrl });
     } catch (error) {
         console.error('Error during signin:', error);
         res.status(500).json({ message: 'Помилка сервера під час входу' });
@@ -241,17 +360,130 @@ app.post('/signin', async (req, res) => {
 // --- PROFILE ROUTES ---
 const ALL_ACHIEVEMENTS_DEFINITIONS = [
     { id: "ach01", name: "Перший Рубіж", description: "Завершено перше тренування.", iconName: "FitnessCenter", color: '#a5d6a7' },
-    { id: "ach02", name: "Залізна Воля", description: "30 днів тренувань поспіль.", iconName: "EventNote", color: '#ffcc80' },
+    { id: "ach02", name: "Залізна Воля", description: "30 днів тренувань поспіль.", iconName: "EventNote", color: '#ffcc80' }, // Змінив на 30 днів тренувань
     { id: "ach03", name: "Світанок Воїна", description: "20 тренувань до 7 ранку.", iconName: "WbSunny", color: '#ffd54f' },
     { id: "ach04", name: "Майстер Витривалості", description: "100 тренувань загалом.", iconName: "EmojiEvents", color: '#81d4fa' },
     { id: "ach05", name: "Зональний Турист", description: "Відвідано всі зони спортзалу.", iconName: "Explore", color: '#cf9fff' },
     { id: "ach06", name: "Груповий Боєць", description: "Заброньовано 5 групових занять.", iconName: "Group", color: '#f48fb1' },
     { id: "ach07", name: "Нічна Зміна", description: "10 тренувань після 22:00.", iconName: "NightsStay", color: '#90a4ae' },
-    { id: "ach08", name: "Профіль Завершено", description: "Заповнено усі основні поля профілю.", iconName: "CheckCircleOutline", color: '#80cbc4' },
+    { id: "ach08", name: "Профіль Завершено", description: "Заповнено усі основні поля профілю, включаючи аватарку.", iconName: "CheckCircleOutline", color: '#80cbc4' }, // Оновлено опис
     { id: "ach09", name: "Планувальник PRO", description: "Заплановано 7 тренувань наперед.", iconName: "EventAvailable", color: '#ffab91' },
     { id: "ach10", name: "Ранній Старт", description: "Перше тренування протягом 3 днів після реєстрації.", iconName: "StarBorder", color: '#fff59d' },
-    { id: "ach11", name: "Відданий Grind'ер", description: "30 днів активності поспіль.", iconName: "Loyalty", color: '#ef9a9a' },
+    { id: "ach11", name: "Відданий Grind'ер", description: "30 днів активності поспіль.", iconName: "Loyalty", color: '#ef9a9a' }, // Змінив на 30 днів активності
 ];
+
+// Маршрут для завантаження аватарки
+app.post('/api/profile/:userId/avatar', multerUpload.single('avatarFile'), async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+        if (!bucket) return res.status(503).json({ message: 'Firebase Storage недоступний. Перевірте конфігурацію сервера.'});
+
+        const { userId } = req.params;
+
+        if (!ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ message: 'Файл аватарки не надано.' });
+        }
+
+        const usersCollection = db.collection('users');
+        const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        if (!user) {
+            return res.status(404).json({ message: 'Користувача не знайдено.' });
+        }
+
+        // Видалення старої аватарки, якщо вона є і завантажена користувачем (не Google)
+        if (user.profile && user.profile.avatarUrl) {
+            const oldAvatarUrl = user.profile.avatarUrl;
+            // Перевіряємо, чи URL вказує на наш Firebase Storage та чи містить /avatars/userId/
+            // Це запобігає видаленню дефолтних аватарок або тих, що не в цій структурі
+            if (oldAvatarUrl.startsWith(`https://storage.googleapis.com/${bucket.name}/avatars/${userId}/`)) {
+                try {
+                    const oldFileName = decodeURIComponent(oldAvatarUrl.split(`${bucket.name}/`)[1].split('?')[0]);
+                    await bucket.file(oldFileName).delete();
+                    console.log(`Old avatar ${oldFileName} deleted for user ${userId}`);
+                } catch (deleteError) {
+                    if (deleteError.code === 404) {
+                        console.log(`Old avatar ${oldAvatarUrl} not found in Firebase Storage, nothing to delete.`);
+                    } else {
+                        console.warn(`Could not delete old avatar ${oldAvatarUrl}:`, deleteError.message);
+                    }
+                }
+            }
+        }
+
+        // Створюємо унікальне ім'я файлу
+        const originalName = req.file.originalname.replace(/\s+/g, '_');
+        const fileExtension = path.extname(originalName) || '.jpg'; // Додаємо .jpg якщо розширення немає
+        const baseName = path.basename(originalName, fileExtension);
+        const fileName = `avatars/${userId}/${baseName}-${Date.now()}${fileExtension}`;
+        const fileUpload = bucket.file(fileName);
+
+        const blobStream = fileUpload.createWriteStream({
+            metadata: {
+                contentType: req.file.mimetype,
+            },
+            public: true,
+        });
+
+        blobStream.on('error', (error) => {
+            console.error('Error uploading to Firebase Storage:', error);
+            res.status(500).json({ message: 'Помилка завантаження файлу на сервер.' });
+        });
+
+        blobStream.on('finish', async () => {
+            const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+
+            const result = await usersCollection.updateOne(
+                { _id: new ObjectId(userId) },
+                {
+                    $set: { 'profile.avatarUrl': publicUrl, 'profile.lastGoalUpdate': new Date() },
+                    $inc: { 'profile.profileUpdatesCount': 1 }
+                }
+            );
+
+            if (result.matchedCount === 0) {
+                return res.status(404).json({ message: 'Користувача не знайдено для оновлення аватарки.' });
+            }
+
+            // Перевірка ачівки "Профіль Завершено" після завантаження аватарки
+            const updatedUser = await usersCollection.findOne({ _id: new ObjectId(userId) });
+            const profileForCompletionCheck = updatedUser.profile || {};
+            let finalUnlockedIds = new Set(updatedUser.unlockedAchievementIds || []);
+            let achievementsModifiedAfterSave = false;
+            if (profileForCompletionCheck.avatarUrl && profileForCompletionCheck.birthDate && profileForCompletionCheck.height && profileForCompletionCheck.weight && profileForCompletionCheck.goal && profileForCompletionCheck.dietType && profileForCompletionCheck.activityLevel) {
+                if (!finalUnlockedIds.has("ach08")) {
+                    finalUnlockedIds.add("ach08");
+                    achievementsModifiedAfterSave = true;
+                }
+            }
+            if (achievementsModifiedAfterSave) {
+                await usersCollection.updateOne(
+                    { _id: updatedUser._id },
+                    { $set: { unlockedAchievementIds: Array.from(finalUnlockedIds) } }
+                );
+            }
+
+            res.status(200).json({
+                message: 'Аватарку успішно оновлено!',
+                avatarUrl: publicUrl,
+                unlockedAchievements: achievementsModifiedAfterSave ? ["ach08"] : [] // Повертаємо ID нової ачівки, якщо розблоковано
+            });
+        });
+
+        blobStream.end(req.file.buffer);
+
+    } catch (error) {
+        console.error('Error uploading avatar:', error);
+        if (error.message === 'Дозволені тільки файли зображень!') {
+            return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Помилка сервера при завантаженні аватарки.' });
+    }
+});
+
 
 app.get('/api/profile/:userId', async (req, res) => {
     try {
@@ -262,13 +494,12 @@ app.get('/api/profile/:userId', async (req, res) => {
         }
 
         const usersCollection = db.collection('users');
-        let user = await usersCollection.findOne({ _id: new ObjectId(userId) }); // Змінено на let
+        let user = await usersCollection.findOne({ _id: new ObjectId(userId) });
 
         if (!user) {
             return res.status(404).json({ message: 'Користувача не знайдено.' });
         }
 
-        // ОНОВЛЕННЯ СТРІКУ ЩОДЕННОЇ АКТИВНОСТІ
         const today = new Date(new Date().setUTCHours(0, 0, 0, 0));
         let consecutiveDays = user.gamification?.consecutiveActivityDays || 0;
         const lastActivityRaw = user.gamification?.lastActivityDay;
@@ -277,7 +508,7 @@ app.get('/api/profile/:userId', async (req, res) => {
             lastActivityDate = new Date(new Date(lastActivityRaw).setUTCHours(0,0,0,0));
         }
 
-        let needsActivityStreakUpdate = false; // Чи потрібно оновлювати дані стріка в БД
+        let needsActivityStreakUpdate = false;
 
         if (!lastActivityDate || lastActivityDate.getTime() < today.getTime()) {
             if (lastActivityDate) {
@@ -291,9 +522,8 @@ app.get('/api/profile/:userId', async (req, res) => {
             } else {
                 consecutiveDays = 1;
             }
-            needsActivityStreakUpdate = true; // Потрібно оновити, бо це новий день активності або перший
+            needsActivityStreakUpdate = true;
         }
-        // Якщо needsActivityStreakUpdate true, оновимо в БД і в локальному об'єкті user
         if (needsActivityStreakUpdate) {
             await usersCollection.updateOne(
                 { _id: user._id },
@@ -307,9 +537,7 @@ app.get('/api/profile/:userId', async (req, res) => {
             user.gamification.lastActivityDay = today;
         }
 
-        // ЛОГІКА ПЕРЕВІРКИ ТА ОНОВЛЕННЯ ІНШИХ АЧІВОК
         const bookingsCollection = db.collection('bookings');
-        // Враховуємо бронювання зі статусом 'completed' для більшості ачівок
         const completedUserBookings = await bookingsCollection.find({ userId: user._id, status: 'completed' }).toArray();
 
         let newAchievementsUnlockedThisSession = false;
@@ -325,7 +553,6 @@ app.get('/api/profile/:userId', async (req, res) => {
         if (completedUserBookings.length > 0) unlockAchievement("ach01");
         if (completedUserBookings.length >= 100) unlockAchievement("ach04");
 
-        // Для "Груповий Боєць" можна враховувати і 'confirmed', бо це про факт бронювання
         const allUserBookingsForClasses = await bookingsCollection.find({ userId: user._id, type: 'class' }).toArray();
         if (allUserBookingsForClasses.length >= 5) unlockAchievement("ach06");
 
@@ -333,11 +560,19 @@ app.get('/api/profile/:userId', async (req, res) => {
         if (completedUserBookings.filter(b => b.startTime && parseInt(b.startTime.split(':')[0], 10) >= 22).length >= 10) unlockAchievement("ach07");
 
         const visitedZoneIds = new Set(completedUserBookings.map(b => b.zoneId));
-        const allGymZoneIds = (await db.collection('zones').find({}, { projection: { id: 1, _id: 0 } }).toArray()).map(z => z.id);
+        let allGymZoneIds = [];
+        const zonesCollection = db.collection('zones');
+        if (zonesCollection) { // Перевірка, чи існує колекція
+            allGymZoneIds = (await zonesCollection.find({}, { projection: { id: 1, _id: 0 } }).toArray()).map(z => z.id);
+        }
         if (allGymZoneIds.length > 0 && allGymZoneIds.every(zoneId => visitedZoneIds.has(zoneId))) unlockAchievement("ach05");
 
         const profile = user.profile || {};
-        if (profile.birthDate && profile.height && profile.weight && profile.goal && profile.dietType && profile.activityLevel) unlockAchievement("ach08");
+        // Оновлена умова для ачівки "Профіль Завершено"
+        if (profile.avatarUrl && profile.birthDate && profile.height && profile.weight && profile.goal && profile.dietType && profile.activityLevel) {
+            unlockAchievement("ach08");
+        }
+
 
         if (completedUserBookings.length > 0 && user.joinDate) {
             const firstCompletedBookingDate = new Date(Math.min(...completedUserBookings.map(b => new Date(b.bookingDate).getTime())));
@@ -352,9 +587,10 @@ app.get('/api/profile/:userId', async (req, res) => {
         if (futureConfirmedBookingsCount >= 7) unlockAchievement("ach09");
 
         if (user.gamification?.consecutiveActivityDays >= 30) {
-            unlockAchievement("ach02");
-            unlockAchievement("ach11");
+            unlockAchievement("ach02"); // За 30 днів тренувань (якщо вважати активність = тренування)
+            unlockAchievement("ach11"); // За 30 днів активності
         }
+
 
         if (newAchievementsUnlockedThisSession) {
             await usersCollection.updateOne(
@@ -364,7 +600,7 @@ app.get('/api/profile/:userId', async (req, res) => {
             user.unlockedAchievementIds = Array.from(currentUnlockedIds);
         }
 
-        const xpPerLevel = 1000; // XP потрібні для одного рівня
+        const xpPerLevel = 1000;
         const currentTotalXp = user.gamification?.experiencePoints || 0;
         const progressToNextLevel = Math.floor((currentTotalXp % xpPerLevel) / (xpPerLevel / 100));
 
@@ -423,6 +659,8 @@ app.put('/api/profile/:userId', async (req, res) => {
         const usersCollection = db.collection('users');
 
         const fieldsToSet = {};
+        // Дозволяємо оновлювати avatarUrl, якщо передано (наприклад, для скидання на null)
+        // але завантаження файлу йде через окремий ендпоінт.
         if (updates.avatarUrl !== undefined) fieldsToSet['profile.avatarUrl'] = updates.avatarUrl;
         if (updates.birthDate !== undefined) fieldsToSet['profile.birthDate'] = updates.birthDate ? new Date(updates.birthDate) : null;
         if (updates.height !== undefined) fieldsToSet['profile.height'] = updates.height === '' || updates.height === null ? null : parseInt(updates.height, 10);
@@ -453,7 +691,8 @@ app.put('/api/profile/:userId', async (req, res) => {
         let finalUnlockedIds = new Set(userAfterUpdate.unlockedAchievementIds || []);
         let achievementsModifiedAfterSave = false;
         const profileForCompletionCheck = userAfterUpdate.profile || {};
-        if (profileForCompletionCheck.birthDate && profileForCompletionCheck.height && profileForCompletionCheck.weight && profileForCompletionCheck.goal && profileForCompletionCheck.dietType && profileForCompletionCheck.activityLevel) {
+        // Оновлена умова для ачівки "Профіль Завершено"
+        if (profileForCompletionCheck.avatarUrl && profileForCompletionCheck.birthDate && profileForCompletionCheck.height && profileForCompletionCheck.weight && profileForCompletionCheck.goal && profileForCompletionCheck.dietType && profileForCompletionCheck.activityLevel) {
             if (!finalUnlockedIds.has("ach08")) {
                 finalUnlockedIds.add("ach08");
                 achievementsModifiedAfterSave = true;
@@ -466,6 +705,10 @@ app.put('/api/profile/:userId', async (req, res) => {
             );
             userAfterUpdate.unlockedAchievementIds = Array.from(finalUnlockedIds);
         }
+
+        const xpPerLevel = 1000; // XP потрібні для одного рівня
+        const currentTotalXpAfterUpdate = userAfterUpdate.gamification?.experiencePoints || 0;
+        const progressToNextLevelAfterUpdate = Math.floor((currentTotalXpAfterUpdate % xpPerLevel) / (xpPerLevel / 100));
 
         const finalUserProfileData = {
             userId: userAfterUpdate._id.toString(), name: userAfterUpdate.name, email: userAfterUpdate.email,
@@ -488,8 +731,8 @@ app.put('/api/profile/:userId', async (req, res) => {
             personalTime: userAfterUpdate.profile?.dailySchedule?.personalTime || "21:00",
             sleepTime: userAfterUpdate.profile?.dailySchedule?.sleepTime || "23:00",
             level: userAfterUpdate.gamification?.level || 1,
-            experiencePoints: userAfterUpdate.gamification?.experiencePoints || 0,
-            progressToNextLevel: userAfterUpdate.gamification?.experiencePoints ? (userAfterUpdate.gamification.experiencePoints % 1000) / 10 : 0, // 1000 XP per level
+            experiencePoints: currentTotalXpAfterUpdate,
+            progressToNextLevel: progressToNextLevelAfterUpdate,
             trainingsCompleted: userAfterUpdate.gamification?.trainingsCompleted || 0,
             totalTimeSpentMinutes: userAfterUpdate.gamification?.totalTimeSpentMinutes || 0,
             totalTimeSpent: userAfterUpdate.gamification?.totalTimeSpentMinutes ? `${Math.floor(userAfterUpdate.gamification.totalTimeSpentMinutes / 60)} год ${userAfterUpdate.gamification.totalTimeSpentMinutes % 60} хв` : "0 год",
@@ -509,8 +752,6 @@ app.put('/api/profile/:userId', async (req, res) => {
 // --- END PROFILE ROUTES ---
 
 // --- GYM DATA & BOOKING ROUTES ---
-// ... (код для /api/zones, /api/equipment, /api/group-classes, /api/bookings залишається тут)
-// Отримати всі зони
 app.get('/api/zones', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
@@ -523,7 +764,6 @@ app.get('/api/zones', async (req, res) => {
     }
 });
 
-// Отримати все обладнання
 app.get('/api/equipment', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
@@ -540,17 +780,16 @@ app.get('/api/equipment', async (req, res) => {
     }
 });
 
-// Отримати всі групові заняття (тільки майбутні або сьогоднішні)
 app.get('/api/group-classes', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
         const groupClassesCollection = db.collection('group_classes');
-        const currentDate = new Date().toISOString().split('T')[0]; // Сьогоднішня дата в форматі YYYY-MM-DD
+        const currentDate = new Date().toISOString().split('T')[0];
 
         const query = {
-            date: { $gte: currentDate } // Показувати тільки майбутні або сьогоднішні заняття
+            date: { $gte: currentDate }
         };
-        if (req.query.date) { // Якщо передано конкретну дату для фільтрації (може перекрити $gte)
+        if (req.query.date) {
             query.date = req.query.date;
         }
 
@@ -565,10 +804,9 @@ app.get('/api/group-classes', async (req, res) => {
     }
 });
 
-// Функція для нарахування досвіду
 const XP_PER_LEVEL = 1000;
-const XP_PER_TRAINING_EVENT = 100; // XP за факт тренування
-const XP_PER_MINUTE_OF_TRAINING = 10 / 6; // 100 XP за 60 хв = 10/6 XP за хвилину
+const XP_PER_TRAINING_EVENT = 100;
+const XP_PER_MINUTE_OF_TRAINING = 10 / 6;
 
 async function awardExperienceAndLevelUp(userId, bookingType, durationMinutes) {
     if (!db) return;
@@ -583,37 +821,11 @@ async function awardExperienceAndLevelUp(userId, bookingType, durationMinutes) {
     let currentLevel = user.gamification?.level || 1;
     let leveledUp = false;
 
-    // Перевірка на підвищення рівня
-    // Кожен рівень вимагає XP_PER_LEVEL (1000) очок
-    while (currentTotalXp >= (currentLevel * XP_PER_LEVEL)) { // Це не зовсім правильно для простої системи "1000 ХР на рівень"
-        // Правильніше було б:
-        // while (currentTotalXp >= XP_PER_LEVEL) {
-        //    currentTotalXp -= XP_PER_LEVEL;
-        //    currentLevel++;
-        //    leveledUp = true;
-        // }
-        // АБО, якщо XP_PER_LEVEL - це поріг для наступного рівня відносно поточного:
-        if (currentTotalXp >= currentLevel * XP_PER_LEVEL) { // Це якщо кожен наступний рівень складніший
-            // Ця логіка потребує перегляду. Простіша:
-            // newLevel = Math.floor(currentTotalXp / XP_PER_LEVEL) + 1;
-            // if (newLevel > currentLevel) { leveledUp = true; currentLevel = newLevel; }
-            // Або якщо кожен рівень = 1000XP:
-            let newLevel = currentLevel;
-            let xpForNextLevels = 0;
-            for(let i=1; i<=currentLevel; i++) xpForNextLevels += i*XP_PER_LEVEL; // Неправильно для простої системи.
-            // Повинно бути просто:
-
-            // Спрощена логіка для "кожен рівень = 1000 ХР"
-            const newCalculatedLevel = Math.floor(currentTotalXp / XP_PER_LEVEL) + 1; // +1 бо рівні з 1
-            if (newCalculatedLevel > currentLevel) {
-                leveledUp = true;
-                currentLevel = newCalculatedLevel;
-            }
-        }
+    const newCalculatedLevel = Math.floor(currentTotalXp / XP_PER_LEVEL) + 1;
+    if (newCalculatedLevel > currentLevel) {
+        leveledUp = true;
+        currentLevel = newCalculatedLevel;
     }
-    // Зберігаємо загальну кількість XP, а прогрес до наступного рівня буде розраховуватися на льоту
-    // `experiencePoints` тут має бути загальна кількість накопичених очок.
-    // Рівень визначається на основі цієї загальної кількості.
 
     await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
@@ -621,18 +833,16 @@ async function awardExperienceAndLevelUp(userId, bookingType, durationMinutes) {
             $inc: {
                 'gamification.trainingsCompleted': 1,
                 'gamification.totalTimeSpentMinutes': durationMinutes,
-                'gamification.experiencePoints': gainedXp // Додаємо зароблені XP до загальних
+                'gamification.experiencePoints': gainedXp
             },
             $set: {
-                'gamification.level': currentLevel // Оновлюємо рівень, якщо він змінився
+                'gamification.level': currentLevel
             }
         }
     );
 
     if (leveledUp) {
         console.log(`User ${userId} leveled up to ${currentLevel}! XP: ${currentTotalXp}`);
-        // Тут можна додати логіку для ачівок за досягнення певних рівнів
-        // наприклад, якщо currentLevel === 10, 25, 50 і т.д.
     }
 }
 
@@ -681,8 +891,12 @@ app.post('/api/bookings', async (req, res) => {
             }
         } else if (type === 'equipment') {
             const conflictingBooking = await bookingsCollection.findOne({
-                itemId: itemId, bookingDate: targetBookingDate, status: "confirmed",
-                $or: [ /* ... умови перетину ... */ ]
+                itemId: itemId,
+                bookingDate: targetBookingDate, // Важливо, щоб дата була саме об'єктом Date
+                status: "confirmed",
+                $or: [
+                    { startTime: { $lt: endTime }, endTime: { $gt: startTime } }
+                ]
             });
             if (conflictingBooking) return res.status(409).json({ message: `Тренажер "${itemName}" вже заброньований з ${conflictingBooking.startTime} до ${conflictingBooking.endTime} на цю дату.` });
         }
@@ -700,8 +914,8 @@ app.post('/api/bookings', async (req, res) => {
             );
         }
 
-        // ОНОВЛЕННЯ: Нарахування досвіду та оновлення статистики після бронювання
-        // (якщо вважаємо бронювання = тренування)
+        // Припускаємо, що "confirmed" бронювання вже є тренуванням для нарахування досвіду.
+        // Якщо це не так, і XP нараховуються за "completed", цю логіку треба перемістити.
         if (result.insertedId) {
             await awardExperienceAndLevelUp(userId, type, durationMinutes);
         }
@@ -718,7 +932,6 @@ app.post('/api/bookings', async (req, res) => {
 
 
 // --- FOOD & CHAT ROUTES ---
-// ... (твій код для /api/food та /api/chat) ...
 app.get('/api/food', async (req, res) => {
     try {
         if (!db) {
@@ -816,9 +1029,13 @@ app.post('/api/chat', async (req, res) => {
             textForSpeech = textForSpeech.replace(/\s+/g, ' ').trim();
             console.log(`[${new Date().toISOString()}] Text prepared for TTS: ${textForSpeech.substring(0,150)}...`);
 
-            const languageCode = 'ru-RU';
-            const voiceName = 'ru-RU-Chirp3-HD-Leda';
-            const speakingRate = 1.15;
+            const languageCode = 'uk-UA'; // Змінено на українську
+            // Голоси для української (перевір список доступних в документації, якщо ці не підійдуть):
+            // 'uk-UA-Standard-A' (жіночий, стандартний)
+            // 'uk-UA-Wavenet-A' (жіночий, WaveNet)
+            // 'uk-UA-Polyglot-1' (чоловічий, може бути експериментальним)
+            const voiceName = 'uk-UA-Wavenet-A'; // Спробуємо WaveNet для кращої якості
+            const speakingRate = 1.05; // Трохи повільніше для української може бути краще
 
             console.log(`[${new Date().toISOString()}] Attempting to generate audio with Google Cloud TTS (Voice: ${voiceName}, Lang: ${languageCode}, Rate: ${speakingRate}.`);
 
@@ -879,7 +1096,6 @@ app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
 
-// ... (SIGINT, SIGTERM handlers)
 process.on('SIGINT', async () => {
     console.log('SIGINT received. Shutting down gracefully...');
     if (clientMongo && typeof clientMongo.close === 'function') {
