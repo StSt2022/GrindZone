@@ -14,6 +14,7 @@ import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import { styled } from '@mui/material/styles';
+import CircularProgress from '@mui/material/CircularProgress'; // Для індикатора завантаження
 
 // Icons
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
@@ -24,6 +25,7 @@ import { Global, keyframes, css } from '@emotion/react';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
+// keyframes та styled компоненти залишаються без змін
 const cardHoverShine = keyframes`
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
@@ -45,7 +47,7 @@ const slickDotsStyles = css`
     }
 `;
 
-const StyledBookButton = styled(Button)(({ theme }) => ({ /* ... (стилі кнопки залишаються) ... */
+const StyledBookButton = styled(Button)(({ theme }) => ({
     background: 'linear-gradient(45deg, #b388ff 30%, #7c4dff 90%)',
     border: 0,
     borderRadius: '12px',
@@ -64,22 +66,22 @@ const StyledBookButton = styled(Button)(({ theme }) => ({ /* ... (стилі к�
     },
 }));
 
-const EquipmentCard = ({ equipment, onBookClick }) => { /* ... (код картки залишається майже таким же) ... */
-    const cardMinHeight = 430;
+const EquipmentCard = ({ equipment, onBookClick }) => {
+    const cardMinHeight = 430; // Можна зробити 440-450 для більшого простору
 
     const cardStyles = {
         minHeight: `${cardMinHeight}px`,
-        height: '100%',
-        background: 'rgba(38, 30, 65, 0.92)', // Трохи змінив фон для контрасту з фоном слайдера
+        height: '100%', // Важливо для flex-контейнера слайдера
+        background: 'rgba(38, 30, 65, 0.92)',
         borderRadius: '20px',
-        border: '1px solid rgba(138, 43, 226, 0.25)', // Трохи яскравіша рамка
-        boxShadow: '0 7px 20px rgba(0, 0, 0, 0.3)', // Виразніша тінь
+        border: '1px solid rgba(138, 43, 226, 0.25)',
+        boxShadow: '0 7px 20px rgba(0, 0, 0, 0.3)',
         transition: 'all 0.35s ease-out',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
-        overflow: 'hidden', // Важливо для ::after
-        '&::after': { // Блиск при ховері на центральну картку
+        overflow: 'hidden',
+        '&::after': {
             content: '""',
             position: 'absolute',
             top: 0,
@@ -89,19 +91,19 @@ const EquipmentCard = ({ equipment, onBookClick }) => { /* ... (код карт�
             background: `linear-gradient(
               90deg,
               transparent,
-              rgba(198, 126, 255, 0.1), // Зробив блиск менш інтенсивним
+              rgba(198, 126, 255, 0.1),
               transparent
             )`,
-            transition: 'left 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s', // Додав невелику затримку
+            transition: 'left 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s',
             pointerEvents: 'none',
-            zIndex: 1, // Поверх контенту картки, але під кнопкою, якщо вона абсолютна
+            zIndex: 1,
         },
     };
 
     return (
-        <Box sx={{ p: {xs: 0.5, sm: 1}, height: '100%' }}> {/* Зменшив padding, щоб картки були ближче одна до одної */}
+        <Box sx={{ p: {xs: 0.5, sm: 1}, height: '100%' }}>
             <Card sx={cardStyles}>
-                <Box sx={{ height: '200px', overflow: 'hidden', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', position:'relative', zIndex: 2 }}> {/* zIndex, щоб картинка була над блиском */}
+                <Box sx={{ height: '200px', overflow: 'hidden', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', position:'relative', zIndex: 2 }}>
                     <CardMedia
                         className="equipment-image"
                         component="img"
@@ -120,19 +122,19 @@ const EquipmentCard = ({ equipment, onBookClick }) => { /* ... (код карт�
                     p: {xs: 2, sm: 2.5},
                     display: 'flex',
                     flexDirection: 'column',
-                    position:'relative', zIndex: 2, // zIndex, щоб контент був над блиском
+                    position:'relative', zIndex: 2,
                 }}>
                     <Typography variant="h6" component="div" sx={{
                         fontWeight: '600', color: 'white', fontSize: '1.1rem', mb: 1.5,
-                        lineHeight: 1.3, minHeight: '46px',
+                        lineHeight: 1.3, minHeight: '46px', // Забезпечуємо мінімальну висоту для 2 рядків
                         textAlign: 'left',
                     }}>
                         {equipment.name}
                     </Typography>
-                    <Typography variant="body2" color="rgba(230, 220, 255, 0.75)" sx={{ // Зробив текст трохи яскравішим
+                    <Typography variant="body2" color="rgba(230, 220, 255, 0.75)" sx={{
                         fontSize: '0.88rem', lineHeight: 1.55, mb: 2,
                         flexGrow: 1,
-                        minHeight: '70px',
+                        minHeight: '70px', // Забезпечуємо мінімальну висоту для ~4 рядків
                         textAlign: 'left',
                         overflow: 'hidden', textOverflow: 'ellipsis',
                         display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical',
@@ -154,13 +156,13 @@ const EquipmentCard = ({ equipment, onBookClick }) => { /* ... (код карт�
     );
 };
 
-const CustomArrow = ({ direction, onClick }) => { /* ... (код стрілок залишається) ... */
+const CustomArrow = ({ direction, onClick }) => {
     return (
         <IconButton
             onClick={onClick}
             sx={{
                 position: 'absolute',
-                top: 'calc(50% - 40px)', // Відкоригувати, якщо картки вищі/нижчі
+                top: 'calc(50% - 40px)', // Або 50% і transform, залежно від висоти картки
                 transform: 'translateY(-50%)',
                 ...(direction === 'prev' ? { left: {xs: -10, sm:-15, md:-25} } : { right: {xs: -10, sm:-15, md:-25} }),
                 zIndex: 2,
@@ -178,57 +180,63 @@ const CustomArrow = ({ direction, onClick }) => { /* ... (код стрілок 
     );
 };
 
+// Компонент тепер приймає `zones` та `equipment` як пропси
 const Equipment = ({ zones, equipment, onBookEquipment }) => {
-    // ... (стейт, useEffects, хендлери - залишаються такими ж) ...
     const [selectedZoneId, setSelectedZoneId] = useState('');
     const [filteredEquipment, setFilteredEquipment] = useState([]);
     const sliderRef = useRef(null);
 
+    // Встановлюємо першу зону за замовчуванням, якщо зони завантажені
     useEffect(() => {
         if (zones && zones.length > 0 && !selectedZoneId) {
             setSelectedZoneId(zones[0].id);
         }
-    }, [zones, selectedZoneId]);
+    }, [zones, selectedZoneId]); // Залежність від zones та selectedZoneId
 
+    // Фільтруємо обладнання при зміні selectedZoneId або списку equipment
     useEffect(() => {
-        let newFilteredEquipment = [];
-        if (selectedZoneId) {
-            const zone = zones.find(z => z.id === selectedZoneId);
-            newFilteredEquipment = zone?.equipmentIds
-                ? equipment.filter(eq => zone.equipmentIds.includes(eq.id))
-                : [];
+        if (selectedZoneId && equipment) {
+            // Фільтруємо обладнання за `zoneId`
+            const newFilteredEquipment = equipment.filter(eq => eq.zoneId === selectedZoneId);
+            setFilteredEquipment(newFilteredEquipment);
+        } else if (!selectedZoneId && equipment) {
+            // Якщо зона не обрана, показуємо все обладнання (або можна залишити порожнім)
+            // setFilteredEquipment(equipment); // Розкоментуй, якщо хочеш показувати все за замовчуванням
+            setFilteredEquipment([]); // Або порожній масив, поки не обрано зону
         } else {
-            newFilteredEquipment = equipment;
+            setFilteredEquipment([]);
         }
-        setFilteredEquipment(newFilteredEquipment);
 
+        // Скидаємо слайдер на початок при зміні фільтра
         if (sliderRef.current) {
             sliderRef.current.slickGoTo(0);
         }
-    }, [selectedZoneId, zones, equipment]);
+    }, [selectedZoneId, equipment]); // Залежність від selectedZoneId та equipment
 
     const handleZoneChange = (event) => {
         setSelectedZoneId(event.target.value);
     };
 
     const slidesToShowDefault = 3;
+    // Включаємо centerMode, якщо обладнання більше або дорівнює slidesToShowDefault
     const enableCenterMode = filteredEquipment.length >= slidesToShowDefault;
 
     const sliderSettings = {
         dots: filteredEquipment.length > (enableCenterMode ? 1 : slidesToShowDefault),
         infinite: filteredEquipment.length > (enableCenterMode ? 1 : slidesToShowDefault),
         speed: 600,
-        slidesToShow: enableCenterMode ? slidesToShowDefault : Math.min(slidesToShowDefault, filteredEquipment.length || 1),
+        // Кількість слайдів для показу: або дефолт, або менше, якщо елементів недостатньо
+        slidesToShow: Math.min(slidesToShowDefault, filteredEquipment.length) || 1,
         slidesToScroll: 1,
         autoplay: filteredEquipment.length > (enableCenterMode ? 1 : slidesToShowDefault),
         autoplaySpeed: 5000,
         pauseOnHover: true,
         cssEase: 'cubic-bezier(0.25, 0.1, 0.25, 1.0)',
         centerMode: enableCenterMode,
-        centerPadding: enableCenterMode ? '80px' : '0px', // ЗБІЛЬШИВ centerPadding для більшого простору
+        centerPadding: enableCenterMode ? '80px' : '0px',
         nextArrow: <CustomArrow direction="next" />,
         prevArrow: <CustomArrow direction="prev" />,
-        responsive: [ // Адаптуємо responsive налаштування
+        responsive: [
             {
                 breakpoint: 1400,
                 settings: {
@@ -241,7 +249,7 @@ const Equipment = ({ zones, equipment, onBookEquipment }) => {
                 }
             },
             {
-                breakpoint: 1100, // Додав ще один брейкпоінт
+                breakpoint: 1100,
                 settings: {
                     slidesToShow: filteredEquipment.length < 2 ? filteredEquipment.length : 2,
                     centerMode: filteredEquipment.length >= 2,
@@ -266,36 +274,30 @@ const Equipment = ({ zones, equipment, onBookEquipment }) => {
         ],
     };
 
+    // Перевірка, чи дані ще завантажуються (це має оброблятися на рівні ActivitiesPage)
+    // Але можна додати локальний індикатор, якщо пропси ще не прийшли
+    if (!zones || zones.length === 0 || !equipment) {
+        // Цей стан має бути короткочасним, якщо ActivitiesPage правильно керує isLoading
+        return (
+            <Box sx={{ textAlign: 'center', py: 5 }}>
+                <CircularProgress />
+                <Typography sx={{mt: 2, color: 'text.secondary'}}>Завантаження обладнання...</Typography>
+            </Box>
+        );
+    }
 
-    if (!zones || !equipment) { /* ... */ }
-
-    // Стиль для фону контейнера слайдера, який буде видно в проміжках
     const sliderContainerBackground = enableCenterMode ? {
-        // Варіант 1: Ледь помітний шум/текстура (потребує SVG або base64 encoded image)
-        // backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'10\' height=\'10\' viewBox=\'0 0 10 10\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M-1 1l2-2M0 10l10-10M9 11l2-2\' stroke=\'%23A96CFF22\' stroke-width=\'0.5\'/%3E%3C/svg%3E")',
-        // backgroundRepeat: 'repeat',
-
-        // Варіант 2: Радіальний градієнт з центру проміжку
-        // Це складно зробити точно для проміжків, тому спробуємо більш загальний фон
-        // background: 'radial-gradient(ellipse at center, rgba(138, 43, 226, 0.08) 0%, transparent 70%)',
-
-        // Варіант 3: Дуже легкий лінійний градієнт зверху вниз, трохи темніший за основний фон сторінки
-        // background: 'linear-gradient(180deg, rgba(10, 5, 18, 0.95) 0%, rgba(18, 9, 29, 0.98) 100%)',
-
-        // Варіант 4: Спробуємо тонкий геометричний патерн через linear-gradient
         backgroundSize: '20px 20px',
         backgroundImage: `
             linear-gradient(to right, rgba(169, 108, 255, 0.03) 1px, transparent 1px),
             linear-gradient(to bottom, rgba(169, 108, 255, 0.03) 1px, transparent 1px)
         `,
-        // Важливо, щоб цей фон був темнішим або відрізнявся від фону карток
     } : {};
 
 
     return (
         <Box component="section" sx={{ py: { xs: 4, md: 6 }, position: 'relative', overflow: 'hidden', ...sliderContainerBackground }}>
             <Global styles={slickDotsStyles} />
-            {/* ... (Typography для заголовка та підзаголовка) ... */}
             <Typography variant="h2" component="h2" sx={{
                 textAlign: 'center', fontWeight: 'bold', color: 'white', mb: 1,
                 textShadow: '0 0 20px rgba(198, 126, 255, 0.4)',
@@ -310,7 +312,6 @@ const Equipment = ({ zones, equipment, onBookEquipment }) => {
             </Typography>
 
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: {xs: 7, sm: 8} }}>
-                {/* ... (FormControl для вибору зони) ... */}
                 <FormControl variant="outlined" sx={{
                     minWidth: {xs: '85%', sm: 320, md: 380},
                     '& .MuiInputLabel-root': { color: 'rgba(230, 220, 255, 0.8)', fontWeight: 500 },
@@ -324,9 +325,9 @@ const Equipment = ({ zones, equipment, onBookEquipment }) => {
                     },
                     '& .MuiSelect-icon': { color: '#c67eff' }
                 }}>
-                    <InputLabel id="zone-select-label">Виберіть Зону</InputLabel>
+                    <InputLabel id="zone-select-label-equipment">Виберіть Зону</InputLabel>
                     <Select
-                        labelId="zone-select-label"
+                        labelId="zone-select-label-equipment"
                         value={selectedZoneId}
                         onChange={handleZoneChange}
                         label="Виберіть Зону"
@@ -345,7 +346,8 @@ const Equipment = ({ zones, equipment, onBookEquipment }) => {
                             },
                         }}
                     >
-                        {zones.map((zone) => (
+                        {/* Перевіряємо, чи zones існує і є масивом перед map */}
+                        {zones && zones.map((zone) => (
                             <MenuItem key={zone.id} value={zone.id}>{zone.name}</MenuItem>
                         ))}
                     </Select>
@@ -359,23 +361,22 @@ const Equipment = ({ zones, equipment, onBookEquipment }) => {
                     px: {xs: 0, sm: 2, md: 0},
                     mb: 5,
                     '.slick-slider .slick-list': {
-                        overflow: 'visible', // Важливо для тіней та сусідніх слайдів
-                        padding: enableCenterMode ? '20px 0' : '10px 0', // Збільшив відступ для тіней
+                        overflow: 'visible',
+                        padding: enableCenterMode ? '20px 0' : '10px 0',
                     },
                     '.slick-slider .slick-slide': {
                         transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), filter 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                        // padding тут не потрібен, відступи між картками регулюються centerPadding та шириною слайдів
                     },
-                    '.slick-slider .slick-slide > div': { // Обгортка слайда
+                    '.slick-slider .slick-slide > div': {
                         height: '100%',
                         display: 'flex',
-                        padding: enableCenterMode ? '0 5px' : '0 8px', // Зменшив padding, якщо centerMode, щоб картки були ближче
+                        padding: enableCenterMode ? '0 5px' : '0 8px',
                     },
                     '.slick-slider .slick-slide:not(.slick-center) > div > div > div[class*="MuiCard-root"]': {
                         transform: 'scale(0.88)',
-                        opacity: 0.6, // Зробив менш прозорими
-                        filter: 'blur(1.8px)', // Трохи сильніший блюр
-                        cursor: 'default', // Немає сенсу клікати на розмиті
+                        opacity: 0.6,
+                        filter: 'blur(1.8px)',
+                        cursor: 'default',
                     },
                     '.slick-slider .slick-slide.slick-center > div > div > div[class*="MuiCard-root"]': {
                         transform: 'scale(1)',
@@ -391,7 +392,7 @@ const Equipment = ({ zones, equipment, onBookEquipment }) => {
                         '& .equipment-image': {
                             transform: 'scale(1.06)',
                         },
-                        '&::after': { // Блиск на картці
+                        '&::after': {
                             left: '130%',
                         }
                     },
