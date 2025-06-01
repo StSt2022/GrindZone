@@ -1,3 +1,4 @@
+// src/components/activities/Classes.jsx
 import React, { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -12,6 +13,7 @@ import Chip from '@mui/material/Chip';
 import { keyframes, styled, alpha } from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
+import CircularProgress from '@mui/material/CircularProgress'; // Для індикатора завантаження
 
 // Icons
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
@@ -20,17 +22,35 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
+
+// Імпортуємо всі можливі іконки, які можуть прийти з 'iconName'
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import SelfImprovementIcon from '@mui/icons-material/SelfImprovement';
+import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
+import SpaIcon from '@mui/icons-material/Spa';
+import SportsKabaddiIcon from '@mui/icons-material/SportsKabaddi';
+import AccessibilityNewIcon from '@mui/icons-material/AccessibilityNew';
+// Додай інші, якщо є
+
+// Об'єкт для мапінгу назв іконок на компоненти
+const iconComponents = {
+    FitnessCenterIcon: FitnessCenterIcon,
+    SelfImprovementIcon: SelfImprovementIcon,
+    DirectionsRunIcon: DirectionsRunIcon,
+    SpaIcon: SpaIcon,
+    SportsKabaddiIcon: SportsKabaddiIcon,
+    AccessibilityNewIcon: AccessibilityNewIcon,
+    // Додай інші за потреби
+};
+
 
 const primaryPurple = '#a96cff';
 const secondaryPurple = '#c67eff';
 const lightText = 'rgba(235, 230, 255, 0.9)';
 
-
-// Параметри для скан-ліній
-const scanLineColor = alpha(primaryPurple, 0.04); // Колір скан-ліній (дуже прозорий)
-const scanLineThickness = '1px';                  // Товщина кожної лінії
-const scanLineSpacing = '3px';                    // Відстань між лініями (прозора частина + лінія)
+const scanLineColor = alpha(primaryPurple, 0.04);
+const scanLineThickness = '1px';
+const scanLineSpacing = '3px';
 
 const cardPopIn = keyframes`
     0% { opacity: 0; transform: translateY(25px) scale(0.98); }
@@ -77,7 +97,7 @@ const ClassCard = styled(Card)(({ theme, isFull }) => {
     return {
         width: '100%',
         maxWidth: '600px',
-        minHeight: '600px',
+        minHeight: '600px', // Розглянь можливість зробити її адаптивною або трохи меншою
         background: 'rgba(35, 28, 50, 0.85)',
         borderRadius: '20px',
         border: `1px solid ${isFull ? alpha('#E53935', 0.5) : alpha('#a96cff', 0.35)}`,
@@ -112,13 +132,28 @@ const ClassCard = styled(Card)(({ theme, isFull }) => {
 
 const Classes = ({ groupClasses, onBookClass }) => {
     const [page, setPage] = useState(1);
-    const classesPerPage = 4;
+    const classesPerPage = 4; // Кількість карток на сторінці
 
-    if (!groupClasses || groupClasses.length === 0) {
+    // Якщо дані ще завантажуються (проп groupClasses може бути undefined або null спочатку)
+    if (groupClasses === undefined || groupClasses === null) {
         return (
-            <Typography color="error" sx={{ textAlign: 'center', my: 4, color: '#ff7f7f' }}>
-                Групові заняття не завантажені.
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 5 }}>
+                <CircularProgress />
+                <Typography sx={{ ml: 2, color: 'text.secondary' }}>Завантаження розкладу...</Typography>
+            </Box>
+        );
+    }
+
+    if (groupClasses.length === 0) {
+        return (
+            <Box sx={{ textAlign: 'center', my: 4, py: 5 }}>
+                <Typography variant="h5" sx={{ color: 'rgba(230, 220, 255, 0.8)' }}>
+                    Наразі немає доступних групових занять.
+                </Typography>
+                <Typography sx={{ color: 'rgba(230, 220, 255, 0.6)', mt: 1 }}>
+                    Будь ласка, перевірте розклад пізніше.
+                </Typography>
+            </Box>
         );
     }
 
@@ -149,16 +184,13 @@ const Classes = ({ groupClasses, onBookClass }) => {
                 right: 0,
                 bottom: 0,
                 zIndex: 0,
-                // Горизонтальні скан-лінії
                 backgroundImage: `repeating-linear-gradient(
-                    to bottom, /* напрямок градієнту - зверху вниз */
-                    ${scanLineColor}, /* колір лінії */
-                    ${scanLineColor} ${scanLineThickness}, /* лінія займає scanLineThickness */
-                    transparent ${scanLineThickness}, /* після лінії починається прозора частина */
-                    transparent ${scanLineSpacing} /* прозора частина триває до scanLineSpacing */
+                    to bottom,
+                    ${scanLineColor},
+                    ${scanLineColor} ${scanLineThickness},
+                    transparent ${scanLineThickness},
+                    transparent ${scanLineSpacing}
                 )`,
-                // Розмір фонового зображення тут не потрібен, бо repeating-linear-gradient сам заповнить простір
-                // opacity: 1, // Колір лінії вже дуже прозорий, тому додаткова прозорість може не знадобитися
             }
         }}>
             <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1, px: { xs: 2, sm: 3 } }}>
@@ -182,30 +214,35 @@ const Classes = ({ groupClasses, onBookClass }) => {
                 </Typography>
                 <Grid
                     container
-                    spacing={{ xs: 2, sm: 2.5, md: 3 }}
+                    spacing={{ xs: 3, sm: 3, md: 4 }} // Трохи збільшив spacing
                     justifyContent="center"
-                    alignItems="stretch"
+                    alignItems="stretch" // Важливо для однакової висоти карток в ряду
                 >
                     {currentClasses.map((sClass) => {
                         const bookedPercentage = sClass.maxCapacity > 0 ? (sClass.bookedUserIds.length / sClass.maxCapacity) * 100 : 0;
                         const isFull = sClass.maxCapacity > 0 && sClass.bookedUserIds.length >= sClass.maxCapacity;
+
+                        // Отримуємо компонент іконки
+                        const IconComponent = iconComponents[sClass.iconName] || FitnessCenterIcon; // FitnessCenterIcon як дефолтна
+
                         return (
                             <Grid
                                 item
                                 xs={12}
-                                sm={6}
+                                sm={6} // По дві картки в рядку на sm і більше
+                                md={6} // Зберігаємо по дві на md
+                                lg={6} // І на lg, якщо classesPerPage = 4, то буде 2 ряди по 2
                                 key={sClass.id}
                                 sx={{
-                                    display: 'flex',
+                                    display: 'flex', // Для alignItems: 'stretch'
                                     justifyContent: 'center',
-                                    alignItems: 'stretch',
                                 }}
                             >
                                 <ClassCard isFull={isFull}>
                                     <Box sx={{
                                         position: 'relative',
                                         width: '100%',
-                                        paddingTop: '56.25%',
+                                        paddingTop: '56.25%', // 16:9 aspect ratio
                                         overflow: 'hidden',
                                     }}>
                                         <CardMedia
@@ -217,7 +254,7 @@ const Classes = ({ groupClasses, onBookClass }) => {
                                                 width: '100%',
                                                 height: '100%',
                                                 objectFit: 'cover',
-                                                borderBottom: `2px solid ${primaryPurple}`,
+                                                borderBottom: `2px solid ${primaryPurple}`, // Можна зробити динамічним від isFull
                                             }}
                                             image={sClass.imageUrl || `https://via.placeholder.com/600x400/6a0dad/ffffff?text=${encodeURIComponent(sClass.title)}`}
                                             alt={sClass.title}
@@ -228,12 +265,12 @@ const Classes = ({ groupClasses, onBookClass }) => {
                                         p: { xs: 2, sm: 2.5, md: 3 },
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        justifyContent: 'space-between',
-                                        minHeight: '300px',
+                                        justifyContent: 'space-between', // Розтягує контент
+                                        // minHeight: '300px', // Залежить від контенту, можна прибрати якщо flexGrow працює
                                     }}>
-                                        <Box>
+                                        <Box> {/* Верхня частина контенту */}
                                             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5, minHeight: '60px' }}>
-                                                {React.cloneElement(sClass.icon || <FitnessCenterIcon />, { sx: { color: isFull ? alpha('#E53935', 0.8) : secondaryPurple, mr: 2, fontSize: '2.2rem' } })}
+                                                <IconComponent sx={{ color: isFull ? alpha('#E53935', 0.8) : secondaryPurple, mr: 2, fontSize: '2.2rem' }} />
                                                 <Typography variant="h6" component="div" sx={{
                                                     fontWeight: 'bold', color: 'white', fontSize: '1.25rem', lineHeight: '1.4',
                                                     textShadow: isFull ? `0 0 6px ${alpha('#E53935', 0.6)}` : 'none',
@@ -304,37 +341,26 @@ const Classes = ({ groupClasses, onBookClass }) => {
                                                 {sClass.description}
                                             </Typography>
                                         </Box>
-                                        <StyledClassButton
-                                            onClick={() => onBookClass(sClass)}
-                                            disabled={isFull}
-                                            isfull={isFull.toString()}
-                                            startIcon={isFull ? <EventBusyIcon /> : <EventAvailableIcon />}
-                                            sx={{ mb: 2, width: '100%' }}
-                                        >
-                                            {isFull ? 'Немає місць' : 'Забронювати участь'}
-                                        </StyledClassButton>
+                                        <Box sx={{ mt: 'auto' }}> {/* Кнопка завжди внизу */}
+                                            <StyledClassButton
+                                                onClick={() => onBookClass(sClass)}
+                                                disabled={isFull}
+                                                isfull={isFull.toString()} // Передаємо як рядок для styled component
+                                                startIcon={isFull ? <EventBusyIcon /> : <EventAvailableIcon />}
+                                                sx={{ width: '100%' }} // Замість mb:2, якщо він останній
+                                            >
+                                                {isFull ? 'Немає місць' : 'Забронювати участь'}
+                                            </StyledClassButton>
+                                        </Box>
                                     </CardContent>
                                 </ClassCard>
                             </Grid>
                         );
                     })}
-                    {currentClasses.length < classesPerPage &&
-                        Array(classesPerPage - currentClasses.length)
-                            .fill()
-                            .map((_, index) => (
-                                <Grid
-                                    item
-                                    xs={12}
-                                    sm={6}
-                                    key={`empty-${index}`}
-                                    sx={{
-                                        display: { xs: 'none', sm: 'flex' },
-                                        alignItems: 'stretch',
-                                    }}
-                                >
-                                    <Box sx={{ width: '100%', visibility: 'hidden', height: '100%' }} />
-                                </Grid>
-                            ))}
+                    {/* Заповнювачі для рівномірного розподілу, якщо останній ряд неповний */}
+                    {currentClasses.length > 0 && currentClasses.length % 2 !== 0 && (classesPerPage === 4 || classesPerPage === 2) && (
+                        <Grid item xs={12} sm={6} md={6} lg={6} sx={{ display: { xs: 'none', sm: 'block' } }} />
+                    )}
                 </Grid>
                 {count > 1 && (
                     <Box sx={{ display: 'flex', justifyContent: 'center', mt: { xs: 6, md: 8 } }}>
