@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// App.jsx
+import React from 'react'; // useEffect, useState тут більше не потрібні для auth
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import SignUp from './pages/SignUp/SignUp.jsx';
 import SignIn from './pages/SignIn/SignIn.jsx';
@@ -11,23 +12,30 @@ import AppTheme from './shared-theme/AppTheme.jsx';
 import ChatWidget from "./widgets/ChatWidget.jsx";
 import NavigationBar from './components/NavigationBar';
 
-const ProtectedRoute = ({ isAuthenticated, children }) => {
+// Імпортуємо AuthProvider та useAuth
+import { AuthProvider, useAuth } from './context/AuthContext'; // Адаптуй шлях!
+
+const ProtectedRoute = ({ children }) => {
+    const { isAuthenticated, isLoadingAuth } = useAuth();
+    if (isLoadingAuth) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Перевірка автентифікації...</div>; // Або інший індикатор
     if (!isAuthenticated) {
         return <Navigate to="/signin" replace />;
     }
     return children;
 };
 
-const GuestRoute = ({ isAuthenticated, children }) => {
+const GuestRoute = ({ children }) => {
+    const { isAuthenticated, isLoadingAuth } = useAuth();
+    if (isLoadingAuth) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Перевірка автентифікації...</div>;
     if (isAuthenticated) {
         return <Navigate to="/" replace />;
     }
     return children;
 };
 
-// Компонент-обгортка, який вирішує, чи показувати NavigationBar
-const LayoutWithConditionalNav = ({ isAuthenticated, currentUser, onLogout, children }) => {
+const LayoutWithConditionalNav = ({ children }) => {
     const location = useLocation();
+    const { isAuthenticated, currentUser, logout } = useAuth(); // Отримуємо дані з контексту
     const hideNavOnRoutes = ['/signin', '/signup'];
     const shouldShowNav = !hideNavOnRoutes.includes(location.pathname);
 
@@ -37,7 +45,7 @@ const LayoutWithConditionalNav = ({ isAuthenticated, currentUser, onLogout, chil
                 <NavigationBar
                     isAuthenticated={isAuthenticated}
                     currentUser={currentUser}
-                    onLogout={onLogout}
+                    onLogout={logout} // Використовуємо logout з контексту
                 />
             )}
             {children}
@@ -45,111 +53,92 @@ const LayoutWithConditionalNav = ({ isAuthenticated, currentUser, onLogout, chil
     );
 };
 
+// Компонент-обгортка для SignIn/SignUp, щоб передати функцію login
+const AuthFormWrapper = ({ children }) => {
+    const { login } = useAuth();
+    // Клонуємо дочірній елемент (SignIn або SignUp) і передаємо йому onLoginSuccess
+    return React.cloneElement(children, { onLoginSuccess: login });
+};
 
-function App() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [currentUser, setCurrentUser] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const storedUser = localStorage.getItem('currentUser');
-        const token = localStorage.getItem('authToken');
+function AppContent() {
+    // Цей компонент потрібен, щоб LayoutWithConditionalNav був всередині Router,
+    // оскільки він використовує useLocation
+    const { isAuthenticated, isLoadingAuth } = useAuth();
 
-        if (storedUser && token) { // Або тільки storedUser, якщо токен не зберігається/не використовується для цієї логіки
-            try {
-                const parsedUser = JSON.parse(storedUser);
-                setCurrentUser(parsedUser);
-                setIsAuthenticated(true);
-            } catch (error) {
-                console.error("Error parsing stored user:", error);
-                localStorage.removeItem('currentUser');
-                localStorage.removeItem('authToken');
-            }
-        }
-        setIsLoading(false);
-    }, []);
-
-    const handleLoginSuccess = (userData, token) => {
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        if (token) {
-            localStorage.setItem('authToken', token);
-        }
-        setCurrentUser(userData);
-        setIsAuthenticated(true);
-    };
-
-    const handleLogout = () => {
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('authToken');
-        setCurrentUser(null);
-        setIsAuthenticated(false);
-        // Навігація на '/' відбудеться автоматично або через NavigationBar
-    };
-
-    if (isLoading) {
-        return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Завантаження...</div>;
+    if (isLoadingAuth) {
+        return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Завантаження додатку...</div>;
     }
 
     return (
+        <LayoutWithConditionalNav>
+            <Routes>
+                <Route path="/" element={<Home />} /> {/* isAuthenticated та currentUser тепер доступні в Home через useAuth */}
+
+                <Route
+                    path="/signup"
+                    element={
+                        <GuestRoute>
+                            <AuthFormWrapper><SignUp /></AuthFormWrapper>
+                        </GuestRoute>
+                    }
+                />
+                <Route
+                    path="/signin"
+                    element={
+                        <GuestRoute>
+                            <AuthFormWrapper><SignIn /></AuthFormWrapper>
+                        </GuestRoute>
+                    }
+                />
+
+                <Route
+                    path="/profile"
+                    element={
+                        <ProtectedRoute> {/* Profile тепер захищений */}
+                            <Profile /> {/* currentUser доступний через useAuth */}
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/activities"
+                    element={
+                        <ProtectedRoute> {/* Activities тепер захищений */}
+                            <Activities />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/food"
+                    element={
+                        <ProtectedRoute>
+                            <Food />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/community"
+                    element={
+                        <ProtectedRoute> {/* Community також варто захистити */}
+                            <Community />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            {isAuthenticated && <ChatWidget />}
+        </LayoutWithConditionalNav>
+    );
+}
+
+function App() {
+    return (
         <AppTheme>
             <Router>
-                <LayoutWithConditionalNav
-                    isAuthenticated={isAuthenticated}
-                    currentUser={currentUser}
-                    onLogout={handleLogout}
-                >
-                    <Routes>
-                        <Route path="/" element={<Home isAuthenticated={isAuthenticated} currentUser={currentUser} />} />
-
-                        <Route
-                            path="/signup"
-                            element={
-                                <GuestRoute isAuthenticated={isAuthenticated}>
-                                    <SignUp onLoginSuccess={handleLoginSuccess} />
-                                </GuestRoute>
-                            }
-                        />
-                        <Route
-                            path="/signin"
-                            element={
-                                <GuestRoute isAuthenticated={isAuthenticated}>
-                                    <SignIn onLoginSuccess={handleLoginSuccess} />
-                                </GuestRoute>
-                            }
-                        />
-
-                        <Route
-                            path="/profile"
-                            element={
-                                <Profile currentUser={currentUser} />
-                            }
-                        />
-                        <Route
-                            path="/activities"
-                            element={
-                                <Activities />
-                            }
-                        />
-                        <Route
-                            path="/food"
-                            element={
-                                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                                    <Food />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/community"
-                            element={
-
-                                    <Community />
-                            }
-                        />
-
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                    {isAuthenticated && <ChatWidget />}
-                </LayoutWithConditionalNav>
+                <AuthProvider> {/* Обертаємо все в AuthProvider */}
+                    <AppContent />
+                </AuthProvider>
             </Router>
         </AppTheme>
     );

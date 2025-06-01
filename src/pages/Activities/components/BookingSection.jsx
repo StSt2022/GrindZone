@@ -1,5 +1,5 @@
 // src/components/activities/BookingSection.jsx
-import React, { useState, useEffect, useContext } from 'react'; // Додав useContext (приклад)
+import React, { useState, useEffect } from 'react'; // useContext тут не потрібен, якщо використовуємо useAuth
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
@@ -13,14 +13,14 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import FormHelperText from '@mui/material/FormHelperText';
 import { styled, alpha } from '@mui/material/styles';
-import CircularProgress from '@mui/material/CircularProgress'; // Для індикатора завантаження в кнопці
+import CircularProgress from '@mui/material/CircularProgress';
 
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { uk } from 'date-fns/locale';
-import { addMinutes, format, parse, isValid as isValidDate } from 'date-fns'; // Додав isValidDate
+import { addMinutes, format, parse, isValid as isValidDate } from 'date-fns';
 
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import Diversity3Icon from '@mui/icons-material/Diversity3';
@@ -34,13 +34,13 @@ import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 
-// Припустимо, у тебе є AuthContext для отримання userId
-// import { AuthContext } from '../../context/AuthContext'; // Адаптуй шлях!
+// Імпортуємо хук useAuth
+import { useAuth } from '../../../context/AuthContext';
 
 // ... (стилі залишаються такими ж)
 const primaryPurple = '#8737c9';
-const secondaryPurple = '#601ab6'; // Для кнопки
-const hoverPurple = '#550f8d'; // Для кнопки
+const secondaryPurple = '#601ab6';
+const hoverPurple = '#550f8d';
 const cardBg = 'rgba(20, 15, 40, 0.95)';
 const lightText = 'rgba(220, 210, 255, 0.9)';
 const subtleText = 'rgba(220, 210, 255, 0.7)';
@@ -122,7 +122,7 @@ const StyledBookingButton = styled(Button)(({ theme, disabled }) => ({
     fontSize: '1.05rem',
     textTransform: 'none',
     color: theme.palette.common.white,
-    position: 'relative', // Для CircularProgress
+    position: 'relative',
     background: disabled
         ? alpha(secondaryPurple, 0.3)
         : `linear-gradient(45deg, ${secondaryPurple} 0%, ${primaryPurple} 100%)`,
@@ -177,23 +177,19 @@ const BookingFormCard = styled(Card)(({ theme }) => ({
 
 
 const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onBookingConfirmed, onClearTarget }) => {
-    // const { user } = useContext(AuthContext); // Приклад отримання користувача з AuthContext
-    // const userId = user?._id; // Або user?.id, залежно від структури
-    // ТИМЧАСОВО для тестування, заміни на реальний userId
-    const TEMPORARY_USER_ID_FOR_TESTING = "ЗАМІНИ_ЦЕ_НА_ID_КОРИСТУВАЧА_З_КОНТЕКСТУ_АБО_STORE";
-
+    const { currentUser, isAuthenticated } = useAuth(); // Отримуємо дані користувача та стан автентифікації
 
     const [selectedEquipmentId, setSelectedEquipmentId] = useState('');
     const [equipmentDate, setEquipmentDate] = useState(null);
     const [equipmentStartTime, setEquipmentStartTime] = useState(null);
-    const [equipmentDuration, setEquipmentDuration] = useState(30); // в хвилинах
+    const [equipmentDuration, setEquipmentDuration] = useState(30);
     const [equipmentBookerPhone, setEquipmentBookerPhone] = useState('');
     const [isEquipmentBooking, setIsEquipmentBooking] = useState(false);
 
     const [selectedClassId, setSelectedClassId] = useState('');
-    const [classDate, setClassDate] = useState(null); // Дата з обраного класу
-    const [classStartTime, setClassStartTime] = useState(null); // Час початку з обраного класу
-    const [classEndTime, setClassEndTime] = useState(null); // Час кінця з обраного класу
+    const [classDate, setClassDate] = useState(null);
+    const [classStartTime, setClassStartTime] = useState(null);
+    const [classEndTime, setClassEndTime] = useState(null);
     const [classBookerPhone, setClassBookerPhone] = useState('');
     const [isClassBooking, setIsClassBooking] = useState(false);
 
@@ -217,7 +213,6 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
 
     const resetClassForm = () => {
         setSelectedClassId('');
-        // classDate, classStartTime, classEndTime оновлюються в useEffect
         setClassBookerPhone('');
     };
 
@@ -225,20 +220,13 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
         if (initialTarget) {
             if (initialTarget.type === 'equipment') {
                 setSelectedEquipmentId(initialTarget.item.id);
-                setEquipmentDate(new Date()); // Встановити сьогоднішню дату
-                // Очистити форму класу
+                setEquipmentDate(new Date());
                 resetClassForm();
             } else if (initialTarget.type === 'class') {
                 const classItem = initialTarget.item;
                 setSelectedClassId(classItem.id);
-                // Очистити форму тренажера
                 resetEquipmentForm();
             }
-        } else {
-            // Якщо немає initialTarget, можливо, не варто скидати все,
-            // а лише якщо користувач сам цього хоче.
-            // resetEquipmentForm();
-            // resetClassForm();
         }
     }, [initialTarget]);
 
@@ -247,7 +235,6 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
             const sClass = allClasses.find(c => c.id === selectedClassId);
             if (sClass) {
                 try {
-                    // Переконуємось, що дата валідна перед парсингом
                     const parsedDate = parse(sClass.date, 'yyyy-MM-dd', new Date());
                     if (isValidDate(parsedDate)) {
                         setClassDate(parsedDate);
@@ -256,11 +243,9 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                         const parsedEndTime = parse(`${sClass.date} ${sClass.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
                         if (isValidDate(parsedEndTime)) setClassEndTime(parsedEndTime); else setClassEndTime(null);
                     } else {
-                        console.error("Invalid date string for class:", sClass.date);
                         setClassDate(null); setClassStartTime(null); setClassEndTime(null);
                     }
                 } catch (error) {
-                    console.error("Error parsing class date/time:", error, sClass);
                     setClassDate(null); setClassStartTime(null); setClassEndTime(null);
                 }
             }
@@ -271,14 +256,13 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
 
     const handleEquipmentBooking = async (e) => {
         e.preventDefault();
-        if (!selectedEquipmentId || !equipmentDate || !equipmentStartTime || !equipmentDuration || !equipmentBookerPhone) {
-            showSnackbar("Будь ласка, заповніть усі обов'язкові поля для тренажера.", "error");
+
+        if (!isAuthenticated || !currentUser?.userId) { // Перевірка автентифікації та наявності userId
+            showSnackbar("Для бронювання потрібно авторизуватися.", "error");
             return;
         }
-        // !!! ЗАМІНИ ЦЕ НА РЕАЛЬНИЙ userId !!!
-        const userId = TEMPORARY_USER_ID_FOR_TESTING; // Або з useContext(AuthContext).user._id;
-        if (!userId || userId === "ЗАМІНИ_ЦЕ_НА_ID_КОРИСТУВАЧА_З_КОНТЕКСТУ_АБО_STORE") {
-            showSnackbar("Помилка: ID користувача не визначено. Увійдіть в систему.", "error");
+        if (!selectedEquipmentId || !equipmentDate || !equipmentStartTime || !equipmentDuration || !equipmentBookerPhone) {
+            showSnackbar("Будь ласка, заповніть усі обов'язкові поля для тренажера.", "error");
             return;
         }
 
@@ -292,7 +276,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
         const calculatedEndTime = addMinutes(equipmentStartTime, equipmentDuration);
 
         const payload = {
-            userId: userId,
+            userId: currentUser.userId, // Використовуємо userId з AuthContext
             type: 'equipment',
             itemId: selectedEquipmentId,
             itemName: equipmentDetails.name,
@@ -300,7 +284,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
             bookingDate: format(equipmentDate, 'yyyy-MM-dd'),
             startTime: format(equipmentStartTime, 'HH:mm'),
             endTime: format(calculatedEndTime, 'HH:mm'),
-            duration: equipmentDuration, // На сервері це поле називається duration, тут передаємо equipmentDuration
+            duration: equipmentDuration,
             bookerPhone: equipmentBookerPhone
         };
 
@@ -314,7 +298,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
 
             if (response.ok) {
                 showSnackbar(`Тренажер "${equipmentDetails.name}" успішно заброньовано!`, "success");
-                if (onBookingConfirmed) onBookingConfirmed(data.bookingDetails); // Передаємо деталі підтвердженого бронювання
+                if (onBookingConfirmed) onBookingConfirmed(data.bookingDetails);
                 if (onClearTarget) onClearTarget();
                 resetEquipmentForm();
             } else {
@@ -330,14 +314,13 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
 
     const handleClassBooking = async (e) => {
         e.preventDefault();
-        if (!selectedClassId || !classBookerPhone) {
-            showSnackbar("Будь ласка, оберіть заняття та вкажіть телефон.", "error");
+
+        if (!isAuthenticated || !currentUser?.userId) { // Перевірка автентифікації та наявності userId
+            showSnackbar("Для бронювання потрібно авторизуватися.", "error");
             return;
         }
-        // !!! ЗАМІНИ ЦЕ НА РЕАЛЬНИЙ userId !!!
-        const userId = TEMPORARY_USER_ID_FOR_TESTING; // Або з useContext(AuthContext).user._id;
-        if (!userId || userId === "ЗАМІНИ_ЦЕ_НА_ID_КОРИСТУВАЧА_З_КОНТЕКСТУ_АБО_STORE") {
-            showSnackbar("Помилка: ID користувача не визначено. Увійдіть в систему.", "error");
+        if (!selectedClassId || !classBookerPhone) {
+            showSnackbar("Будь ласка, оберіть заняття та вкажіть телефон.", "error");
             return;
         }
 
@@ -348,7 +331,6 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
             setIsClassBooking(false);
             return;
         }
-        // Перевірку на isFull вже робить сервер, але можна залишити і тут для швидкого фідбеку
         if (classDetails.bookedUserIds.length >= classDetails.maxCapacity) {
             showSnackbar("На жаль, на це заняття вже немає вільних місць.", "warning");
             setIsClassBooking(false);
@@ -356,15 +338,14 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
         }
 
         const payload = {
-            userId: userId,
+            userId: currentUser.userId, // Використовуємо userId з AuthContext
             type: 'class',
             itemId: selectedClassId,
             itemName: classDetails.title,
             zoneId: classDetails.zoneId,
-            bookingDate: classDetails.date, // Беремо дату з об'єкта класу
+            bookingDate: classDetails.date,
             startTime: classDetails.startTime,
             endTime: classDetails.endTime,
-            // duration для класу не передаємо, сервер сам візьме з classDetails.durationMinutes
             bookerPhone: classBookerPhone
         };
 
@@ -402,7 +383,6 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
         { value: 90, label: '1.5 години' },
     ];
 
-    // Перевіряємо, чи дані для селектів вже завантажені
     if (!allEquipment || !allClasses || !allZones) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
@@ -411,7 +391,6 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
             </Box>
         );
     }
-
 
     return (
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={uk}>
@@ -440,7 +419,6 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                     alignItems: 'center',
                     gap: { xs: 4, md: 6 },
                 }}>
-                    {/* Форма бронювання тренажера */}
                     <BookingFormCard>
                         <CardContent sx={{ p: { xs: 3, sm: 4, md: 4.5 }}}>
                             <Box sx={{display: 'flex', alignItems: 'center', color: lightText, mb: 4.5}}>
@@ -512,7 +490,6 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                         </CardContent>
                     </BookingFormCard>
 
-                    {/* Форма бронювання групового заняття */}
                     <BookingFormCard>
                         <CardContent sx={{ p: { xs: 3, sm: 4, md: 4.5 }}}>
                             <Box sx={{display: 'flex', alignItems: 'center', color: lightText, mb: 4.5}}>
@@ -525,7 +502,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                     <Select
                                         labelId="class-select-label" value={selectedClassId} label="Оберіть заняття"
                                         onChange={(e) => setSelectedClassId(e.target.value)} required MenuProps={menuProps}
-                                        disabled={isClassBooking || (isGroupClassFull && !selectedClassId)} // Блокуємо, якщо йде бронювання АБО якщо обране заняття повне
+                                        disabled={isClassBooking || (isGroupClassFull && !selectedClassId)}
                                     >
                                         {allClasses.map((sClass) => (
                                             <MenuItem key={sClass.id} value={sClass.id} disabled={sClass.bookedUserIds.length >= sClass.maxCapacity}>
@@ -540,7 +517,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                     label="Дата заняття" value={classDate} readOnly disabled
                                     slots={{ openPickerIcon: EventNoteIcon }}
                                     slotProps={{
-                                        textField: { sx: formControlBaseStyles(true), fullWidth: true }, // Завжди disabled
+                                        textField: { sx: formControlBaseStyles(true), fullWidth: true },
                                         openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
                                     }}
                                 />
@@ -550,7 +527,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                             label="Час початку" value={classStartTime} readOnly disabled ampm={false}
                                             slots={{ openPickerIcon: AccessTimeFilledIcon }}
                                             slotProps={{
-                                                textField: { sx: formControlBaseStyles(true), fullWidth: true }, // Завжди disabled
+                                                textField: { sx: formControlBaseStyles(true), fullWidth: true },
                                                 openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
                                             }}
                                         />
@@ -560,7 +537,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                             label="Час закінчення" value={classEndTime} readOnly disabled ampm={false}
                                             slots={{ openPickerIcon: AccessTimeFilledIcon }}
                                             slotProps={{
-                                                textField: { sx: formControlBaseStyles(true), fullWidth: true }, // Завжди disabled
+                                                textField: { sx: formControlBaseStyles(true), fullWidth: true },
                                                 openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
                                             }}
                                         />
