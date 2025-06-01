@@ -591,7 +591,7 @@ function ProfilePage(props) {
                                     <InfoDisplay label="Оновлень профілю" value={displayProfileUpdatesCount.toString()} icon={<UpdateIcon />}/>
                                     <InfoDisplay label="Останнє оновлення цілей" value={displayLastGoalUpdate} icon={<TrendingUpIcon />}/>
                                     <Box mt={2.5}>
-                                        <EditableItem label="Моя головна ціль" name="goal" value={goal} onChange={handleInputChange} isEditing={isEditing} icon={<FlagIcon />} multiline rows={2} InputProps={{ sx: { overflowY: 'auto' } }}/>
+                                        <EditableItem label="Моя головна ціль" name="goal" value={goal} onChange={handleInputChange} isEditing={isEditing} icon={<FlagIcon />} InputProps={{ sx: { overflowY: 'auto', maxHeight: '30px' } }}/>
                                     </Box>
                                 </Grid>
                                 <Grid item xs={12} md={5}>
