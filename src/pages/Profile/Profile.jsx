@@ -430,29 +430,36 @@ function ProfilePage(props) {
     const handleAvatarFileChange = async (event) => {
         const file = event.target.files[0];
         if (file && file.type.startsWith("image/")) {
-            // Для реального завантаження:
-            // setIsLoadingData(true); // Або окремий isUploadingAvatar
-            // setError(null);
-            // try {
-            //     const storageRef = ref(storage, `avatars/${authenticatedUser.userId}/${Date.now()}_${file.name}`);
-            //     await uploadBytes(storageRef, file);
-            //     const downloadURL = await getDownloadURL(storageRef);
-            //     setEditableProfile(prev => ({ ...prev, avatarUrl: downloadURL }));
-            //     // Після цього можна або автоматично викликати handleSave для avatarUrl,
-            //     // або просто оновити editableProfile і чекати, поки користувач натисне "Зберегти"
-            // } catch (firebaseError) {
-            //     console.error("Помилка завантаження аватара на Firebase:", firebaseError);
-            //     setError("Помилка завантаження зображення.");
-            // } finally {
-            //     // setIsLoadingData(false);
-            // }
-
-            // Тимчасова заглушка для відображення локального файлу
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                setEditableProfile(prev => ({ ...prev, avatarUrl: e.target.result }));
-            };
-            reader.readAsDataURL(file);
+            setIsLoadingData(true);
+            setError(null);
+            try {
+                const formData = new FormData();
+                formData.append('avatarFile', file);
+                const response = await fetch(`/api/profile/${authenticatedUser.userId}/avatar`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.message || 'Помилка завантаження аватарки');
+                }
+                const data = await response.json();
+                setEditableProfile(prev => ({ ...prev, avatarUrl: data.avatarUrl }));
+                setUserProfile(prev => ({ ...prev, avatarUrl: data.avatarUrl }));
+                if (data.unlockedAchievements && data.unlockedAchievements.length > 0) {
+                    setUserProfile(prev => ({
+                        ...prev,
+                        achievements: prev.achievements.map(ach =>
+                            data.unlockedAchievements.includes(ach.id) ? { ...ach, unlocked: true } : ach
+                        ),
+                    }));
+                }
+            } catch (error) {
+                console.error("Помилка завантаження аватара:", error);
+                setError(error.message || "Помилка завантаження зображення.");
+            } finally {
+                setIsLoadingData(false);
+            }
         }
     };
 
