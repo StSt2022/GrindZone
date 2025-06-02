@@ -19,27 +19,23 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // --- Ініціалізація Firebase Admin ---
-// Render автоматично встановлює змінну середовища GOOGLE_APPLICATION_CREDENTIALS,
-// якщо ти завантажив FIREBASE_ADMIN_SDK_KEY.json як "Secret File".
-// Firebase Admin SDK автоматично знайде цей файл.
-let bucket; // Оголошуємо bucket тут, щоб він був доступний глобально в модулі
+let bucket;
 try {
+    const firebaseKeyPath = process.env.FIREBASE_ADMIN_KEY_PATH || path.join(__dirname, 'FIREBASE_ADMIN_SDK_KEY.json');
     const firebaseAdminConfig = {
-        // credential: admin.credential.cert(require('./path/to/your/FIREBASE_ADMIN_SDK_KEY.json')), // ЛОКАЛЬНО, ЯКЩО GOOGLE_APPLICATION_CREDENTIALS НЕ ВСТАНОВЛЕНО
-        storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET // Переконайся, що ця змінна є в .env для сервера
+        credential: admin.credential.cert(firebaseKeyPath),
+        storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET
     };
-
     if (!firebaseAdminConfig.storageBucket) {
         console.error("ERROR: VITE_FIREBASE_STORAGE_BUCKET is not defined in server environment variables! Avatar upload will not work.");
     } else {
-        // Якщо GOOGLE_APPLICATION_CREDENTIALS встановлено (як на Render), credential не потрібен тут
         admin.initializeApp(firebaseAdminConfig);
-        bucket = admin.storage().bucket(); // Ініціалізуємо bucket
+        bucket = admin.storage().bucket();
         console.log('Firebase Admin SDK initialized successfully. Storage bucket:', bucket.name);
+        console.log('Using Firebase service account:', admin.credential.cert().clientEmail);
     }
 } catch (error) {
     console.error('Error initializing Firebase Admin SDK:', error);
-    // Розглянь можливість зупинити сервер або вимкнути функції, що залежать від Firebase Admin
 }
 // --- КІНЕЦЬ Ініціалізації Firebase Admin ---
 
