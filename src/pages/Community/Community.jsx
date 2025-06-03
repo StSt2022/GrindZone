@@ -257,7 +257,11 @@ function CommunityPage(props) {
     const fetchComments = async (postId) => {
         try {
             const response = await fetch(`/api/posts/${postId}/comments`);
-            if (!response.ok) throw new Error('Помилка завантаження коментарів');
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Fetch comments error response:', errorData);
+                throw new Error(errorData.message || 'Помилка завантаження коментарів');
+            }
             const data = await response.json();
             setComments(prev => ({ ...prev, [postId]: data }));
         } catch (error) {
@@ -286,7 +290,11 @@ function CommunityPage(props) {
                 method: 'POST',
                 body: formData
             });
-            if (!response.ok) throw new Error('Помилка створення поста');
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Create post error response:', errorData);
+                throw new Error(errorData.message || 'Помилка створення поста');
+            }
             const { post } = await response.json();
             setPosts(prev => [post, ...prev]);
             setNewPostText("");
@@ -295,7 +303,7 @@ function CommunityPage(props) {
             if (currentPage !== 1) setCurrentPage(1);
         } catch (error) {
             console.error('Error creating post:', error);
-            alert('Не вдалося створити пост.');
+            alert(`Не вдалося створити пост: ${error.message}`);
         }
     };
 
@@ -329,12 +337,16 @@ function CommunityPage(props) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: currentUser.id })
             });
-            if (!response.ok) throw new Error('Помилка надсилання скарги');
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Report post error response:', errorData);
+                throw new Error(errorData.message || 'Помилка надсилання скарги');
+            }
             alert('Скарга на пост надіслана.');
             handleClosePostMenu();
         } catch (error) {
             console.error('Error reporting post:', error);
-            alert('Не вдалося надіслати скаргу.');
+            alert(`Не вдалося надіслати скаргу: ${error.message}`);
         }
     };
 
@@ -346,12 +358,16 @@ function CommunityPage(props) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: currentUser.id })
             });
-            if (!response.ok) throw new Error('Помилка обробки лайка');
+            if (!response.ok) {
+                const errorData = await response.json(); // Отримуємо деталі помилки
+                console.error('Like post error response:', errorData);
+                throw new Error(errorData.message || 'Помилка обробки лайка');
+            }
             const { likes, likedByUser } = await response.json();
             setPosts(prev => prev.map(post => post.id === postId ? { ...post, likes, likedByUser } : post));
         } catch (error) {
             console.error('Error liking post:', error);
-            alert('Не вдалося обробити лайк.');
+            alert(`Не вдалося обробити лайк: ${error.message}`);
         }
     };
 
