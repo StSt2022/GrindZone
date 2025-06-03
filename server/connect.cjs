@@ -42,16 +42,16 @@ try {
 
 // --- Налаштування Multer для завантаження файлів в пам'ять ---
 const multerUpload = multer({
-    storage: multer.memoryStorage(), // Зберігаємо файл в буфері пам'яті
+    storage: multer.memoryStorage(),
     limits: {
-        fileSize: 5 * 1024 * 1024, // 5 MB ліміт на розмір файлу
+        fileSize: 50 * 1024 * 1024, // 50 MB ліміт
     },
     fileFilter: (req, file, cb) => {
-        // Дозволяємо тільки зображення
-        if (file.mimetype.startsWith('image/')) {
+        // Дозволяємо зображення та відео
+        if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
             cb(null, true);
         } else {
-            cb(new Error('Дозволені тільки файли зображень!'), false);
+            cb(new Error('Дозволені тільки файли зображень або відео!'), false);
         }
     }
 });
@@ -200,6 +200,28 @@ async function uploadImageToFirebase(imageUrl, userIdForPath, fileNamePrefix = '
     }
 }
 
+async function uploadPostMediaToFirebase(file, userId, postId) {
+    if (!file || !bucket) return null;
+
+    try {
+        const fileExtension = path.extname(file.originalname) || (file.mimetype.startsWith('image/') ? '.jpg' : '.mp4');
+        const baseName = path.basename(file.originalname, fileExtension).replace(/\s+/g, '_');
+        const fileName = `post-media/${userId}/${postId}/${baseName}-${Date.now()}${fileExtension}`;
+        const fileUpload = bucket.file(fileName);
+
+        await fileUpload.save(file.buffer, {
+            metadata: { contentType: file.mimetype },
+            public: true,
+        });
+
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+        console.log(`Post media uploaded to Firebase: ${publicUrl}`);
+        return publicUrl;
+    } catch (error) {
+        console.error(`Error uploading post media for user ${userId}, post ${postId}:`, error);
+        return null;
+    }
+}
 
 app.post('/signup/google', async (req, res) => {
     try {
@@ -1077,6 +1099,426 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 // --- END FOOD & CHAT ROUTES ---
+
+// --- COMMUNITY ROUTES ---
+const POST_TYPES = ['text', 'question', 'article', 'achievement'];
+
+// Створення нового поста
+app.post('/api/posts', multerUpload.single('media'), async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+
+        const { userId, text, type, isAnonymous } = req.body;
+        const mediaFile = req.file;
+
+        if (!userId && !isAnonymous) {
+            return res.status(401).json({ message: 'Потрібен userId або isAnonymous=true.' });
+        }
+        if (!text && !mediaFile) {
+            return res.status(400).json({ message: 'Текст або медіафайл обов’язкові.' });
+        }
+        if (type && !POST_TYPES.includes(type)) {
+            return res.status(400).json({ message: 'Невірний тип поста.' });
+        }
+
+        let parsedUserId = null;
+        let author = null;
+        if (!isAnonymous && userId) {
+            if (!ObjectId.isValid(userId)) {
+                return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+            }
+            parsedUserId = new ObjectId(userId);
+            const usersCollection = db.collection('users');
+            const user = await usersCollection.findOne({ _id: parsedUserId });
+            if (!user) {
+                return res.status(404).json({ message: 'Користувача не знайдено.' });
+            }
+            author = {
+                id: user._id.toString(),
+                name: user.name,
+                avatarUrl: user.profile?.avatarUrl || null
+            };
+        }
+
+        let mediaData = null;
+        if (mediaFile) {
+            const postId = new ObjectId().toString();
+            const mediaUrl = await uploadPostMediaToFirebase(mediaFile, userId || 'anonymous', postId);
+            if (mediaUrl) {
+                mediaData = {
+                    type: mediaFile.mimetype,
+                    url: mediaUrl
+                };
+            }
+        }
+
+        const hashtags = (text.match(/#([a-zA-Z0-9_а-яА-ЯіІїЇєЄ]+)/g) || []).map(tag => tag.slice(1));
+        const cleanText = text.replace(/#([a-zA-Z0-9_а-яА-ЯіІїЇєЄ]+)/g, '').replace(/\s\s+/g, ' ').trim();
+
+        const newPost = {
+            author: isAnonymous ? null : author,
+            isAnonymous: !!isAnonymous,
+            type: type || 'text',
+            text: cleanText,
+            media: mediaData,
+            likes: 0,
+            likedBy: [],
+            commentsCount: 0,
+            tags: hashtags,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+
+        const postsCollection = db.collection('posts');
+        const result = await postsCollection.insertOne(newPost);
+
+        res.status(201).json({
+            message: 'Пост успішно створено!',
+            post: {
+                id: result.insertedId.toString(),
+                ...newPost,
+                author,
+                createdAt: newPost.createdAt.toISOString(),
+                updatedAt: newPost.updatedAt.toISOString()
+            }
+        });
+    } catch (error) {
+        console.error('Error creating post:', error);
+        if (error.message === 'Дозволені тільки файли зображень або відео!') {
+            return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Помилка сервера при створенні поста.' });
+    }
+});
+
+// Отримання постів із пагінацією та пошуком
+app.get('/api/posts', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+
+        const { searchTerm, page = 1, limit = 10 } = req.query;
+        const postsCollection = db.collection('posts');
+        const query = {};
+
+        if (searchTerm) {
+            query.$or = [
+                { text: { $regex: searchTerm, $options: 'i' } },
+                { tags: { $regex: searchTerm, $options: 'i' } },
+                { 'author.name': { $regex: searchTerm, $options: 'i' } }
+            ];
+        }
+
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+        const skip = (pageNum - 1) * limitNum;
+
+        const totalPosts = await postsCollection.countDocuments(query);
+        const posts = await postsCollection
+            .find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNum)
+            .toArray();
+
+        const formattedPosts = posts.map(post => ({
+            id: post._id.toString(),
+            author: post.isAnonymous ? null : post.author,
+            isAnonymous: post.isAnonymous,
+            type: post.type,
+            timestamp: post.createdAt.toISOString(),
+            text: post.text,
+            media: post.media,
+            likes: post.likes,
+            likedByUser: post.likedBy.includes(req.query.userId) || false,
+            commentsCount: post.commentsCount,
+            tags: post.tags
+        }));
+
+        res.json({
+            posts: formattedPosts,
+            totalPages: Math.ceil(totalPosts / limitNum),
+            currentPage: pageNum
+        });
+    } catch (error) {
+        console.error('Error fetching posts:', error);
+        res.status(500).json({ message: 'Помилка сервера при отриманні постів.' });
+    }
+});
+
+// Видалення поста
+app.delete('/api/posts/:postId', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+
+        const { postId } = req.params;
+        const { userId } = req.body;
+
+        if (!ObjectId.isValid(postId)) {
+            return res.status(400).json({ message: 'Невірний формат ID поста.' });
+        }
+        if (!userId) {
+            return res.status(401).json({ message: 'Потрібен ID користувача.' });
+        }
+
+        const postsCollection = db.collection('posts');
+        const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+
+        if (!post) {
+            return res.status(404).json({ message: 'Пост не знайдено.' });
+        }
+
+        if (!post.isAnonymous && post.author?.id !== userId) {
+            return res.status(403).json({ message: 'Ви не можете видалити цей пост.' });
+        }
+
+        // Видаляємо медіа з Firebase, якщо є
+        if (post.media?.url && post.media.url.startsWith(`https://storage.googleapis.com/${bucket.name}/post-media/`)) {
+            try {
+                const fileName = decodeURIComponent(post.media.url.split(`${bucket.name}/`)[1].split('?')[0]);
+                await bucket.file(fileName).delete();
+                console.log(`Post media ${fileName} deleted for post ${postId}`);
+            } catch (deleteError) {
+                console.warn(`Could not delete post media ${post.media.url}:`, deleteError.message);
+            }
+        }
+
+        await postsCollection.deleteOne({ _id: new ObjectId(postId) });
+        await db.collection('comments').deleteMany({ postId: new ObjectId(postId) });
+
+        res.status(200).json({ message: 'Пост успішно видалено.' });
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        res.status(500).json({ message: 'Помилка сервера при видаленні поста.' });
+    }
+});
+
+// Лайк/дизлайк поста
+app.post('/api/posts/:postId/like', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+
+        const { postId } = req.params;
+        const { userId } = req.body;
+
+        if (!ObjectId.isValid(postId)) {
+            return res.status(400).json({ message: 'Невірний формат ID поста.' });
+        }
+        if (!userId || !ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+        }
+
+        const postsCollection = db.collection('posts');
+        const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+
+        if (!post) {
+            return res.status(404).json({ message: 'Пост не знайдено.' });
+        }
+
+        const likedBy = post.likedBy || [];
+        const hasLiked = likedBy.includes(userId);
+
+        if (hasLiked) {
+            await postsCollection.updateOne(
+                { _id: new ObjectId(postId) },
+                {
+                    $pull: { likedBy: userId },
+                    $inc: { likes: -1 }
+                }
+            );
+        } else {
+            await postsCollection.updateOne(
+                { _id: new ObjectId(postId) },
+                {
+                    $addToSet: { likedBy: userId },
+                    $inc: { likes: 1 }
+                }
+            );
+        }
+
+        const updatedPost = await postsCollection.findOne({ _id: new ObjectId(postId) });
+        res.status(200).json({
+            message: hasLiked ? 'Лайк знято.' : 'Лайк додано.',
+            likes: updatedPost.likes,
+            likedByUser: !hasLiked
+        });
+    } catch (error) {
+        console.error('Error liking/unliking post:', error);
+        res.status(500).json({ message: 'Помилка сервера при обробці лайка.' });
+    }
+});
+
+// Скарга на пост
+app.post('/api/posts/:postId/report', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+
+        const { postId } = req.params;
+        const { userId } = req.body;
+
+        if (!ObjectId.isValid(postId)) {
+            return res.status(400).json({ message: 'Невірний формат ID поста.' });
+        }
+        if (!userId || !ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+        }
+
+        const reportsCollection = db.collection('post_reports');
+        const existingReport = await reportsCollection.findOne({ postId: new ObjectId(postId), userId });
+
+        if (existingReport) {
+            return res.status(409).json({ message: 'Ви вже поскаржились на цей пост.' });
+        }
+
+        await reportsCollection.insertOne({
+            postId: new ObjectId(postId),
+            userId,
+            createdAt: new Date()
+        });
+
+        res.status(200).json({ message: 'Скарга на пост успішно надіслана.' });
+    } catch (error) {
+        console.error('Error reporting post:', error);
+        res.status(500).json({ message: 'Помилка сервера при надсиланні скарги.' });
+    }
+});
+
+// Створення коментаря
+app.post('/api/posts/:postId/comments', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+
+        const { postId } = req.params;
+        const { userId, text, isAnonymous } = req.body;
+
+        if (!ObjectId.isValid(postId)) {
+            return res.status(400).json({ message: 'Невірний формат ID поста.' });
+        }
+        if (!text) {
+            return res.status(400).json({ message: 'Текст коментаря обов’язковий.' });
+        }
+
+        let author = null;
+        if (!isAnonymous && userId) {
+            if (!ObjectId.isValid(userId)) {
+                return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+            }
+            const usersCollection = db.collection('users');
+            const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+            if (!user) {
+                return res.status(404).json({ message: 'Користувача не знайдено.' });
+            }
+            author = {
+                id: user._id.toString(),
+                name: user.name,
+                avatarUrl: user.profile?.avatarUrl || null
+            };
+        }
+
+        const newComment = {
+            postId: new ObjectId(postId),
+            author: isAnonymous ? null : author,
+            isAnonymous: !!isAnonymous,
+            text,
+            createdAt: new Date()
+        };
+
+        const commentsCollection = db.collection('comments');
+        const result = await commentsCollection.insertOne(newComment);
+
+        await db.collection('posts').updateOne(
+            { _id: new ObjectId(postId) },
+            { $inc: { commentsCount: 1 } }
+        );
+
+        res.status(201).json({
+            message: 'Коментар успішно створено!',
+            comment: {
+                id: result.insertedId.toString(),
+                postId: postId,
+                author,
+                isAnonymous: newComment.isAnonymous,
+                text: newComment.text,
+                timestamp: newComment.createdAt.toISOString()
+            }
+        });
+    } catch (error) {
+        console.error('Error creating comment:', error);
+        res.status(500).json({ message: 'Помилка сервера при створенні коментаря.' });
+    }
+});
+
+// Отримання коментарів до поста
+app.get('/api/posts/:postId/comments', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+
+        const { postId } = req.params;
+
+        if (!ObjectId.isValid(postId)) {
+            return res.status(400).json({ message: 'Невірний формат ID поста.' });
+        }
+
+        const commentsCollection = db.collection('comments');
+        const comments = await commentsCollection
+            .find({ postId: new ObjectId(postId) })
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        const formattedComments = comments.map(comment => ({
+            id: comment._id.toString(),
+            postId: comment.postId.toString(),
+            author: comment.isAnonymous ? null : comment.author,
+            isAnonymous: comment.isAnonymous,
+            text: comment.text,
+            timestamp: comment.createdAt.toISOString()
+        }));
+
+        res.json(formattedComments);
+    } catch (error) {
+        console.error('Error fetching comments:', error);
+        res.status(500).json({ message: 'Помилка сервера при отриманні коментарів.' });
+    }
+});
+
+// Видалення коментаря
+app.delete('/api/posts/:postId/comments/:commentId', async (req, res) => {
+    try {
+        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+
+        const { postId, commentId } = req.params;
+        const { userId } = req.body;
+
+        if (!ObjectId.isValid(postId) || !ObjectId.isValid(commentId)) {
+            return res.status(400).json({ message: 'Невірний формат ID поста або коментаря.' });
+        }
+        if (!userId || !ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+        }
+
+        const commentsCollection = db.collection('comments');
+        const comment = await commentsCollection.findOne({ _id: new ObjectId(commentId), postId: new ObjectId(postId) });
+
+        if (!comment) {
+            return res.status(404).json({ message: 'Коментар не знайдено.' });
+        }
+
+        if (!comment.isAnonymous && comment.author?.id !== userId) {
+            return res.status(403).json({ message: 'Ви не можете видалити цей коментар.' });
+        }
+
+        await commentsCollection.deleteOne({ _id: new ObjectId(commentId) });
+        await db.collection('posts').updateOne(
+            { _id: new ObjectId(postId) },
+            { $inc: { commentsCount: -1 } }
+        );
+
+        res.status(200).json({ message: 'Коментар успішно видалено.' });
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        res.status(500).json({ message: 'Помилка сервера при видаленні коментаря.' });
+    }
+});
+// --- END COMMUNITY ROUTES ---
 
 // Catch-all for frontend
 app.get('*', (req, res) => {

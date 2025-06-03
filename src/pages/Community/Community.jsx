@@ -103,7 +103,6 @@ const StyledTextField = styled(TextField)(({ theme, ownerState }) => ({
     },
 }));
 
-
 const PostCardStyled = styled(Card)(({ theme }) => ({
     width: '100%',
     backgroundColor: 'hsl(220, 30%, 6%)',
@@ -178,29 +177,11 @@ const formatTimestamp = (isoString) => {
     return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' }) + ` о ${date.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
 };
 
-const extractHashtags = (text) => {
-    const regex = /#([a-zA-Z0-9_а-яА-ЯіІїЇєЄ]+)/g;
-    let matches;
-    const hashtags = [];
-    while ((matches = regex.exec(text)) !== null) {
-        hashtags.push(matches[1]);
-    }
-    return hashtags;
-};
-
 const initialPostsData = [
     { id: '1', author: { id: 'user1', name: 'Олена Коваленко', avatarUrl: '/static/images/avatar/2.jpg' }, isAnonymous: false, type: 'question', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), text: "Привіт усім! 👋 Які ваші улюблені вправи для тренування пресу вдома? Діліться досвідом! #фітнес #домашнітренування", media: null, likes: 25, likedByUser: false, commentsCount: 2, tags: ['фітнес', 'домашнітренування'] },
     { id: '2', author: null, isAnonymous: true, type: 'question', timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), text: "Підкажіть, будь ласка, хороші ресурси (статті, відео) для початківців у йозі. Хочу спробувати, але не знаю, з чого почати. Дякую! #йога", media: null, likes: 15, likedByUser: true, commentsCount: 0, tags: ['йога', 'поради'] },
     { id: '3', author: { id: 'user2', name: 'Максим Грищенко', avatarUrl: '/static/images/avatar/3.jpg' }, isAnonymous: false, type: 'achievement', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), text: "Щойно завершив неймовірний 10-кілометровий забіг! 🏃‍♂️ Погода була чудова, а відчуття після - просто космос! Хто сьогодні теж бігав? #біг #мотивація", media: { type: 'image/jpeg', url: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&auto=format&fit=crop' }, likes: 42, likedByUser: false, commentsCount: 1, tags: ['біг', 'мотивація'] },
-    { id: '4', author: { id: 'user3', name: 'Адміністрація Grindzone', avatarUrl: '/static/images/avatar/grindzone-logo.png' }, isAnonymous: false, type: 'article', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), text: "🎬 Наш новий туторіал про техніку присідань вже на сайті! #присідання #техніка", media: { type: 'video/mp4', url: '/static/videos/sample-video.mp4' }, likes: 68, likedByUser: true, commentsCount: 0, tags: ['присідання', 'техніка'] },
-    ...Array.from({ length: 15 }, (_, i) => ({ id: `mock${i + 5}`, author: { id: `user${i + 4}`, name: `User ${i + 4}`, avatarUrl: `/static/images/avatar/${(i % 5) + 1}.jpg` }, isAnonymous: false, type: 'text', timestamp: new Date(Date.now() - (i + 3) * 24 * 60 * 60 * 1000).toISOString(), text: `Це тестовий пост номер ${i + 5}. Обговорюємо #тест${i} та #розробка.`, media: null, likes: Math.floor(Math.random() * 50), likedByUser: Math.random() > 0.5, commentsCount: Math.floor(Math.random() * 5), tags: [`тест${i}`, 'розробка'] }))
 ];
-
-const initialCommentsData = {
-    '1': [ { id: 'c1-1', postId: '1', author: { id: 'user4', name: 'Ігор Петренко', avatarUrl: '/static/images/avatar/4.jpg' }, text: "Я обожнюю планку у всіх її варіаціях!", timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000).toISOString() }, { id: 'c1-2', postId: '1', author: { id: 'user5', name: 'Софія Мельник', avatarUrl: '/static/images/avatar/5.jpg' }, text: "Скручування та підйоми ніг – класика!", timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() } ],
-    '3': [ { id: 'c3-1', postId: '3', author: { id: 'user1', name: 'Олена Коваленко', avatarUrl: '/static/images/avatar/2.jpg' }, text: "Круто, Максиме!", timestamp: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString() } ]
-};
-
 
 function CommunityPage(props) {
     const theme = useTheme();
@@ -211,27 +192,20 @@ function CommunityPage(props) {
     );
     const [anchorElPostMenu, setAnchorElPostMenu] = React.useState(null);
     const [selectedPostForMenu, setSelectedPostForMenu] = React.useState(null);
-    const navigate = useNavigate();
-
     const [posts, setPosts] = React.useState(initialPostsData);
-    const [comments, setComments] = React.useState(initialCommentsData);
+    const [comments, setComments] = React.useState({});
     const [newPostText, setNewPostText] = React.useState("");
     const [newPostType, setNewPostType] = React.useState('text');
     const [selectedFile, setSelectedFile] = React.useState(null);
     const [previewMediaUrl, setPreviewMediaUrl] = React.useState(null);
     const [previewMediaType, setPreviewMediaType] = React.useState(null);
-
     const [openCommentsModal, setOpenCommentsModal] = React.useState(false);
     const [selectedPostForComment, setSelectedPostForComment] = React.useState(null);
     const [newCommentText, setNewCommentText] = React.useState("");
-
     const [searchTerm, setSearchTerm] = React.useState("");
     const [currentPage, setCurrentPage] = React.useState(1);
-
-    const handleLogout = () => {
-        setIsAuthenticated(false);
-        setCurrentUser(null);
-    };
+    const [totalPages, setTotalPages] = React.useState(1);
+    const [loading, setLoading] = React.useState(false);
 
     const handleOpenPostMenu = (event, post) => { setAnchorElPostMenu(event.currentTarget); setSelectedPostForMenu(post); };
     const handleClosePostMenu = () => { setAnchorElPostMenu(null); setSelectedPostForMenu(null); };
@@ -260,101 +234,184 @@ function CommunityPage(props) {
             setPreviewMediaUrl(objectUrl);
             setPreviewMediaType(file.type);
         } else {
-            setSelectedFile(null);
-            setPreviewMediaUrl(null);
-            setPreviewMediaType(null);
+            clearPreviewMedia();
         }
     };
 
-    const handleCreatePost = () => {
+    const fetchPosts = async (page = 1, search = '') => {
+        setLoading(true);
+        try {
+            const response = await fetch(`/api/posts?page=${page}&limit=${POSTS_PER_PAGE}&searchTerm=${encodeURIComponent(search)}&userId=${currentUser?.id || ''}`);
+            if (!response.ok) throw new Error('Помилка завантаження постів');
+            const data = await response.json();
+            setPosts([...initialPostsData, ...data.posts]);
+            setTotalPages(data.totalPages);
+        } catch (error) {
+            console.error('Error fetching posts:', error);
+            setPosts(initialPostsData); // Повертаємо мок-дані у разі помилки
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchComments = async (postId) => {
+        try {
+            const response = await fetch(`/api/posts/${postId}/comments`);
+            if (!response.ok) throw new Error('Помилка завантаження коментарів');
+            const data = await response.json();
+            setComments(prev => ({ ...prev, [postId]: data }));
+        } catch (error) {
+            console.error('Error fetching comments:', error);
+            setComments(prev => ({ ...prev, [postId]: [] }));
+        }
+    };
+
+    const handleCreatePost = async () => {
         if (!newPostText.trim() && !selectedFile) return;
 
-        const rawText = newPostText;
-        const hashtags = extractHashtags(rawText);
-        let textForPost = rawText;
-
-        if (hashtags.length > 0) {
-            const hashtagRegex = /#([a-zA-Z0-9_а-яА-ЯіІїЇєЄ]+)/g;
-            textForPost = rawText.replace(hashtagRegex, "").replace(/\s\s+/g, ' ').trim();
+        const formData = new FormData();
+        if (isAuthenticated && currentUser) {
+            formData.append('userId', currentUser.id);
+        } else {
+            formData.append('isAnonymous', true);
+        }
+        formData.append('text', newPostText);
+        formData.append('type', newPostType);
+        if (selectedFile) {
+            formData.append('media', selectedFile);
         }
 
-        let mediaData = null;
-        if (selectedFile && previewMediaUrl && previewMediaType) {
-            // Створюємо новий blob URL для поста, щоб не залежати від previewMediaUrl
-            const postMediaUrl = URL.createObjectURL(selectedFile);
-            mediaData = {
-                type: previewMediaType,
-                url: postMediaUrl
-            };
+        try {
+            const response = await fetch('/api/posts', {
+                method: 'POST',
+                body: formData
+            });
+            if (!response.ok) throw new Error('Помилка створення поста');
+            const { post } = await response.json();
+            setPosts(prev => [post, ...prev]);
+            setNewPostText("");
+            setNewPostType('text');
+            clearPreviewMedia();
+            if (currentPage !== 1) setCurrentPage(1);
+        } catch (error) {
+            console.error('Error creating post:', error);
+            alert('Не вдалося створити пост.');
         }
-
-        const newPost = {
-            id: String(Date.now()),
-            author: isAuthenticated ? currentUser : null,
-            isAnonymous: !isAuthenticated,
-            type: newPostType,
-            timestamp: new Date().toISOString(),
-            text: textForPost,
-            media: mediaData,
-            likes: 0,
-            likedByUser: false,
-            commentsCount: 0,
-            tags: hashtags
-        };
-        setPosts(prevPosts => [newPost, ...prevPosts]);
-        setNewPostText("");
-        setNewPostType('text');
-        clearPreviewMedia(); // Очищаємо прев’ю, але пост зберігає свій URL
-        if (currentPage !== 1) setCurrentPage(1);
     };
 
-    const handleDeletePost = (postId) => {
-        const postToDelete = posts.find(p => p.id === postId);
-        if (postToDelete && postToDelete.media && postToDelete.media.url.startsWith('blob:')) {
-            URL.revokeObjectURL(postToDelete.media.url);
+    const handleDeletePost = async (postId) => {
+        if (!isAuthenticated || !currentUser) return;
+        try {
+            const response = await fetch(`/api/posts/${postId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id })
+            });
+            if (!response.ok) throw new Error('Помилка видалення поста');
+            setPosts(prev => prev.filter(post => post.id !== postId));
+            setComments(prev => {
+                const newComments = { ...prev };
+                delete newComments[postId];
+                return newComments;
+            });
+            handleClosePostMenu();
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            alert('Не вдалося видалити пост.');
         }
-        // Спочатку закриваємо меню
-        setAnchorElPostMenu(null);
-        setSelectedPostForMenu(null);
-        // Затримуємо оновлення стану постів
-        setTimeout(() => {
-            setPosts(posts.filter(post => post.id !== postId));
-            const newComments = { ...comments };
-            delete newComments[postId];
-            setComments(newComments);
-        }, 0);
     };
 
-    const handleReportPost = (postId) => {
-        console.log(`User ${currentUser?.id || 'anonymous'} reported post ${postId}`);
-        alert(`Пост ${postId} було відправлено на розгляд.`);
-        handleClosePostMenu();
+    const handleReportPost = async (postId) => {
+        if (!isAuthenticated || !currentUser) return;
+        try {
+            const response = await fetch(`/api/posts/${postId}/report`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id })
+            });
+            if (!response.ok) throw new Error('Помилка надсилання скарги');
+            alert('Скарга на пост надіслана.');
+            handleClosePostMenu();
+        } catch (error) {
+            console.error('Error reporting post:', error);
+            alert('Не вдалося надіслати скаргу.');
+        }
     };
 
-    const handleLikePost = (postId) => {
-        setPosts(posts.map(post => post.id === postId ? { ...post, likedByUser: !post.likedByUser, likes: post.likedByUser ? post.likes - 1 : post.likes + 1 } : post));
+    const handleLikePost = async (postId) => {
+        if (!isAuthenticated || !currentUser) return;
+        try {
+            const response = await fetch(`/api/posts/${postId}/like`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id })
+            });
+            if (!response.ok) throw new Error('Помилка обробки лайка');
+            const { likes, likedByUser } = await response.json();
+            setPosts(prev => prev.map(post => post.id === postId ? { ...post, likes, likedByUser } : post));
+        } catch (error) {
+            console.error('Error liking post:', error);
+            alert('Не вдалося обробити лайк.');
+        }
     };
 
-    const handleOpenComments = (post) => { setSelectedPostForComment(post); setOpenCommentsModal(true); };
-    const handleCloseCommentsModal = () => { setOpenCommentsModal(false); setSelectedPostForComment(null); setNewCommentText(""); };
+    const handleOpenComments = async (post) => {
+        setSelectedPostForComment(post);
+        await fetchComments(post.id);
+        setOpenCommentsModal(true);
+    };
 
-    const handlePostComment = () => {
-        if (!newCommentText.trim() || !selectedPostForComment) return;
-        const newComment = {
-            id: String(Date.now()),
-            postId: selectedPostForComment.id,
-            author: isAuthenticated ? currentUser : {id:null, name: 'Анонім', avatarUrl: '/static/images/avatar/anonymous.png'},
-            text: newCommentText,
-            timestamp: new Date().toISOString(),
-        };
-        setComments(prev => ({ ...prev, [selectedPostForComment.id]: [...(prev[selectedPostForComment.id] || []), newComment] }));
-        setPosts(posts.map(p => p.id === selectedPostForComment.id ? {...p, commentsCount: (comments[selectedPostForComment.id]?.length || 0) + 1} : p));
+    const handleCloseCommentsModal = () => {
+        setOpenCommentsModal(false);
+        setSelectedPostForComment(null);
         setNewCommentText("");
     };
 
-    const handleDeleteComment = (postId, commentId) => {
-        setComments(prev => ({ ...prev, [postId]: prev[postId].filter(c => c.id !== commentId) }));
-        setPosts(posts.map(p => p.id === postId ? {...p, commentsCount: (comments[postId]?.length || 1) - 1} : p));
+    const handlePostComment = async () => {
+        if (!newCommentText.trim() || !selectedPostForComment) return;
+
+        try {
+            const response = await fetch(`/api/posts/${selectedPostForComment.id}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: isAuthenticated && currentUser ? currentUser.id : null,
+                    text: newCommentText,
+                    isAnonymous: !isAuthenticated
+                })
+            });
+            if (!response.ok) throw new Error('Помилка створення коментаря');
+            const { comment } = await response.json();
+            setComments(prev => ({
+                ...prev,
+                [selectedPostForComment.id]: [...(prev[selectedPostForComment.id] || []), comment]
+            }));
+            setPosts(prev => prev.map(p => p.id === selectedPostForComment.id ? { ...p, commentsCount: (prev[selectedPostForComment.id]?.length || 0) + 1 } : p));
+            setNewCommentText("");
+        } catch (error) {
+            console.error('Error posting comment:', error);
+            alert('Не вдалося створити коментар.');
+        }
+    };
+
+    const handleDeleteComment = async (postId, commentId) => {
+        if (!isAuthenticated || !currentUser) return;
+        try {
+            const response = await fetch(`/api/posts/${postId}/comments/${commentId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id })
+            });
+            if (!response.ok) throw new Error('Помилка видалення коментаря');
+            setComments(prev => ({
+                ...prev,
+                [postId]: prev[postId].filter(c => c.id !== commentId)
+            }));
+            setPosts(prev => prev.map(p => p.id === postId ? { ...p, commentsCount: (prev[postId]?.length || 1) - 1 } : p));
+        } catch (error) {
+            console.error('Error deleting comment:', error);
+            alert('Не вдалося видалити коментар.');
+        }
     };
 
     const handleSharePost = (postId) => {
@@ -383,7 +440,11 @@ function CommunityPage(props) {
     });
 
     const paginatedPosts = filteredPosts.slice((currentPage - 1) * POSTS_PER_PAGE, currentPage * POSTS_PER_PAGE);
-    const pageCount = Math.ceil(filteredPosts.length / POSTS_PER_PAGE);
+    const pageCount = Math.max(totalPages, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
+
+    React.useEffect(() => {
+        fetchPosts(currentPage, searchTerm);
+    }, [currentPage, searchTerm]);
 
     React.useEffect(() => {
         if (currentPage > pageCount && pageCount > 0) {
@@ -424,8 +485,7 @@ function CommunityPage(props) {
                 }
             }
         }
-    }, [location.hash, paginatedPosts, navigate, location.pathname]);
-
+    }, [location.hash, paginatedPosts]);
 
     const textFieldSx = (isMultiline, isComment = false, textValue = "") => ({
         '& .MuiOutlinedInput-root': {
@@ -443,13 +503,11 @@ function CommunityPage(props) {
         }
     });
 
-
     return (
         <AppTheme {...props}>
             <CssBaseline enableColorScheme />
             <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
                 <Box sx={gridBackgroundStyles} />
-
                 <Container maxWidth="md" sx={{ py: { xs: 3, md: 5 }, position: 'relative', zIndex: 5, flexGrow: 1 }}>
                     <Typography variant="h1" component="h1" sx={{ textAlign: 'center', mb: 1, fontWeight: 'bold', fontSize: { xs: '3rem', sm: '3.8rem', md: '4.5rem' }, color: 'white', textShadow: '0 0 15px rgba(198, 126, 255, 0.4)' }}>Стрічка Спільноти</Typography>
                     <Typography variant="h3" component="p" sx={{ textAlign: 'center', mb: {xs:3, md:4, lg:7}, color: 'rgba(230, 220, 255, 0.85)', fontSize: { xs: '1.15rem', sm: '1.3rem', md: '1.45rem' }, fontWeight: '600' }}>Діліться думками, знаннями та досягненнями!</Typography>
@@ -532,7 +590,9 @@ function CommunityPage(props) {
                         ownerState={{ textValue: searchTerm, multiline: false }}
                     />
 
-                    {paginatedPosts.length > 0 ? paginatedPosts.map(post => (
+                    {loading ? (
+                        <Typography sx={{textAlign:'center', color:'rgba(255,255,255,0.6)', p:3}}>Завантаження...</Typography>
+                    ) : paginatedPosts.length > 0 ? paginatedPosts.map(post => (
                         <PostCardStyled key={post.id} id={`post-${post.id}`} sx={{ mb: {xs: 2.5, sm: 3} }}>
                             <CardHeader
                                 avatar={<Avatar src={post.isAnonymous ? "/static/images/avatar/anonymous.png" : post.author?.avatarUrl} sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.2), color: theme.palette.secondary.main, border: `1px solid ${alpha(theme.palette.secondary.main, 0.4)}` }}>{post.isAnonymous ? 'A' : post.author?.name?.charAt(0)}</Avatar>}
@@ -626,9 +686,9 @@ function CommunityPage(props) {
                                 <Paper key={comment.id} sx={{ p: {xs:1.5, sm:2}, mb: 1.5, background: 'hsl(220, 30%, 6%)', borderRadius: '10px', border: '1px solid rgba(138, 43, 226, 0.15)' }}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, justifyContent:'space-between' }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center'}}>
-                                            <Avatar src={comment.author?.avatarUrl || "/static/images/avatar/anonymous.png"} sx={{ width: 32, height: 32, mr: 1.5, fontSize: '0.9rem' }}>{comment.author?.name?.charAt(0) || 'A'}</Avatar>
+                                            <Avatar src={comment.isAnonymous ? "/static/images/avatar/anonymous.png" : comment.author?.avatarUrl} sx={{ width: 32, height: 32, mr: 1.5, fontSize: '0.9rem' }}>{comment.isAnonymous ? 'A' : comment.author?.name?.charAt(0)}</Avatar>
                                             <Box>
-                                                <Typography variant="subtitle2" sx={{ fontWeight: '600', color: alpha(theme.palette.secondary.light,0.9) }}>{comment.author?.name || 'Анонім'}</Typography>
+                                                <Typography variant="subtitle2" sx={{ fontWeight: '600', color: alpha(theme.palette.secondary.light,0.9) }}>{comment.isAnonymous ? 'Анонім' : comment.author?.name}</Typography>
                                                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>{formatTimestamp(comment.timestamp)}</Typography>
                                             </Box>
                                         </Box>
@@ -657,7 +717,7 @@ function CommunityPage(props) {
                                 />
                                 <IconButton
                                     onClick={handlePostComment}
-                                    disabled={!newCommentText.trim() || (isAuthenticated && !currentUser)}
+                                    disabled={!newCommentText.trim()}
                                     sx={{
                                         color: theme.palette.secondary.main,
                                         height: '40px',
