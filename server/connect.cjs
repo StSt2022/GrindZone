@@ -1108,11 +1108,11 @@ app.post('/api/posts', multerUpload.single('media'), async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
 
-        const { userId, text, type, isAnonymous } = req.body;
+        const { userId, text, type } = req.body;
         const mediaFile = req.file;
 
-        if (!userId && !isAnonymous) {
-            return res.status(401).json({ message: 'Потрібен userId або isAnonymous=true.' });
+        if (!userId) {
+            return res.status(401).json({ message: 'Потрібен userId.' });
         }
         if (!text && !mediaFile) {
             return res.status(400).json({ message: 'Текст або медіафайл обов’язкові.' });
@@ -1121,24 +1121,20 @@ app.post('/api/posts', multerUpload.single('media'), async (req, res) => {
             return res.status(400).json({ message: 'Невірний тип поста.' });
         }
 
-        let parsedUserId = null;
-        let author = null;
-        if (!isAnonymous && userId) {
-            if (!ObjectId.isValid(userId)) {
-                return res.status(400).json({ message: 'Невірний формат ID користувача.' });
-            }
-            parsedUserId = new ObjectId(userId);
-            const usersCollection = db.collection('users');
-            const user = await usersCollection.findOne({ _id: parsedUserId });
-            if (!user) {
-                return res.status(404).json({ message: 'Користувача не знайдено.' });
-            }
-            author = {
-                id: user._id.toString(),
-                name: user.name,
-                avatarUrl: user.profile?.avatarUrl || null
-            };
+        if (!ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
         }
+        const parsedUserId = new ObjectId(userId);
+        const usersCollection = db.collection('users');
+        const user = await usersCollection.findOne({ _id: parsedUserId });
+        if (!user) {
+            return res.status(404).json({ message: 'Користувача не знайдено.' });
+        }
+        const author = {
+            id: user._id.toString(),
+            name: user.name,
+            avatarUrl: user.profile?.avatarUrl || null
+        };
 
         let mediaData = null;
         if (mediaFile) {
@@ -1156,8 +1152,7 @@ app.post('/api/posts', multerUpload.single('media'), async (req, res) => {
         const cleanText = text.replace(/#([a-zA-Z0-9_а-яА-ЯіІїЇєЄ]+)/g, '').replace(/\s\s+/g, ' ').trim();
 
         const newPost = {
-            author: isAnonymous ? null : author,
-            isAnonymous: !!isAnonymous,
+            author,
             type: type || 'text',
             text: cleanText,
             media: mediaData,
@@ -1362,7 +1357,7 @@ app.post('/api/posts/:postId/report', async (req, res) => {
             return res.status(400).json({ message: 'Невірний формат ID користувача.' });
         }
 
-        const reportsCollection = db.collection('post_reports');
+        const reportsCollection = db.collection('reports');
         const existingReport = await reportsCollection.findOne({ postId: new ObjectId(postId), userId });
 
         if (existingReport) {
@@ -1388,36 +1383,32 @@ app.post('/api/posts/:postId/comments', async (req, res) => {
         if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
 
         const { postId } = req.params;
-        const { userId, text, isAnonymous } = req.body;
+        const { userId, text } = req.body;
 
         if (!ObjectId.isValid(postId)) {
             return res.status(400).json({ message: 'Невірний формат ID поста.' });
+        }
+        if (!userId || !ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
         }
         if (!text) {
             return res.status(400).json({ message: 'Текст коментаря обов’язковий.' });
         }
 
-        let author = null;
-        if (!isAnonymous && userId) {
-            if (!ObjectId.isValid(userId)) {
-                return res.status(400).json({ message: 'Невірний формат ID користувача.' });
-            }
-            const usersCollection = db.collection('users');
-            const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
-            if (!user) {
-                return res.status(404).json({ message: 'Користувача не знайдено.' });
-            }
-            author = {
-                id: user._id.toString(),
-                name: user.name,
-                avatarUrl: user.profile?.avatarUrl || null
-            };
+        const usersCollection = db.collection('users');
+        const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        if (!user) {
+            return res.status(404).json({ message: 'Користувача не знайдено.' });
         }
+        const author = {
+            id: user._id.toString(),
+            name: user.name,
+            avatarUrl: user.profile?.avatarUrl || null
+        };
 
         const newComment = {
             postId: new ObjectId(postId),
-            author: isAnonymous ? null : author,
-            isAnonymous: !!isAnonymous,
+            author,
             text,
             createdAt: new Date()
         };

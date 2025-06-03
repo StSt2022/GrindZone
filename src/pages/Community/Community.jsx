@@ -293,13 +293,13 @@ function CommunityPage(props) {
 
     const handleCreatePost = async () => {
         if (!newPostText.trim() && !selectedFile) return;
+        if (!currentUser?.id) {
+            alert('Помилка: користувач не авторизований.');
+            return;
+        }
 
         const formData = new FormData();
-        if (isAuthenticated && currentUser) {
-            formData.append('userId', currentUser.id);
-        } else {
-            formData.append('isAnonymous', true);
-        }
+        formData.append('userId', currentUser.id);
         formData.append('text', newPostText);
         formData.append('type', newPostType);
         if (selectedFile) {
@@ -412,9 +412,8 @@ function CommunityPage(props) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userId: isAuthenticated && currentUser ? currentUser.id : null,
-                    text: newCommentText,
-                    isAnonymous: !isAuthenticated
+                    userId: currentUser?.id,
+                    text: newCommentText
                 })
             });
             if (!response.ok) throw new Error('Помилка створення коментаря');
@@ -555,15 +554,14 @@ function CommunityPage(props) {
                     <Paper sx={{ p: {xs: 2, sm: 2.5}, mb: {xs:3, md:4}, backgroundColor: 'hsl(220, 30%, 6%)', backdropFilter: 'blur(10px)', borderRadius: '16px', border: '1px solid rgba(138, 43, 226, 0.25)', boxShadow: '0 10px 35px rgba(0, 0, 0, 0.25)', }}>
                         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1.5 }}>
                             <Avatar
-                                src={isAuthenticated && currentUser?.avatarUrl ? currentUser.avatarUrl : "/static/images/avatar/anonymous.png"}
+                                src={currentUser?.avatarUrl || "/static/images/avatar/default.jpg"}
                                 sx={{ width: 48, height: 48, mt: theme.spacing(1), border: '2px solid rgba(198, 126, 255, 0.5)' }}
                             />
                             <StyledTextField
                                 multiline
                                 rows={3}
                                 maxRows={6}
-                                placeholder={isAuthenticated && currentUser ? `Що у вас на думці, ${currentUser.name.split(' ')[0]}?` : "Напишіть анонімне повідомлення..."}
-                                value={newPostText}
+                                placeholder={currentUser ? `Що у вас на думці, ${currentUser.name.split(' ')[0]}?` : "Завантаження..."}                                value={newPostText}
                                 onChange={(e) => setNewPostText(e.target.value.slice(0, MAX_POST_LENGTH))}
                                 helperText={`${newPostText.length}/${MAX_POST_LENGTH}`}
                                 FormHelperTextProps={{sx: {textAlign:'right', color:'rgba(255,255,255,0.5)'}}}
@@ -606,7 +604,7 @@ function CommunityPage(props) {
                                 variant="contained"
                                 endIcon={<SendIcon />}
                                 onClick={handleCreatePost}
-                                disabled={(!newPostText.trim() && !selectedFile) || (isAuthenticated && !currentUser)}
+                                disabled={(!newPostText.trim() && !selectedFile) || !currentUser?.id}
                                 sx={{
                                     background: 'rgba(255,255,255,0.9) !important',
                                     fontWeight: 'bold', fontSize: '0.9rem', borderRadius: 'none !important',
@@ -637,7 +635,7 @@ function CommunityPage(props) {
                             <CardHeader
                                 avatar={<Avatar src={post.isAnonymous ? "/static/images/avatar/anonymous.png" : post.author?.avatarUrl} sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.2), color: theme.palette.secondary.main, border: `1px solid ${alpha(theme.palette.secondary.main, 0.4)}` }}>{post.isAnonymous ? 'A' : post.author?.name?.charAt(0)}</Avatar>}
                                 action={isAuthenticated && <IconButton aria-label="post-menu" onClick={(e) => handleOpenPostMenu(e, post)} sx={{color: 'rgba(255,255,255,0.6)', '&:hover': {backgroundColor: 'rgba(255,255,255,0.1)'}}}><MoreVertIcon /></IconButton>}
-                                title={<Box sx={{display: 'flex', alignItems: 'center', marginLeft: -1}}>{getPostTypeIconElement(post.type)}<Typography variant="subtitle1" component="span" sx={{fontWeight: '600', color: 'white'}}>{post.isAnonymous ? "Анонімний Користувач" : post.author?.name}</Typography></Box>}
+                                title={<Box sx={{display: 'flex', alignItems: 'center', marginLeft: -1}}>{getPostTypeIconElement(post.type)}<Typography variant="subtitle1" component="span" sx={{fontWeight: '600', color: 'white'}}>{post.author?.name || "Користувач"}</Typography></Box>}
                                 subheader={<Typography variant="caption" sx={{color: 'rgba(255,255,255,0.5)', marginLeft: -0.7}}>{formatTimestamp(post.timestamp)}</Typography>}
                                 sx={{
                                     pb: 1,
@@ -742,7 +740,7 @@ function CommunityPage(props) {
                         </Box>
                         <Box sx={{ p: {xs:1.5, sm:2}, borderTop: `1px solid rgba(255,255,255,0.1)`}}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                <Avatar src={isAuthenticated && currentUser ? currentUser.avatarUrl : "/static/images/avatar/anonymous.png"} sx={{ width: 40, height: 40 }} />
+                                <Avatar src={currentUser?.avatarUrl || "/static/images/avatar/default.jpg"} sx={{ width: 40, height: 40 }} />
                                 <StyledTextField
                                     multiline
                                     rows={1}
