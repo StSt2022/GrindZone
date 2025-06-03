@@ -44,6 +44,8 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 
+import { useAuth } from '../../context/AuthContext'; // Адаптуйте шлях
+
 const gridLineGlow = keyframes`0% { opacity: 0.05; } 50% { opacity: 0.1; } 100% { opacity: 0.05; }`;
 
 const gridBackgroundStyles = {
@@ -180,9 +182,8 @@ const formatTimestamp = (isoString) => {
 function CommunityPage(props) {
     const theme = useTheme();
     const location = useLocation();
-    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-    const [currentUser, setCurrentUser] = React.useState(null);
-    const [authChecked, setAuthChecked] = React.useState(false);
+    const { currentUser, isAuthenticated, isLoadingAuth } = useAuth();
+
     const [anchorElPostMenu, setAnchorElPostMenu] = React.useState(null);
     const [selectedPostForMenu, setSelectedPostForMenu] = React.useState(null);
     const [posts, setPosts] = React.useState([]);
@@ -200,78 +201,6 @@ function CommunityPage(props) {
     const [totalPages, setTotalPages] = React.useState(1);
     const [loading, setLoading] = React.useState(false);
 
-    React.useEffect(() => {
-        let isMounted = true;
-
-        const initializeAuth = async () => {
-            console.log("initializeAuth: Початок перевірки автентифікації...");
-            if (isMounted) setAuthChecked(false);
-            const userIdFromStorage = localStorage.getItem('userId');
-            console.log("initializeAuth: userId з localStorage =", userIdFromStorage);
-
-            if (userIdFromStorage) {
-                try {
-                    console.log(`initializeAuth: Запит профілю для userId: ${userIdFromStorage}`);
-                    const response = await fetch(`/api/profile/${userIdFromStorage}`);
-                    console.log("initializeAuth: Статус відповіді від /api/profile:", response.status);
-
-                    if (!response.ok) {
-                        const errorText = await response.text(); // Спробуйте прочитати текст помилки
-                        console.error(`initializeAuth: Помилка завантаження профілю. Статус: ${response.status}, Текст: ${errorText}`);
-                        localStorage.removeItem('userId');
-                        if (isMounted) {
-                            setIsAuthenticated(false);
-                            setCurrentUser(null);
-                        }
-                        // throw new Error(`Не вдалося завантажити дані користувача (статус ${response.status})`); // Можете розкоментувати для зупинки
-                    } else {
-                        const userData = await response.json();
-                        console.log("initializeAuth: Отримані дані профілю:", userData);
-                        if (isMounted) {
-                            setCurrentUser({
-                                id: userData.userId,
-                                name: userData.name,
-                                avatarUrl: userData.avatarUrl || '/static/images/avatar/default.jpg'
-                            });
-                            setIsAuthenticated(true);
-                            console.log("initializeAuth: Користувача автентифіковано, дані встановлено.");
-                        }
-                    }
-                } catch (error) {
-                    console.error('initializeAuth: Критична помилка під час запиту профілю або обробки відповіді:', error);
-                    localStorage.removeItem('userId'); // Важливо очистити, якщо була помилка
-                    if (isMounted) {
-                        setIsAuthenticated(false);
-                        setCurrentUser(null);
-                    }
-                }
-            } else {
-                console.log("initializeAuth: userId не знайдено в localStorage.");
-                if (isMounted) {
-                    setIsAuthenticated(false);
-                    setCurrentUser(null);
-                }
-            }
-
-            if (isMounted) {
-                setAuthChecked(true);
-                // Логуємо стан ПІСЛЯ всіх асинхронних операцій і викликів setState
-                // Щоб побачити актуальний стан, можна залогігувати його в наступному рендері або в useEffect, що залежить від isAuthenticated
-                console.log("initializeAuth: Перевірку автентифікації завершено. authChecked=true");
-            }
-        };
-
-        initializeAuth();
-
-        return () => {
-            isMounted = false;
-        };
-    }, []); // Пустий масив залежностей
-
-// Додатковий лог для відстеження змін isAuthenticated
-    React.useEffect(() => {
-        console.log("Auth state changed: isAuthenticated =", isAuthenticated, "currentUser =", currentUser);
-    }, [isAuthenticated, currentUser]);
 
     const handleOpenPostMenu = (event, post) => { setAnchorElPostMenu(event.currentTarget); setSelectedPostForMenu(post); };
     const handleClosePostMenu = () => { setAnchorElPostMenu(null); setSelectedPostForMenu(null); };
@@ -307,7 +236,8 @@ function CommunityPage(props) {
     const fetchPosts = async (page = 1, search = '') => {
         setLoading(true);
         try {
-            const response = await fetch(`/api/posts?page=${page}&limit=${POSTS_PER_PAGE}&searchTerm=${encodeURIComponent(search)}&userId=${currentUser?.id || ''}`);
+            const userIdForQuery = isAuthenticated && currentUser ? currentUser.userId : '';
+            const response = await fetch(`/api/posts?page=${page}&limit=${POSTS_PER_PAGE}&searchTerm=${encodeURIComponent(search)}&userId=${userIdForQuery}`);
             if (!response.ok) throw new Error('Помилка завантаження постів');
             const data = await response.json();
             setPosts(data.posts);
@@ -324,7 +254,6 @@ function CommunityPage(props) {
             const response = await fetch(`/api/posts/${postId}/comments`);
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('Fetch comments error response:', errorData);
                 throw new Error(errorData.message || 'Помилка завантаження коментарів');
             }
             const data = await response.json();
@@ -337,13 +266,13 @@ function CommunityPage(props) {
 
     const handleCreatePost = async () => {
         if (!newPostText.trim() && !selectedFile) return;
-        if (!currentUser?.id) {
+        if (!isAuthenticated || !currentUser?.userId) {
             alert('Помилка: користувач не авторизований.');
             return;
         }
 
         const formData = new FormData();
-        formData.append('userId', currentUser.id);
+        formData.append('userId', currentUser.userId);
         formData.append('text', newPostText);
         formData.append('type', newPostType);
         if (selectedFile) {
@@ -357,15 +286,22 @@ function CommunityPage(props) {
             });
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('Create post error response:', errorData);
                 throw new Error(errorData.message || 'Помилка створення поста');
             }
             const { post } = await response.json();
-            setPosts(prev => [post, ...prev]);
+            setPosts(prev => [post, ...prev.filter(p => p.id !== post.id)]); // Додаємо новий пост, уникаючи дублікатів якщо вже є
             setNewPostText("");
             setNewPostType('text');
             clearPreviewMedia();
-            if (currentPage !== 1) setCurrentPage(1);
+            if (currentPage !== 1 && posts.length + 1 > POSTS_PER_PAGE * (currentPage -1) ) { // Перевірка чи треба скидати на 1 сторінку
+                // Якщо постів стає більше ніж на поточній сторінці, можна оновити дані для поточної
+                // або перекинути на першу, щоб новий пост був видимий
+                fetchPosts(1, searchTerm); // Оновлюємо пости з першої сторінки
+                setCurrentPage(1);
+            } else if (posts.length + 1 <= POSTS_PER_PAGE){
+                // Якщо постів ще мало і всі вміщаються на першу сторінку
+                setCurrentPage(1); // Залишаємось або переходимо на 1-шу
+            }
         } catch (error) {
             console.error('Error creating post:', error);
             alert(`Не вдалося створити пост: ${error.message}`);
@@ -373,12 +309,12 @@ function CommunityPage(props) {
     };
 
     const handleDeletePost = async (postId) => {
-        if (!isAuthenticated || !currentUser) return;
+        if (!isAuthenticated || !currentUser?.userId) return;
         try {
             const response = await fetch(`/api/posts/${postId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.id })
+                body: JSON.stringify({ userId: currentUser.userId })
             });
             if (!response.ok) throw new Error('Помилка видалення поста');
             setPosts(prev => prev.filter(post => post.id !== postId));
@@ -395,16 +331,15 @@ function CommunityPage(props) {
     };
 
     const handleReportPost = async (postId) => {
-        if (!isAuthenticated || !currentUser) return;
+        if (!isAuthenticated || !currentUser?.userId) return;
         try {
             const response = await fetch(`/api/posts/${postId}/report`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.id })
+                body: JSON.stringify({ userId: currentUser.userId })
             });
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('Report post error response:', errorData);
                 throw new Error(errorData.message || 'Помилка надсилання скарги');
             }
             alert('Скарга на пост надіслана.');
@@ -416,16 +351,15 @@ function CommunityPage(props) {
     };
 
     const handleLikePost = async (postId) => {
-        if (!isAuthenticated || !currentUser) return;
+        if (!isAuthenticated || !currentUser?.userId) return;
         try {
             const response = await fetch(`/api/posts/${postId}/like`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.id })
+                body: JSON.stringify({ userId: currentUser.userId })
             });
             if (!response.ok) {
-                const errorData = await response.json(); // Отримуємо деталі помилки
-                console.error('Like post error response:', errorData);
+                const errorData = await response.json();
                 throw new Error(errorData.message || 'Помилка обробки лайка');
             }
             const { likes, likedByUser } = await response.json();
@@ -449,14 +383,14 @@ function CommunityPage(props) {
     };
 
     const handlePostComment = async () => {
-        if (!newCommentText.trim() || !selectedPostForComment) return;
+        if (!newCommentText.trim() || !selectedPostForComment || !isAuthenticated || !currentUser?.userId) return;
 
         try {
             const response = await fetch(`/api/posts/${selectedPostForComment.id}/comments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userId: currentUser?.id,
+                    userId: currentUser.userId,
                     text: newCommentText
                 })
             });
@@ -466,7 +400,7 @@ function CommunityPage(props) {
                 ...prev,
                 [selectedPostForComment.id]: [...(prev[selectedPostForComment.id] || []), comment]
             }));
-            setPosts(prev => prev.map(p => p.id === selectedPostForComment.id ? { ...p, commentsCount: (prev[selectedPostForComment.id]?.length || 0) + 1 } : p));
+            setPosts(prev => prev.map(p => p.id === selectedPostForComment.id ? { ...p, commentsCount: (comments[selectedPostForComment.id]?.length || 0) + 1 } : p));
             setNewCommentText("");
         } catch (error) {
             console.error('Error posting comment:', error);
@@ -475,19 +409,19 @@ function CommunityPage(props) {
     };
 
     const handleDeleteComment = async (postId, commentId) => {
-        if (!isAuthenticated || !currentUser) return;
+        if (!isAuthenticated || !currentUser?.userId) return;
         try {
             const response = await fetch(`/api/posts/${postId}/comments/${commentId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.id })
+                body: JSON.stringify({ userId: currentUser.userId })
             });
             if (!response.ok) throw new Error('Помилка видалення коментаря');
             setComments(prev => ({
                 ...prev,
                 [postId]: prev[postId].filter(c => c.id !== commentId)
             }));
-            setPosts(prev => prev.map(p => p.id === postId ? { ...p, commentsCount: (prev[postId]?.length || 1) - 1 } : p));
+            setPosts(prev => prev.map(p => p.id === postId ? { ...p, commentsCount: (comments[postId]?.length || 1) - 1 } : p));
         } catch (error) {
             console.error('Error deleting comment:', error);
             alert('Не вдалося видалити коментар.');
@@ -510,32 +444,37 @@ function CommunityPage(props) {
         return null;
     };
 
-    const filteredPosts = posts.filter(post => {
+    React.useEffect(() => {
+        if (!isLoadingAuth) {
+            if (isAuthenticated) {
+                fetchPosts(currentPage, searchTerm);
+            } else {
+                setPosts([]);
+                setTotalPages(1);
+                setCurrentPage(1);
+                setLoading(false);
+            }
+        }
+    }, [currentPage, searchTerm, isAuthenticated, isLoadingAuth, currentUser]);
+
+
+    const filteredPosts = React.useMemo(() => posts.filter(post => {
         const searchTermLower = searchTerm.toLowerCase();
         const textMatch = post.text.toLowerCase().includes(searchTermLower);
         const tagMatch = post.tags.some(tag => tag.toLowerCase().includes(searchTermLower));
         const authorName = post.isAnonymous ? "" : post.author?.name || "";
         const authorMatch = authorName.toLowerCase().includes(searchTermLower);
         return textMatch || tagMatch || authorMatch;
-    });
+    }), [posts, searchTerm]);
 
-    const paginatedPosts = filteredPosts.slice((currentPage - 1) * POSTS_PER_PAGE, currentPage * POSTS_PER_PAGE);
-    const pageCount = Math.max(totalPages, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
+    const paginatedPosts = React.useMemo(() => {
+        return filteredPosts.slice((currentPage - 1) * POSTS_PER_PAGE, currentPage * POSTS_PER_PAGE);
+    }, [filteredPosts, currentPage]);
 
-    React.useEffect(() => {
-        if (authChecked) { // Тільки після завершення початкової перевірки автентифікації
-            if (isAuthenticated && currentUser?.id) {
-                // currentUser вже має бути повністю завантажений функцією initializeAuth
-                fetchPosts(currentPage, searchTerm);
-            } else if (!isAuthenticated) {
-                setPosts([]); // Очистити пости
-                setTotalPages(1);
-                setCurrentPage(1);
-                setLoading(false);
-                console.log("Користувач не автентифікований, завантаження постів скасовано/очищено.");
-            }
-        }
-    }, [currentPage, searchTerm, isAuthenticated, currentUser?.id, authChecked]);
+    const pageCount = React.useMemo(() => {
+        return Math.max(totalPages, Math.ceil(filteredPosts.length / POSTS_PER_PAGE)) || 1;
+    }, [totalPages, filteredPosts.length]);
+
 
     React.useEffect(() => {
         if (currentPage > pageCount && pageCount > 0) {
@@ -555,28 +494,25 @@ function CommunityPage(props) {
                 const targetPage = Math.floor(postIndex / POSTS_PER_PAGE) + 1;
                 if (currentPage !== targetPage) {
                     setCurrentPage(targetPage);
-                } else {
-                    const element = document.getElementById(`post-${targetPostId}`);
-                    if (element) {
-                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
                 }
             }
         }
-    }, [location.hash, filteredPosts, currentPage]);
+    }, [location.hash, filteredPosts, currentPage]); // Не додаємо paginatedPosts, щоб уникнути циклу при зміні сторінки
 
     React.useEffect(() => {
         const hash = location.hash;
         if (hash && hash.startsWith('#post-')) {
             const targetPostId = hash.substring('#post-'.length);
-            if (paginatedPosts.some(p => p.id === targetPostId)) {
+            // Чекаємо, поки пости завантажаться і відфільтруються для поточної сторінки
+            if (!loading && paginatedPosts.some(p => p.id === targetPostId)) {
                 const element = document.getElementById(`post-${targetPostId}`);
                 if (element) {
                     element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }
         }
-    }, [location.hash, paginatedPosts]);
+    }, [location.hash, paginatedPosts, loading, currentPage]);
+
 
     const textFieldSx = (isMultiline, isComment = false, textValue = "") => ({
         '& .MuiOutlinedInput-root': {
@@ -594,6 +530,29 @@ function CommunityPage(props) {
         }
     });
 
+    if (isLoadingAuth) {
+        return (
+            <AppTheme {...props}>
+                <CssBaseline enableColorScheme />
+                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
+                    <Box sx={gridBackgroundStyles} />
+                    <Container maxWidth="md" sx={{ py: { xs: 3, md: 5 }, position: 'relative', zIndex: 5, flexGrow: 1, textAlign: 'center' }}>
+                        <Typography variant="h4" sx={{color: 'rgba(255,255,255,0.7)'}}>Перевірка автентифікації...</Typography>
+                    </Container>
+                    <Footer />
+                </Box>
+            </AppTheme>
+        );
+    }
+
+    let placeholderText = "Увійдіть, щоб створити пост";
+    if (isAuthenticated && currentUser?.name) {
+        placeholderText = `Що у вас на думці, ${currentUser.name.split(' ')[0]}?`;
+    } else if (isAuthenticated && !currentUser?.name) {
+        placeholderText = "Оновлення даних...";
+    }
+
+
     return (
         <AppTheme {...props}>
             <CssBaseline enableColorScheme />
@@ -603,73 +562,77 @@ function CommunityPage(props) {
                     <Typography variant="h1" component="h1" sx={{ textAlign: 'center', mb: 1, fontWeight: 'bold', fontSize: { xs: '3rem', sm: '3.8rem', md: '4.5rem' }, color: 'white', textShadow: '0 0 15px rgba(198, 126, 255, 0.4)' }}>Стрічка Спільноти</Typography>
                     <Typography variant="h3" component="p" sx={{ textAlign: 'center', mb: {xs:3, md:4, lg:7}, color: 'rgba(230, 220, 255, 0.85)', fontSize: { xs: '1.15rem', sm: '1.3rem', md: '1.45rem' }, fontWeight: '600' }}>Діліться думками, знаннями та досягненнями!</Typography>
 
-                    <Paper sx={{ p: {xs: 2, sm: 2.5}, mb: {xs:3, md:4}, backgroundColor: 'hsl(220, 30%, 6%)', backdropFilter: 'blur(10px)', borderRadius: '16px', border: '1px solid rgba(138, 43, 226, 0.25)', boxShadow: '0 10px 35px rgba(0, 0, 0, 0.25)', }}>
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1.5 }}>
-                            <Avatar
-                                src={currentUser?.avatarUrl || "/static/images/avatar/default.jpg"}
-                                sx={{ width: 48, height: 48, mt: theme.spacing(1), border: '2px solid rgba(198, 126, 255, 0.5)' }}
-                            />
-                            <StyledTextField
-                                multiline
-                                rows={3}
-                                maxRows={6}
-                                placeholder={currentUser ? `Що у вас на думці, ${currentUser.name.split(' ')[0]}?` : "Завантаження..."}                                value={newPostText}
-                                onChange={(e) => setNewPostText(e.target.value.slice(0, MAX_POST_LENGTH))}
-                                helperText={`${newPostText.length}/${MAX_POST_LENGTH}`}
-                                FormHelperTextProps={{sx: {textAlign:'right', color:'rgba(255,255,255,0.5)'}}}
-                                ownerState={{ textValue: newPostText, multiline: true }}
-                                sx={textFieldSx(true, false, newPostText)}
-                            />
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt:1 }}>
-                            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-                                {previewMediaUrl && (
-                                    <Tooltip title="Видалити медіа">
-                                        <IconButton onClick={clearPreviewMedia} size="small" sx={{color: alpha(theme.palette.error.light,0.7), '&:hover': {backgroundColor: alpha(theme.palette.error.dark,0.15)}}}>
-                                            <ClearIcon fontSize="small"/>
+                    {isAuthenticated && (
+                        <Paper sx={{ p: {xs: 2, sm: 2.5}, mb: {xs:3, md:4}, backgroundColor: 'hsl(220, 30%, 6%)', backdropFilter: 'blur(10px)', borderRadius: '16px', border: '1px solid rgba(138, 43, 226, 0.25)', boxShadow: '0 10px 35px rgba(0, 0, 0, 0.25)', }}>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1.5 }}>
+                                <Avatar
+                                    src={currentUser?.avatarUrl || "/static/images/avatar/default.jpg"}
+                                    sx={{ width: 48, height: 48, mt: theme.spacing(1), border: '2px solid rgba(198, 126, 255, 0.5)' }}
+                                />
+                                <StyledTextField
+                                    multiline
+                                    rows={3}
+                                    maxRows={6}
+                                    placeholder={placeholderText}
+                                    value={newPostText}
+                                    onChange={(e) => setNewPostText(e.target.value.slice(0, MAX_POST_LENGTH))}
+                                    helperText={`${newPostText.length}/${MAX_POST_LENGTH}`}
+                                    FormHelperTextProps={{sx: {textAlign:'right', color:'rgba(255,255,255,0.5)'}}}
+                                    ownerState={{ textValue: newPostText, multiline: true }}
+                                    sx={textFieldSx(true, false, newPostText)}
+                                    disabled={!isAuthenticated}
+                                />
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt:1 }}>
+                                <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                                    {previewMediaUrl && (
+                                        <Tooltip title="Видалити медіа">
+                                            <IconButton onClick={clearPreviewMedia} size="small" sx={{color: alpha(theme.palette.error.light,0.7), '&:hover': {backgroundColor: alpha(theme.palette.error.dark,0.15)}}}>
+                                                <ClearIcon fontSize="small"/>
+                                            </IconButton>
+                                        </Tooltip>
+                                    )}
+                                    <Tooltip title="Додати зображення/відео">
+                                        <IconButton component="label" size="small" sx={{color: alpha(theme.palette.info.light,0.8), '&:hover': {backgroundColor: alpha(theme.palette.info.light,0.1)}}}>
+                                            <AddPhotoAlternateIcon />
+                                            <input id="file-input-for-post" type="file" hidden accept="image/*,video/*" onChange={handleFileChange} />
                                         </IconButton>
                                     </Tooltip>
-                                )}
-                                <Tooltip title="Додати зображення/відео">
-                                    <IconButton component="label" size="small" sx={{color: alpha(theme.palette.info.light,0.8), '&:hover': {backgroundColor: alpha(theme.palette.info.light,0.1)}}}>
-                                        <AddPhotoAlternateIcon />
-                                        <input id="file-input-for-post" type="file" hidden accept="image/*,video/*" onChange={handleFileChange} />
-                                    </IconButton>
-                                </Tooltip>
-                                <StyledFormControl size="small" variant="outlined" sx={{minWidth: 150}}>
-                                    <Select
-                                        value={newPostType}
-                                        onChange={(e) => setNewPostType(e.target.value)}
-                                        renderValue={(selectedValue) => {
-                                            const typeInfo = POST_TYPES.find(pt => pt.value === selectedValue);
-                                            if (!typeInfo) return selectedValue;
-                                            const Icon = typeInfo.IconComponent;
-                                            return ( <Box sx={{ display: 'flex', alignItems: 'center' }}> <Icon sx={{ mr: 0.8, fontSize: '1.2rem', verticalAlign: 'middle', color: alpha(theme.palette.primary.light, 0.7) }} /> {typeInfo.label} </Box> );
-                                        }}
-                                        MenuProps={{ PaperProps: { sx: {backgroundColor: 'rgba(40,32,60,0.95)', backdropFilter: 'blur(10px)', color:'white', '& .MuiMenuItem-root:hover':{backgroundColor: alpha(theme.palette.secondary.main,0.15)}, '& .Mui-selected': {backgroundColor: `${alpha(theme.palette.secondary.main,0.25)}!important`} }} }}
-                                    >
-                                        {POST_TYPES.map(pt => { const Icon = pt.IconComponent; return ( <MenuItem key={pt.value} value={pt.value}> <Icon sx={{ mr: 1, fontSize: '1.1rem', verticalAlign: 'middle', color: alpha(theme.palette.primary.light, 0.7) }} /> {pt.label} </MenuItem> ); })}
-                                    </Select>
-                                </StyledFormControl>
+                                    <StyledFormControl size="small" variant="outlined" sx={{minWidth: 150}}>
+                                        <Select
+                                            value={newPostType}
+                                            onChange={(e) => setNewPostType(e.target.value)}
+                                            renderValue={(selectedValue) => {
+                                                const typeInfo = POST_TYPES.find(pt => pt.value === selectedValue);
+                                                if (!typeInfo) return selectedValue;
+                                                const Icon = typeInfo.IconComponent;
+                                                return ( <Box sx={{ display: 'flex', alignItems: 'center' }}> <Icon sx={{ mr: 0.8, fontSize: '1.2rem', verticalAlign: 'middle', color: alpha(theme.palette.primary.light, 0.7) }} /> {typeInfo.label} </Box> );
+                                            }}
+                                            MenuProps={{ PaperProps: { sx: {backgroundColor: 'rgba(40,32,60,0.95)', backdropFilter: 'blur(10px)', color:'white', '& .MuiMenuItem-root:hover':{backgroundColor: alpha(theme.palette.secondary.main,0.15)}, '& .Mui-selected': {backgroundColor: `${alpha(theme.palette.secondary.main,0.25)}!important`} }} }}
+                                        >
+                                            {POST_TYPES.map(pt => { const Icon = pt.IconComponent; return ( <MenuItem key={pt.value} value={pt.value}> <Icon sx={{ mr: 1, fontSize: '1.1rem', verticalAlign: 'middle', color: alpha(theme.palette.primary.light, 0.7) }} /> {pt.label} </MenuItem> ); })}
+                                        </Select>
+                                    </StyledFormControl>
+                                </Box>
+                                <Button
+                                    variant="contained"
+                                    endIcon={<SendIcon />}
+                                    onClick={handleCreatePost}
+                                    disabled={(!newPostText.trim() && !selectedFile) || !isAuthenticated || !currentUser?.userId}
+                                    sx={{
+                                        background: 'rgba(255,255,255,0.9) !important',
+                                        fontWeight: 'bold', fontSize: '0.9rem', borderRadius: 'none !important',
+                                        boxShadow: 'none !important',
+                                        border: 'none !important',
+                                        '&:hover': {  background: 'linear-gradient(45deg, #7A1FB8 0%, #3A00B0 100%) !important', boxShadow: '0 7px 18px rgba(142, 45, 226, 0.5)', color: 'white !important'},
+                                        '&.Mui-disabled': { background: 'rgba(255,255,255,0.1) !important', color: 'rgba(255,255,255,0.5) !important', boxShadow: 'none !important' },
+                                    }}
+                                >Опублікувати</Button>
                             </Box>
-                            <Button
-                                variant="contained"
-                                endIcon={<SendIcon />}
-                                onClick={handleCreatePost}
-                                disabled={(!newPostText.trim() && !selectedFile) || !currentUser?.id}
-                                sx={{
-                                    background: 'rgba(255,255,255,0.9) !important',
-                                    fontWeight: 'bold', fontSize: '0.9rem', borderRadius: 'none !important',
-                                    boxShadow: 'none !important',
-                                    border: 'none !important',
-                                    '&:hover': {  background: 'linear-gradient(45deg, #7A1FB8 0%, #3A00B0 100%) !important', boxShadow: '0 7px 18px rgba(142, 45, 226, 0.5)', color: 'white !important'},
-                                    '&.Mui-disabled': { background: 'rgba(255,255,255,0.1) !important', color: 'rgba(255,255,255,0.5) !important', boxShadow: 'none !important' },
-                                }}
-                            >Опублікувати</Button>
-                        </Box>
-                        {previewMediaUrl && previewMediaType?.startsWith('image/') && <Box component="img" src={previewMediaUrl} alt="Preview" sx={{width: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: '8px', mt:1.5, border: '1px solid rgba(255,255,255,0.2)'}} />}
-                        {previewMediaUrl && previewMediaType?.startsWith('video/') && <video src={previewMediaUrl} controls style={{width: '100%', maxHeight: 300, borderRadius: '8px', marginTop:'12px', border: '1px solid rgba(255,255,255,0.2)'}} />}
-                    </Paper>
+                            {previewMediaUrl && previewMediaType?.startsWith('image/') && <Box component="img" src={previewMediaUrl} alt="Preview" sx={{width: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: '8px', mt:1.5, border: '1px solid rgba(255,255,255,0.2)'}} />}
+                            {previewMediaUrl && previewMediaType?.startsWith('video/') && <video src={previewMediaUrl} controls style={{width: '100%', maxHeight: 300, borderRadius: '8px', marginTop:'12px', border: '1px solid rgba(255,255,255,0.2)'}} />}
+                        </Paper>
+                    )}
 
                     <StyledTextField
                         placeholder="Пошук постів за текстом, тегом або автором..."
@@ -681,19 +644,15 @@ function CommunityPage(props) {
                     />
 
                     {loading ? (
-                        <Typography sx={{textAlign:'center', color:'rgba(255,255,255,0.6)', p:3}}>Завантаження...</Typography>
+                        <Typography sx={{textAlign:'center', color:'rgba(255,255,255,0.6)', p:3}}>Завантаження постів...</Typography>
                     ) : paginatedPosts.length > 0 ? paginatedPosts.map(post => (
                         <PostCardStyled key={post.id} id={`post-${post.id}`} sx={{ mb: {xs: 2.5, sm: 3} }}>
                             <CardHeader
-                                avatar={<Avatar src={post.isAnonymous ? "/static/images/avatar/anonymous.png" : post.author?.avatarUrl} sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.2), color: theme.palette.secondary.main, border: `1px solid ${alpha(theme.palette.secondary.main, 0.4)}` }}>{post.isAnonymous ? 'A' : post.author?.name?.charAt(0)}</Avatar>}
+                                avatar={<Avatar src={post.isAnonymous ? "/static/images/avatar/anonymous.png" : post.author?.avatarUrl || "/static/images/avatar/default.jpg"} sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.2), color: theme.palette.secondary.main, border: `1px solid ${alpha(theme.palette.secondary.main, 0.4)}` }}>{post.isAnonymous ? 'A' : post.author?.name?.charAt(0)}</Avatar>}
                                 action={isAuthenticated && <IconButton aria-label="post-menu" onClick={(e) => handleOpenPostMenu(e, post)} sx={{color: 'rgba(255,255,255,0.6)', '&:hover': {backgroundColor: 'rgba(255,255,255,0.1)'}}}><MoreVertIcon /></IconButton>}
-                                title={<Box sx={{display: 'flex', alignItems: 'center', marginLeft: -1}}>{getPostTypeIconElement(post.type)}<Typography variant="subtitle1" component="span" sx={{fontWeight: '600', color: 'white'}}>{post.author?.name || "Користувач"}</Typography></Box>}
+                                title={<Box sx={{display: 'flex', alignItems: 'center', marginLeft: -1}}>{getPostTypeIconElement(post.type)}<Typography variant="subtitle1" component="span" sx={{fontWeight: '600', color: 'white'}}>{post.author?.name || (post.isAnonymous ? "Анонім" : "Користувач")}</Typography></Box>}
                                 subheader={<Typography variant="caption" sx={{color: 'rgba(255,255,255,0.5)', marginLeft: -0.7}}>{formatTimestamp(post.timestamp)}</Typography>}
-                                sx={{
-                                    pb: 1,
-                                    pl: 0.5,
-                                    alignItems: 'center',
-                                }}/>
+                                sx={{ pb: 1, pl: 0.5, alignItems: 'center' }}/>
                             <CardContent sx={{ pt: 0, pb: 1, pl: 0.5 }}>
                                 <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', color: 'rgba(230, 220, 255, 0.9)', lineHeight: 1.65, mb: post.media || (post.tags && post.tags.length > 0) ? 1.5 : 0, wordBreak: 'break-word' }}>{post.text}</Typography>
                                 {post.tags && post.tags.length > 0 && (
@@ -717,9 +676,15 @@ function CommunityPage(props) {
                                 <Button aria-label="share" onClick={() => handleSharePost(post.id)} startIcon={<ShareIcon />} sx={{color: 'rgba(255,255,255,0.7)', textTransform:'none', '&:hover': {backgroundColor: alpha('#fff', 0.1)}}}>Поділитись</Button>
                             </CardActions>
                         </PostCardStyled>
-                    )) : (<Typography sx={{textAlign:'center', color:'rgba(255,255,255,0.6)', p:3}}>За вашим запитом постів не знайдено. Спробуйте змінити пошук або створіть новий пост!</Typography>)}
+                    )) : (
+                        !loading && isAuthenticated && <Typography sx={{textAlign:'center', color:'rgba(255,255,255,0.6)', p:3}}>За вашим запитом постів не знайдено. Спробуйте змінити пошук або створіть новий пост!</Typography>
+                    )}
+                    {!isAuthenticated && !loading && (
+                        <Typography sx={{textAlign:'center', color:'rgba(255,255,255,0.6)', p:3}}>Увійдіть, щоб переглядати та створювати пости.</Typography>
+                    )}
 
-                    {pageCount > 1 &&
+
+                    {pageCount > 1 && isAuthenticated &&
                         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, mb: 2 }}>
                             <Pagination count={pageCount} page={currentPage} onChange={(e, value) => setCurrentPage(value)}
                                         sx={{ '& .MuiPaginationItem-root': { color: 'rgba(255,255,255,0.7)', '&:hover': {backgroundColor: alpha(theme.palette.secondary.main,0.1)}, '&.Mui-selected': {backgroundColor: alpha(theme.palette.secondary.main,0.25), color: 'white', fontWeight:'bold'} }}}
@@ -742,9 +707,9 @@ function CommunityPage(props) {
                         }
                     }}
                 >
-                    {selectedPostForMenu && currentUser && (
+                    {selectedPostForMenu && currentUser && isAuthenticated && (
                         <Box>
-                            {selectedPostForMenu.author?.id === currentUser.id || (selectedPostForMenu.isAnonymous && !isAuthenticated) ? (
+                            {selectedPostForMenu.author?.id === currentUser.userId ? (
                                 <MenuItem
                                     onClick={() => handleDeletePost(selectedPostForMenu.id)}
                                     sx={{ '&:hover': { backgroundColor: alpha(theme.palette.error.dark, 0.25) } }}
@@ -765,65 +730,69 @@ function CommunityPage(props) {
                     )}
                 </Menu>
 
-                <Modal open={openCommentsModal} onClose={handleCloseCommentsModal} aria-labelledby="comments-modal-title">
-                    <ModalContentBox>
-                        <Box sx={{ p: {xs:2, sm:2.5}, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
-                            <Typography id="comments-modal-title" variant="h6" component="h2" sx={{fontWeight: 'bold'}}>Коментарі</Typography>
-                            <IconButton onClick={handleCloseCommentsModal} sx={{color: 'white', '&:hover':{backgroundColor:'rgba(255,255,255,0.1)'}}}><CloseIcon /></IconButton>
-                        </Box>
-                        <Box sx={{ overflowY: 'auto', p: {xs:1.5, sm:2.5}, flexGrow: 1 }}>
-                            {selectedPostForComment && (comments[selectedPostForComment.id] || []).length > 0 ? (comments[selectedPostForComment.id] || []).map(comment => (
-                                <Paper key={comment.id} sx={{ p: {xs:1.5, sm:2}, mb: 1.5, background: 'hsl(220, 30%, 6%)', borderRadius: '10px', border: '1px solid rgba(138, 43, 226, 0.15)' }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, justifyContent:'space-between' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center'}}>
-                                            <Avatar src={comment.isAnonymous ? "/static/images/avatar/anonymous.png" : comment.author?.avatarUrl} sx={{ width: 32, height: 32, mr: 1.5, fontSize: '0.9rem' }}>{comment.isAnonymous ? 'A' : comment.author?.name?.charAt(0)}</Avatar>
-                                            <Box>
-                                                <Typography variant="subtitle2" sx={{ fontWeight: '600', color: alpha(theme.palette.secondary.light,0.9) }}>{comment.isAnonymous ? 'Анонім' : comment.author?.name}</Typography>
-                                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>{formatTimestamp(comment.timestamp)}</Typography>
-                                            </Box>
-                                        </Box>
-                                        {isAuthenticated && currentUser && comment.author?.id === currentUser.id &&
-                                            <IconButton size="small" onClick={() => handleDeleteComment(selectedPostForComment.id, comment.id)} sx={{color:alpha(theme.palette.error.light,0.7), '&:hover':{backgroundColor:alpha(theme.palette.error.dark,0.15)}}}> <DeleteIcon fontSize="small"/> </IconButton>
-                                        }
-                                    </Box>
-                                    <Typography variant="body2" sx={{ color: 'rgba(230, 220, 255, 0.85)', whiteSpace: 'pre-wrap', wordBreak:'break-word' }}>{comment.text}</Typography>
-                                </Paper>
-                            )) : <Typography sx={{textAlign: 'center', color: 'rgba(255,255,255,0.6)', p:3}}>Коментарів ще немає. Будьте першим!</Typography>}
-                        </Box>
-                        <Box sx={{ p: {xs:1.5, sm:2}, borderTop: `1px solid rgba(255,255,255,0.1)`}}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                <Avatar src={currentUser?.avatarUrl || "/static/images/avatar/default.jpg"} sx={{ width: 40, height: 40 }} />
-                                <StyledTextField
-                                    multiline
-                                    rows={1}
-                                    maxRows={4}
-                                    placeholder="Напишіть коментар..."
-                                    value={newCommentText}
-                                    onChange={(e) => setNewCommentText(e.target.value)}
-                                    variant="outlined"
-                                    size="small"
-                                    ownerState={{ isCommentField: true, textValue: newCommentText, multiline: true }}
-                                    sx={textFieldSx(true, true, newCommentText)}
-                                />
-                                <IconButton
-                                    onClick={handlePostComment}
-                                    disabled={!newCommentText.trim()}
-                                    sx={{
-                                        color: theme.palette.secondary.main,
-                                        height: '40px',
-                                        width: '40px',
-                                        p:0,
-                                        backgroundColor: alpha(theme.palette.secondary.main, 0.1),
-                                        '&:hover': {backgroundColor: alpha(theme.palette.secondary.main, 0.2)},
-                                        '&.Mui-disabled': {color: 'rgba(255,255,255,0.3)', backgroundColor: 'transparent'}
-                                    }}
-                                >
-                                    <SendIcon />
-                                </IconButton>
+                {selectedPostForComment && (
+                    <Modal open={openCommentsModal} onClose={handleCloseCommentsModal} aria-labelledby="comments-modal-title">
+                        <ModalContentBox>
+                            <Box sx={{ p: {xs:2, sm:2.5}, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
+                                <Typography id="comments-modal-title" variant="h6" component="h2" sx={{fontWeight: 'bold'}}>Коментарі</Typography>
+                                <IconButton onClick={handleCloseCommentsModal} sx={{color: 'white', '&:hover':{backgroundColor:'rgba(255,255,255,0.1)'}}}><CloseIcon /></IconButton>
                             </Box>
-                        </Box>
-                    </ModalContentBox>
-                </Modal>
+                            <Box sx={{ overflowY: 'auto', p: {xs:1.5, sm:2.5}, flexGrow: 1 }}>
+                                {(comments[selectedPostForComment.id] || []).length > 0 ? (comments[selectedPostForComment.id] || []).map(comment => (
+                                    <Paper key={comment.id} sx={{ p: {xs:1.5, sm:2}, mb: 1.5, background: 'hsl(220, 30%, 6%)', borderRadius: '10px', border: '1px solid rgba(138, 43, 226, 0.15)' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, justifyContent:'space-between' }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center'}}>
+                                                <Avatar src={comment.isAnonymous ? "/static/images/avatar/anonymous.png" : comment.author?.avatarUrl || "/static/images/avatar/default.jpg"} sx={{ width: 32, height: 32, mr: 1.5, fontSize: '0.9rem' }}>{comment.isAnonymous ? 'A' : comment.author?.name?.charAt(0)}</Avatar>
+                                                <Box>
+                                                    <Typography variant="subtitle2" sx={{ fontWeight: '600', color: alpha(theme.palette.secondary.light,0.9) }}>{comment.isAnonymous ? 'Анонім' : comment.author?.name}</Typography>
+                                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>{formatTimestamp(comment.timestamp)}</Typography>
+                                                </Box>
+                                            </Box>
+                                            {isAuthenticated && currentUser && comment.author?.id === currentUser.userId &&
+                                                <IconButton size="small" onClick={() => handleDeleteComment(selectedPostForComment.id, comment.id)} sx={{color:alpha(theme.palette.error.light,0.7), '&:hover':{backgroundColor:alpha(theme.palette.error.dark,0.15)}}}> <DeleteIcon fontSize="small"/> </IconButton>
+                                            }
+                                        </Box>
+                                        <Typography variant="body2" sx={{ color: 'rgba(230, 220, 255, 0.85)', whiteSpace: 'pre-wrap', wordBreak:'break-word' }}>{comment.text}</Typography>
+                                    </Paper>
+                                )) : <Typography sx={{textAlign: 'center', color: 'rgba(255,255,255,0.6)', p:3}}>Коментарів ще немає. Будьте першим!</Typography>}
+                            </Box>
+                            {isAuthenticated && (
+                                <Box sx={{ p: {xs:1.5, sm:2}, borderTop: `1px solid rgba(255,255,255,0.1)`}}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                        <Avatar src={currentUser?.avatarUrl || "/static/images/avatar/default.jpg"} sx={{ width: 40, height: 40 }} />
+                                        <StyledTextField
+                                            multiline
+                                            rows={1}
+                                            maxRows={4}
+                                            placeholder="Напишіть коментар..."
+                                            value={newCommentText}
+                                            onChange={(e) => setNewCommentText(e.target.value)}
+                                            variant="outlined"
+                                            size="small"
+                                            ownerState={{ isCommentField: true, textValue: newCommentText, multiline: true }}
+                                            sx={textFieldSx(true, true, newCommentText)}
+                                        />
+                                        <IconButton
+                                            onClick={handlePostComment}
+                                            disabled={!newCommentText.trim()}
+                                            sx={{
+                                                color: theme.palette.secondary.main,
+                                                height: '40px',
+                                                width: '40px',
+                                                p:0,
+                                                backgroundColor: alpha(theme.palette.secondary.main, 0.1),
+                                                '&:hover': {backgroundColor: alpha(theme.palette.secondary.main, 0.2)},
+                                                '&.Mui-disabled': {color: 'rgba(255,255,255,0.3)', backgroundColor: 'transparent'}
+                                            }}
+                                        >
+                                            <SendIcon />
+                                        </IconButton>
+                                    </Box>
+                                </Box>
+                            )}
+                        </ModalContentBox>
+                    </Modal>
+                )}
                 <Footer />
             </Box>
         </AppTheme>
