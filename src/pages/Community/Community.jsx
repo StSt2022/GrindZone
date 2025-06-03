@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -177,22 +177,14 @@ const formatTimestamp = (isoString) => {
     return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' }) + ` о ${date.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
 };
 
-const initialPostsData = [
-    { id: '1', author: { id: 'user1', name: 'Олена Коваленко', avatarUrl: '/static/images/avatar/2.jpg' }, isAnonymous: false, type: 'question', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), text: "Привіт усім! 👋 Які ваші улюблені вправи для тренування пресу вдома? Діліться досвідом! #фітнес #домашнітренування", media: null, likes: 25, likedByUser: false, commentsCount: 2, tags: ['фітнес', 'домашнітренування'] },
-    { id: '2', author: null, isAnonymous: true, type: 'question', timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), text: "Підкажіть, будь ласка, хороші ресурси (статті, відео) для початківців у йозі. Хочу спробувати, але не знаю, з чого почати. Дякую! #йога", media: null, likes: 15, likedByUser: true, commentsCount: 0, tags: ['йога', 'поради'] },
-    { id: '3', author: { id: 'user2', name: 'Максим Грищенко', avatarUrl: '/static/images/avatar/3.jpg' }, isAnonymous: false, type: 'achievement', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), text: "Щойно завершив неймовірний 10-кілометровий забіг! 🏃‍♂️ Погода була чудова, а відчуття після - просто космос! Хто сьогодні теж бігав? #біг #мотивація", media: { type: 'image/jpeg', url: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&auto=format&fit=crop' }, likes: 42, likedByUser: false, commentsCount: 1, tags: ['біг', 'мотивація'] },
-];
-
 function CommunityPage(props) {
     const theme = useTheme();
     const location = useLocation();
     const [isAuthenticated, setIsAuthenticated] = React.useState(true);
-    const [currentUser, setCurrentUser] = React.useState(
-        isAuthenticated ? { id: 'currentUser', name: 'Василь Пупкін', avatarUrl: '/static/images/avatar/1.jpg' } : null
-    );
+    const [currentUser, setCurrentUser] = React.useState(null);
     const [anchorElPostMenu, setAnchorElPostMenu] = React.useState(null);
     const [selectedPostForMenu, setSelectedPostForMenu] = React.useState(null);
-    const [posts, setPosts] = React.useState(initialPostsData);
+    const [posts, setPosts] = React.useState([]);
     const [comments, setComments] = React.useState({});
     const [newPostText, setNewPostText] = React.useState("");
     const [newPostType, setNewPostType] = React.useState('text');
@@ -206,6 +198,36 @@ function CommunityPage(props) {
     const [currentPage, setCurrentPage] = React.useState(1);
     const [totalPages, setTotalPages] = React.useState(1);
     const [loading, setLoading] = React.useState(false);
+
+    const fetchCurrentUser = async () => {
+        if (!isAuthenticated || !currentUser?.id) return;
+        try {
+            const response = await fetch(`/api/profile/${currentUser.id}`);
+            if (!response.ok) throw new Error('Помилка завантаження даних профілю');
+            const userData = await response.json();
+            setCurrentUser({
+                id: userData.userId,
+                name: userData.name,
+                avatarUrl: userData.avatarUrl || '/static/images/avatar/default.jpg' // Дефолтна аватарка, якщо null
+            });
+        } catch (error) {
+            console.error('Error fetching user profile:', error);
+        }
+    };
+
+    React.useEffect(() => {
+        // Симуляція отримання даних після логіну
+        const initializeAuth = async () => {
+            // Припускаємо, що ви отримуєте userId з локального сховища або токена
+            const userIdFromStorage = localStorage.getItem('userId'); // Замініть на ваш метод
+            if (userIdFromStorage) {
+                setIsAuthenticated(true);
+                setCurrentUser({ id: userIdFromStorage, name: '', avatarUrl: '' });
+                await fetchCurrentUser(); // Отримуємо повні дані
+            }
+        };
+        initializeAuth();
+    }, []);
 
     const handleOpenPostMenu = (event, post) => { setAnchorElPostMenu(event.currentTarget); setSelectedPostForMenu(post); };
     const handleClosePostMenu = () => { setAnchorElPostMenu(null); setSelectedPostForMenu(null); };
@@ -244,11 +266,10 @@ function CommunityPage(props) {
             const response = await fetch(`/api/posts?page=${page}&limit=${POSTS_PER_PAGE}&searchTerm=${encodeURIComponent(search)}&userId=${currentUser?.id || ''}`);
             if (!response.ok) throw new Error('Помилка завантаження постів');
             const data = await response.json();
-            setPosts([...initialPostsData, ...data.posts]);
+            setPosts(data.posts);
             setTotalPages(data.totalPages);
         } catch (error) {
             console.error('Error fetching posts:', error);
-            setPosts(initialPostsData); // Повертаємо мок-дані у разі помилки
         } finally {
             setLoading(false);
         }
@@ -459,8 +480,11 @@ function CommunityPage(props) {
     const pageCount = Math.max(totalPages, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
 
     React.useEffect(() => {
+        if (isAuthenticated && currentUser?.id) {
+            fetchCurrentUser();
+        }
         fetchPosts(currentPage, searchTerm);
-    }, [currentPage, searchTerm]);
+    }, [currentPage, searchTerm, isAuthenticated, currentUser?.id]);
 
     React.useEffect(() => {
         if (currentPage > pageCount && pageCount > 0) {
@@ -531,7 +555,7 @@ function CommunityPage(props) {
                     <Paper sx={{ p: {xs: 2, sm: 2.5}, mb: {xs:3, md:4}, backgroundColor: 'hsl(220, 30%, 6%)', backdropFilter: 'blur(10px)', borderRadius: '16px', border: '1px solid rgba(138, 43, 226, 0.25)', boxShadow: '0 10px 35px rgba(0, 0, 0, 0.25)', }}>
                         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1.5 }}>
                             <Avatar
-                                src={isAuthenticated ? currentUser?.avatarUrl : "/static/images/avatar/anonymous.png"}
+                                src={isAuthenticated && currentUser?.avatarUrl ? currentUser.avatarUrl : "/static/images/avatar/anonymous.png"}
                                 sx={{ width: 48, height: 48, mt: theme.spacing(1), border: '2px solid rgba(198, 126, 255, 0.5)' }}
                             />
                             <StyledTextField
