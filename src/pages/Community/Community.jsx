@@ -180,8 +180,9 @@ const formatTimestamp = (isoString) => {
 function CommunityPage(props) {
     const theme = useTheme();
     const location = useLocation();
-    const [isAuthenticated, setIsAuthenticated] = React.useState(true);
+    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
     const [currentUser, setCurrentUser] = React.useState(null);
+    const [authChecked, setAuthChecked] = React.useState(false);
     const [anchorElPostMenu, setAnchorElPostMenu] = React.useState(null);
     const [selectedPostForMenu, setSelectedPostForMenu] = React.useState(null);
     const [posts, setPosts] = React.useState([]);
@@ -199,35 +200,61 @@ function CommunityPage(props) {
     const [totalPages, setTotalPages] = React.useState(1);
     const [loading, setLoading] = React.useState(false);
 
-    const fetchCurrentUser = async () => {
-        if (!isAuthenticated || !currentUser?.id) return;
-        try {
-            const response = await fetch(`/api/profile/${currentUser.id}`);
-            if (!response.ok) throw new Error('Помилка завантаження даних профілю');
-            const userData = await response.json();
-            setCurrentUser({
-                id: userData.userId,
-                name: userData.name,
-                avatarUrl: userData.avatarUrl || '/static/images/avatar/default.jpg' // Дефолтна аватарка, якщо null
-            });
-        } catch (error) {
-            console.error('Error fetching user profile:', error);
-        }
-    };
-
     React.useEffect(() => {
-        // Симуляція отримання даних після логіну
+        let isMounted = true; // Для запобігання оновленню стану на розмонтованому компоненті
+
         const initializeAuth = async () => {
-            // Припускаємо, що ви отримуєте userId з локального сховища або токена
-            const userIdFromStorage = localStorage.getItem('userId'); // Замініть на ваш метод
+            setAuthChecked(false); // Починаємо перевірку
+            const userIdFromStorage = localStorage.getItem('userId'); // Або ваш метод отримання токена/ID
+
             if (userIdFromStorage) {
-                setIsAuthenticated(true);
-                setCurrentUser({ id: userIdFromStorage, name: '', avatarUrl: '' });
-                await fetchCurrentUser(); // Отримуємо повні дані
+                try {
+                    // Запит для отримання повних даних користувача
+                    const response = await fetch(`/api/profile/${userIdFromStorage}`);
+                    if (!response.ok) {
+                        // Якщо токен/ID невалідний або сесія застаріла
+                        localStorage.removeItem('userId'); // Очистити невалідний ID
+                        if (isMounted) {
+                            setIsAuthenticated(false);
+                            setCurrentUser(null);
+                        }
+                        throw new Error('Не вдалося завантажити дані користувача, сесія може бути недійсною.');
+                    }
+                    const userData = await response.json();
+                    if (isMounted) {
+                        setCurrentUser({
+                            id: userData.userId,
+                            name: userData.name,
+                            avatarUrl: userData.avatarUrl || '/static/images/avatar/default.jpg'
+                        });
+                        setIsAuthenticated(true);
+                    }
+                } catch (error) {
+                    console.error('Помилка ініціалізації автентифікації або завантаження профілю:', error);
+                    localStorage.removeItem('userId'); // Очистити потенційно невалідний ID
+                    if (isMounted) {
+                        setIsAuthenticated(false);
+                        setCurrentUser(null);
+                    }
+                }
+            } else {
+                // Користувач не має збереженого ID
+                if (isMounted) {
+                    setIsAuthenticated(false);
+                    setCurrentUser(null);
+                }
+            }
+            if (isMounted) {
+                setAuthChecked(true); // Перевірка автентифікації завершена
             }
         };
+
         initializeAuth();
-    }, []);
+
+        return () => {
+            isMounted = false; // Очистка при розмонтуванні
+        };
+    }, []); // Пустий масив залежностей, щоб виконати один раз
 
     const handleOpenPostMenu = (event, post) => { setAnchorElPostMenu(event.currentTarget); setSelectedPostForMenu(post); };
     const handleClosePostMenu = () => { setAnchorElPostMenu(null); setSelectedPostForMenu(null); };
@@ -479,11 +506,19 @@ function CommunityPage(props) {
     const pageCount = Math.max(totalPages, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
 
     React.useEffect(() => {
-        if (isAuthenticated && currentUser?.id) {
-            fetchCurrentUser();
+        if (authChecked) { // Тільки після завершення початкової перевірки автентифікації
+            if (isAuthenticated && currentUser?.id) {
+                // currentUser вже має бути повністю завантажений функцією initializeAuth
+                fetchPosts(currentPage, searchTerm);
+            } else if (!isAuthenticated) {
+                setPosts([]); // Очистити пости
+                setTotalPages(1);
+                setCurrentPage(1);
+                setLoading(false);
+                console.log("Користувач не автентифікований, завантаження постів скасовано/очищено.");
+            }
         }
-        fetchPosts(currentPage, searchTerm);
-    }, [currentPage, searchTerm, isAuthenticated, currentUser?.id]);
+    }, [currentPage, searchTerm, isAuthenticated, currentUser?.id, authChecked]);
 
     React.useEffect(() => {
         if (currentPage > pageCount && pageCount > 0) {
