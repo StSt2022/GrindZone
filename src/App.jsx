@@ -1,6 +1,12 @@
 // App.jsx
-import React from 'react'; // useEffect, useState тут більше не потрібні для auth
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React from 'react';
+import {
+    BrowserRouter as Router,
+    Routes,
+    Route,
+    Navigate,
+    useLocation
+} from 'react-router-dom';
 import SignUp from './pages/SignUp/SignUp.jsx';
 import SignIn from './pages/SignIn/SignIn.jsx';
 import Home from './pages/Home/Home';
@@ -11,13 +17,13 @@ import Community from './pages/Community/Community';
 import AppTheme from './shared-theme/AppTheme.jsx';
 import ChatWidget from "./widgets/ChatWidget.jsx";
 import NavigationBar from './components/NavigationBar';
+import ScrollToTop from './components/ScrollToTop';
 
-// Імпортуємо AuthProvider та useAuth
-import { AuthProvider, useAuth } from './context/AuthContext'; // Адаптуй шлях!
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
     const { isAuthenticated, isLoadingAuth } = useAuth();
-    if (isLoadingAuth) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Перевірка автентифікації...</div>; // Або інший індикатор
+    if (isLoadingAuth) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Перевірка автентифікації...</div>;
     if (!isAuthenticated) {
         return <Navigate to="/signin" replace />;
     }
@@ -35,7 +41,7 @@ const GuestRoute = ({ children }) => {
 
 const LayoutWithConditionalNav = ({ children }) => {
     const location = useLocation();
-    const { isAuthenticated, currentUser, logout } = useAuth(); // Отримуємо дані з контексту
+    const { isAuthenticated, currentUser, logout } = useAuth();
     const hideNavOnRoutes = ['/signin', '/signup'];
     const shouldShowNav = !hideNavOnRoutes.includes(location.pathname);
 
@@ -45,7 +51,7 @@ const LayoutWithConditionalNav = ({ children }) => {
                 <NavigationBar
                     isAuthenticated={isAuthenticated}
                     currentUser={currentUser}
-                    onLogout={logout} // Використовуємо logout з контексту
+                    onLogout={logout}
                 />
             )}
             {children}
@@ -53,17 +59,13 @@ const LayoutWithConditionalNav = ({ children }) => {
     );
 };
 
-// Компонент-обгортка для SignIn/SignUp, щоб передати функцію login
 const AuthFormWrapper = ({ children }) => {
     const { login } = useAuth();
-    // Клонуємо дочірній елемент (SignIn або SignUp) і передаємо йому onLoginSuccess
     return React.cloneElement(children, { onLoginSuccess: login });
 };
 
 
 function AppContent() {
-    // Цей компонент потрібен, щоб LayoutWithConditionalNav був всередині Router,
-    // оскільки він використовує useLocation
     const { isAuthenticated, isLoadingAuth } = useAuth();
 
     if (isLoadingAuth) {
@@ -73,7 +75,7 @@ function AppContent() {
     return (
         <LayoutWithConditionalNav>
             <Routes>
-                <Route path="/" element={<Home />} /> {/* isAuthenticated та currentUser тепер доступні в Home через useAuth */}
+                <Route path="/" element={<Home />} />
 
                 <Route
                     path="/signup"
@@ -91,19 +93,18 @@ function AppContent() {
                         </GuestRoute>
                     }
                 />
-
                 <Route
                     path="/profile"
                     element={
-                        <ProtectedRoute> {/* Profile тепер захищений */}
-                            <Profile /> {/* currentUser доступний через useAuth */}
+                        <ProtectedRoute>
+                            <Profile />
                         </ProtectedRoute>
                     }
                 />
                 <Route
                     path="/activities"
                     element={
-                        <ProtectedRoute> {/* Activities тепер захищений */}
+                        <ProtectedRoute>
                             <Activities />
                         </ProtectedRoute>
                     }
@@ -119,7 +120,7 @@ function AppContent() {
                 <Route
                     path="/community"
                     element={
-                        <ProtectedRoute> {/* Community також варто захистити */}
+                        <ProtectedRoute>
                             <Community />
                         </ProtectedRoute>
                     }
@@ -136,7 +137,8 @@ function App() {
     return (
         <AppTheme>
             <Router>
-                <AuthProvider> {/* Обертаємо все в AuthProvider */}
+                <ScrollToTop />
+                <AuthProvider>
                     <AppContent />
                 </AuthProvider>
             </Router>

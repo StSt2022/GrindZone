@@ -12,19 +12,106 @@ import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+
+// Іконки (залишаємо для мобільного меню та меню користувача)
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import SettingsIcon from '@mui/icons-material/Settings';
+import LogoutIcon from '@mui/icons-material/Logout';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+import LoginIcon from '@mui/icons-material/Login';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import RestaurantIcon from '@mui/icons-material/Restaurant';
+import PeopleIcon from '@mui/icons-material/People';
 
 const DEFAULT_PAGES_NAV = [
-    { title: 'Профіль', path: '/profile' },
-    { title: 'Активності', path: '/activities' },
-    { title: 'Харчування', path: '/food' },
-    { title: 'Спільнота', path: '/community' }
+    { title: 'Профіль', path: '/profile', icon: <DashboardIcon fontSize="small" /> },
+    { title: 'Активності', path: '/activities', icon: <FitnessCenterIcon fontSize="small" /> },
+    { title: 'Харчування', path: '/food', icon: <RestaurantIcon fontSize="small" /> },
+    { title: 'Спільнота', path: '/community', icon: <PeopleIcon fontSize="small" /> }
 ];
-const DEFAULT_SETTINGS_MENU = ['Профіль', 'Налаштування', 'Вихід'];
+const DEFAULT_SETTINGS_MENU = [
+    { text: 'Профіль', icon: <AccountCircleIcon fontSize="small" />, action: 'Профіль' },
+    { text: 'Налаштування', icon: <SettingsIcon fontSize="small" />, action: 'Налаштування' },
+    { text: 'Вихід', icon: <LogoutIcon fontSize="small" />, action: 'Вихід' }
+];
 
-const navButtonBaseStyles = { my: 2, color: 'rgba(255, 255, 255, 0.9)', display: 'block', px: 2.2, py: 0.8, borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.1)', background: 'rgba(255, 255, 255, 0.03)', boxShadow: 'none', transition: 'all 0.25s ease-out', textTransform: 'none', fontWeight: 500, fontSize: '0.9rem', '&:hover': { background: 'rgba(255, 255, 255, 0.12)', transform: 'translateY(-1px)', boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)', color: 'white'}};
-const signInButtonStyles = { ...navButtonBaseStyles };
-const signUpButtonStyles = { ...navButtonBaseStyles, background: 'linear-gradient(45deg, #0072ff 0%, #00c6ff 100%)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(0, 114, 255, 0.25)', '&:hover': { ...navButtonBaseStyles['&:hover'], background: 'linear-gradient(45deg, #005fcc 0%, #00a0cc 100%)', boxShadow: '0 6px 15px rgba(0, 114, 255, 0.35)'}};
+const ACCENT_COLOR_MAIN = '#00A9FF'; // Яскраво-блакитний
+const ACCENT_COLOR_SECONDARY = '#0077B6'; // Темніший блакитний
 
+// Стилі для кнопок навігації (як у попередньому варіанті)
+const navButtonStyles = (isActive) => ({
+    my: 2,
+    color: isActive ? ACCENT_COLOR_MAIN : 'rgba(255, 255, 255, 0.8)',
+    display: 'block',
+    px: 1.8,
+    py: 0.6,
+    borderRadius: '6px',
+    background: 'transparent',
+    border: 'none',
+    boxShadow: 'none',
+    transition: 'color 0.2s ease-in-out, background-color 0.2s ease-in-out, transform 0.2s ease-in-out',
+    textTransform: 'none',
+    fontWeight: isActive ? 600 : 500,
+    fontSize: '0.95rem',
+    position: 'relative',
+    '&:hover': {
+        color: 'white',
+        background: 'rgba(255, 255, 255, 0.08)',
+        transform: 'translateY(-1px)',
+    },
+    ...(isActive && {
+        '&::after': {
+            content: '""',
+            position: 'absolute',
+            bottom: '-2px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '70%',
+            height: '2px',
+            background: ACCENT_COLOR_MAIN,
+            borderRadius: '2px',
+        }
+    })
+});
+
+// Стилі для кнопки "Увійти" (як у попередньому варіанті)
+const signInButtonStyles = {
+    ...navButtonStyles(false),
+    color: 'rgba(255, 255, 255, 0.8)',
+    border: `1px solid rgba(255, 255, 255, 0.2)`,
+    px: 2.2,
+    py: 0.7,
+    '&:hover': {
+        ...navButtonStyles(false)['&:hover'],
+        borderColor: ACCENT_COLOR_MAIN,
+        color: 'white',
+        background: `rgba(0, 169, 255, 0.1)`
+    }
+};
+
+// Стилі для кнопки "Зареєструватися" (як у попередньому варіанті)
+const signUpButtonStyles = {
+    my: 2,
+    color: 'white',
+    display: 'block',
+    px: 2.2,
+    py: 0.7,
+    borderRadius: '6px',
+    border: 'none',
+    background: `linear-gradient(45deg, ${ACCENT_COLOR_SECONDARY} 0%, ${ACCENT_COLOR_MAIN} 100%)`,
+    boxShadow: `0 4px 12px rgba(0, 120, 200, 0.3)`,
+    transition: 'all 0.25s ease-out',
+    textTransform: 'none',
+    fontWeight: 600,
+    fontSize: '0.95rem',
+    '&:hover': {
+        transform: 'translateY(-2px) scale(1.03)',
+        boxShadow: `0 6px 18px rgba(0, 120, 200, 0.45)`,
+        background: `linear-gradient(45deg, ${ACCENT_COLOR_MAIN} 0%, #00C6FF 100%)`,
+    }
+};
 
 function NavigationBar({
                            isAuthenticated,
@@ -49,14 +136,14 @@ function NavigationBar({
         navigate(path);
     };
 
-    const handleSettingClick = (setting) => {
+    const handleSettingClick = (settingAction) => {
         handleCloseUserMenu();
-        if (setting === 'Вихід') {
+        if (settingAction === 'Вихід') {
             if (onLogout) onLogout();
             navigate('/');
-        } else if (setting === 'Профіль') {
+        } else if (settingAction === 'Профіль') {
             navigate('/profile');
-        } else if (setting === 'Налаштування') {
+        } else if (settingAction === 'Налаштування') {
             console.log("Перехід до налаштувань");
             // navigate('/settings');
         }
@@ -65,52 +152,57 @@ function NavigationBar({
     return (
         <AppBar
             position="sticky"
+            elevation={0} // Прибираємо стандартну тінь, будемо керувати через boxShadow
             sx={{
+                // ПОВЕРТАЄМО ГРАДІЄНТ, ЯКИЙ МІГ ВАМ СПОДОБАТИСЯ РАНІШЕ
+                // Варіант 1 (з перших версій):
                 background: 'linear-gradient(90deg, rgba(30, 35, 50, 0.8) 0%, rgba(50, 55, 75, 0.9) 100%)',
-                backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-                borderBottomLeftRadius: {sm: '20px'}, borderBottomRightRadius: {sm: '20px'},
-                boxShadow: '0 5px 25px rgba(0, 0, 0, 0.25)',
+                // АБО Варіант 2 (трохи темніший з однієї з наступних ітерацій):
+                // background: 'linear-gradient(90deg, rgba(28, 32, 46, 0.85) 0%, rgba(45, 50, 70, 0.95) 100%)',
+
+                backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', // Можна налаштувати силу блюру
+                borderBottomLeftRadius: { sm: '20px' }, borderBottomRightRadius: { sm: '20px' }, // Можна налаштувати радіус
+                boxShadow: '0 5px 25px rgba(0, 0, 0, 0.25)', // Можна налаштувати тінь
                 borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                // borderTop: '1px solid rgba(255, 255, 255, 0.05)', // Якщо потрібна верхня межа
                 zIndex: 1200,
-                willChange: 'backdrop-filter',
+                willChange: 'backdrop-filter', // Залишаємо willChange
             }}
         >
             <Container maxWidth="xl">
-                <Toolbar disableGutters>
+                <Toolbar disableGutters sx={{ minHeight: { xs: 56, sm: 68 } }}>
+                    {/* Desktop Logo */}
                     <Typography
                         variant="h6"
                         noWrap
                         component={Link}
                         to="/"
                         sx={{
-                            mr: 2,
+                            mr: 3,
                             display: { xs: 'none', md: 'flex' },
+                            alignItems: 'center',
+                            fontFamily: 'inherit',
                             fontWeight: 700,
-                            letterSpacing: '.2rem',
+                            letterSpacing: '.15rem',
                             color: 'white',
                             textDecoration: 'none',
-                            textShadow: '0 0 8px rgba(255, 255, 255, 0.4)'
+                            textShadow: `0 0 8px rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1,3),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3,5),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5,7),16)}, 0.5)`,
+                            transition: 'transform 0.3s ease, text-shadow 0.3s ease',
+                            '&:hover': {
+                                transform: 'scale(1.02)',
+                                textShadow: `0 0 12px rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1,3),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3,5),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5,7),16)}, 0.7)`,
+                            }
                         }}
                     >
                         GRINDZONE
                     </Typography>
 
-                    <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
+                    {/* Mobile Menu Icon */}
+                    <Box sx={{ flexGrow: { xs: 1, md: 0 }, display: { xs: 'flex', md: 'none' } }}>
                         <IconButton
                             size="large"
-                            aria-label="меню навігації"
-                            aria-controls="menu-appbar-mobile"
-                            aria-haspopup="true"
                             onClick={handleOpenNavMenu}
-                            sx={{
-                                color: 'white',
-                                background: 'rgba(255, 255, 255, 0.05)',
-                                backdropFilter: 'blur(5px)',
-                                borderRadius: '50%',
-                                p: 1,
-                                boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)',
-                                '&:hover': { background: 'rgba(255, 255, 255, 0.15)' }
-                            }}
+                            sx={{ color: 'white', '&:hover': { background: 'rgba(255,255,255,0.1)'} }}
                         >
                             <MenuIcon />
                         </IconButton>
@@ -122,47 +214,39 @@ function NavigationBar({
                             transformOrigin={{ vertical: 'top', horizontal: 'left' }}
                             open={Boolean(anchorElNav)}
                             onClose={handleCloseNavMenu}
-                            sx={{
-                                display: { xs: 'block', md: 'none' },
-                                '& .MuiPaper-root': {
-                                    background: 'rgba(35, 40, 55, 0.9)',
-                                    backdropFilter: 'blur(10px)',
-                                    borderRadius: '15px',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                                    boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)',
-                                    minWidth: '200px',
-                                },
-                                '& .MuiList-root': { padding: '8px' },
-                                '& .MuiMenuItem-root': {
-                                    borderRadius: '10px',
-                                    margin: '4px 0',
-                                    color: 'rgba(255, 255, 255, 0.9)',
-                                    transition: 'all 0.2s ease',
-                                    justifyContent: 'center',
-                                    '&:hover': {
-                                        background: 'rgba(255, 255, 255, 0.1)',
-                                        color: 'white',
-                                    }
+                            PaperProps={{
+                                sx: {
+                                    background: 'rgba(25, 30, 45, 0.92)', // Фон для мобільного меню
+                                    backdropFilter: 'blur(15px)', WebkitBackdropFilter: 'blur(15px)',
+                                    borderRadius: '12px',
+                                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.35)',
+                                    minWidth: '220px', mt: 1,
                                 }
                             }}
+                            MenuListProps={{ sx: { padding: '8px' } }}
                         >
                             {isAuthenticated
                                 ? pagesNav.map((page) => (
-                                    <MenuItem key={page.title} onClick={() => handleMobileLinkClick(page.path)}>
-                                        <Typography textAlign="center">{page.title}</Typography>
+                                    <MenuItem key={page.title} onClick={() => handleMobileLinkClick(page.path)} sx={{ borderRadius: '8px', margin: '4px 0', color: 'rgba(255, 255, 255, 0.9)', '&:hover': { background: 'rgba(255, 255, 255, 0.15)', color: 'white' } }}>
+                                        {page.icon && <ListItemIcon sx={{ color: 'inherit', minWidth: '36px' }}>{page.icon}</ListItemIcon>}
+                                        <Typography textAlign="left">{page.title}</Typography>
                                     </MenuItem>
                                 ))
                                 : [
-                                    <MenuItem key="signin" onClick={() => handleMobileLinkClick('/signin')}>
-                                        <Typography textAlign="center">Увійти</Typography>
+                                    <MenuItem key="signin" onClick={() => handleMobileLinkClick('/signin')} sx={{ borderRadius: '8px', margin: '4px 0', color: 'rgba(255, 255, 255, 0.9)', '&:hover': { background: 'rgba(255, 255, 255, 0.15)', color: 'white' } }}>
+                                        <ListItemIcon sx={{ color: 'inherit', minWidth: '36px' }}><LoginIcon fontSize="small" /></ListItemIcon>
+                                        <Typography textAlign="left">Увійти</Typography>
                                     </MenuItem>,
-                                    <MenuItem key="signup" onClick={() => handleMobileLinkClick('/signup')}>
-                                        <Typography textAlign="center">Зареєструватися</Typography>
+                                    <MenuItem key="signup" onClick={() => handleMobileLinkClick('/signup')} sx={{ borderRadius: '8px', margin: '4px 0', color: 'rgba(255, 255, 255, 0.9)', '&:hover': { background: 'rgba(255, 255, 255, 0.15)', color: 'white' } }}>
+                                        <ListItemIcon sx={{ color: 'inherit', minWidth: '36px' }}><PersonAddAlt1Icon fontSize="small" /></ListItemIcon>
+                                        <Typography textAlign="left">Зареєструватися</Typography>
                                     </MenuItem>
                                 ]}
                         </Menu>
                     </Box>
 
+                    {/* Mobile Logo (centered) */}
                     <Typography
                         variant="h5"
                         noWrap
@@ -172,63 +256,55 @@ function NavigationBar({
                             display: { xs: 'flex', md: 'none' },
                             flexGrow: 1,
                             justifyContent: 'center',
+                            alignItems: 'center',
                             fontWeight: 700,
-                            letterSpacing: '.2rem',
+                            letterSpacing: '.15rem',
                             color: 'white',
                             textDecoration: 'none',
-                            textShadow: '0 0 8px rgba(255, 255, 255, 0.4)',
-                            ...(isAuthenticated && { pr: '56px' })
+                            textShadow: `0 0 8px rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1,3),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3,5),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5,7),16)}, 0.5)`,
                         }}
                     >
                         GRINDZONE
                     </Typography>
 
-                    <Box sx={{ flexGrow: { xs: 0, md: 1 }, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1.5 }}>
-                        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1.5 }}>
-                            {isAuthenticated && pagesNav.map((page) => (
-                                <Button
-                                    key={page.title}
-                                    component={Link}
-                                    to={page.path}
-                                    sx={{
-                                        ...navButtonBaseStyles,
-                                        ...(location.pathname === page.path && {
-                                            background: 'rgba(255, 255, 255, 0.15)',
-                                            color: 'white',
-                                            border: '1px solid rgba(198, 126, 255, 0.5)'
-                                        })
-                                    }}
-                                >
-                                    {page.title}
-                                </Button>
-                            ))}
-                        </Box>
+                    {/* Desktop Navigation Links */}
+                    <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, justifyContent: 'center', alignItems: 'center', gap: 0.5 }}>
+                        {isAuthenticated && pagesNav.map((page) => (
+                            <Button
+                                key={page.title}
+                                component={Link}
+                                to={page.path}
+                                sx={navButtonStyles(location.pathname === page.path)}
+                            >
+                                {page.title}
+                            </Button>
+                        ))}
+                    </Box>
 
+                    {/* Auth buttons / User Menu */}
+                    <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center', gap: { xs: 1, md: 1.5 } }}>
                         {isAuthenticated && currentUser ? (
-                            <Box sx={{ ml: {md: 1 } }}>
+                            <Box>
                                 <Tooltip title="Відкрити налаштування">
                                     <IconButton
                                         onClick={handleOpenUserMenu}
                                         sx={{
                                             p: 0.5,
-                                            background: 'rgba(255, 255, 255, 0.08)',
-                                            backdropFilter: 'blur(5px)',
-                                            boxShadow: '0 0 12px rgba(60, 120, 220, 0.3)',
+                                            background: 'rgba(255, 255, 255, 0.05)',
                                             transition: 'all 0.3s ease',
                                             borderRadius: '50%',
                                             '&:hover': {
-                                                background: 'rgba(255, 255, 255, 0.18)',
-                                                transform: 'scale(1.05)'
+                                                background: 'rgba(255, 255, 255, 0.15)',
+                                                transform: 'scale(1.1)'
                                             }
                                         }}
                                     >
                                         <Avatar
-                                            alt={currentUser.name}
+                                            alt={currentUser.name || 'User'}
                                             src={currentUser.avatarUrl || "/static/images/avatar/default.jpg"}
                                             sx={{
-                                                border: '2px solid rgba(60, 120, 220, 0.5)',
-                                                width: 40,
-                                                height: 40
+                                                border: `2px solid rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1,3),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3,5),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5,7),16)}, 0.4)`,
+                                                width: 38, height: 38
                                             }}
                                         />
                                     </IconButton>
@@ -241,38 +317,29 @@ function NavigationBar({
                                     transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                                     open={Boolean(anchorElUser)}
                                     onClose={handleCloseUserMenu}
-                                    sx={{
-                                        mt: '45px',
-                                        '& .MuiPaper-root': {
-                                            background: 'rgba(35, 40, 55, 0.9)',
-                                            backdropFilter: 'blur(10px)',
-                                            borderRadius: '15px',
-                                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                                            boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)',
-                                            minWidth: '180px',
-                                        },
-                                        '& .MuiList-root': { padding: '8px' },
-                                        '& .MuiMenuItem-root': {
-                                            borderRadius: '10px',
-                                            margin: '4px 0',
-                                            color: 'rgba(255, 255, 255, 0.9)',
-                                            transition: 'all 0.2s ease',
-                                            '&:hover': {
-                                                background: 'rgba(255, 255, 255, 0.1)',
-                                                color: 'white',
-                                            }
+                                    PaperProps={{
+                                        sx: {
+                                            mt: '50px',
+                                            background: 'rgba(25, 30, 45, 0.92)', // Фон для меню користувача
+                                            backdropFilter: 'blur(15px)', WebkitBackdropFilter: 'blur(15px)',
+                                            borderRadius: '12px',
+                                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                                            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.35)',
+                                            minWidth: '200px',
                                         }
                                     }}
+                                    MenuListProps={{ sx: { padding: '8px' } }}
                                 >
                                     {settingsMenu.map((setting) => (
-                                        <MenuItem key={setting} onClick={() => handleSettingClick(setting)}>
-                                            <Typography textAlign="center" sx={{flexGrow: 1}}>{setting}</Typography>
+                                        <MenuItem key={setting.text} onClick={() => handleSettingClick(setting.action)} sx={{ borderRadius: '8px', margin: '4px 0', color: 'rgba(255, 255, 255, 0.9)', '&:hover': { background: 'rgba(255, 255, 255, 0.15)', color: 'white' } }}>
+                                            {setting.icon && <ListItemIcon sx={{ color: 'inherit', minWidth: '36px' }}>{setting.icon}</ListItemIcon>}
+                                            <Typography textAlign="left" sx={{ flexGrow: 1 }}>{setting.text}</Typography>
                                         </MenuItem>
                                     ))}
                                 </Menu>
                             </Box>
                         ) : (
-                            <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1.5, ml: {md:1} }}>
+                            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1.5 }}>
                                 <Button component={Link} to="/signin" sx={signInButtonStyles}>
                                     Увійти
                                 </Button>
