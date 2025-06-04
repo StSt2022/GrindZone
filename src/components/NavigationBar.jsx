@@ -276,12 +276,13 @@ function NavigationBar({
                     {/* Desktop Navigation Links - ЦЕНТРАЛЬНИЙ БЛОК */}
                     <Box
                         sx={{
-                            flexGrow: 1, // Цей блок займає весь доступний простір між логотипом та блоком користувача
+                            position: 'absolute',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
                             display: { xs: 'none', md: 'flex' },
-                            justifyContent: 'center', // Центрує кнопки всередині себе
+                            justifyContent: 'center',
                             alignItems: 'center',
-                            // mx: 2, // Додаємо горизонтальні відступи, щоб не прилипало до країв
-                            gap: 0.5, // Відстань між кнопками
+                            gap: 0.5,
                         }}
                     >
                         {isAuthenticated && pagesNav.map((page) => (
