@@ -298,9 +298,20 @@ function NavigationBar({
                     </Box>
 
                     {/* Auth buttons / User Menu - ПРАВИЙ БЛОК */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 1.5 }, ml: { md: 2 } /* Додаємо відступ зліва для десктопу */ }}>
+                    <Box
+                        sx={{
+                            position: { md: 'absolute' }, // Абсолютне позиціонування тільки для десктопу
+                            right: { md: 0 }, // Притискаємо до правого краю
+                            top: { md: '50%' }, // Вертикальне центрування
+                            transform: { md: 'translateY(-50%)' }, // Вертикальне центрування
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: { xs: 1, md: 1.5 },
+                            // Видаляємо ml: { md: 2 }, оскільки воно більше не потрібне
+                        }}
+                    >
                         {isAuthenticated && currentUser ? (
-                            <Box> {/* Внутрішній Box для Tooltip та Menu */}
+                            <Box>
                                 <Tooltip title="Відкрити налаштування">
                                     <IconButton
                                         onClick={handleOpenUserMenu}
@@ -311,22 +322,29 @@ function NavigationBar({
                                             borderRadius: '50%',
                                             '&:hover': {
                                                 background: 'rgba(255, 255, 255, 0.15)',
-                                                transform: 'scale(1.1)'
-                                            }
+                                                transform: 'scale(1.1)',
+                                            },
                                         }}
                                     >
                                         <Avatar
                                             alt={currentUser.name || 'User'}
-                                            src={currentUser.avatarUrl || "/static/images/avatar/default.jpg"}
+                                            src={currentUser.avatarUrl || '/static/images/avatar/default.jpg'}
                                             sx={{
-                                                border: `2px solid rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1,3),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3,5),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5,7),16)}, 0.4)`,
-                                                width: 38, height: 38
+                                                border: `2px solid rgba(${parseInt(
+                                                    ACCENT_COLOR_MAIN.slice(1, 3),
+                                                    16
+                                                )}, ${parseInt(ACCENT_COLOR_MAIN.slice(3, 5), 16)}, ${parseInt(
+                                                    ACCENT_COLOR_MAIN.slice(5, 7),
+                                                    16
+                                                )}, 0.4)`,
+                                                width: 38,
+                                                height: 38,
                                             }}
                                         />
                                     </IconButton>
                                 </Tooltip>
                                 <Menu
-                                    id="menu-appbar-user" // ... (код меню користувача залишається без змін)
+                                    id="menu-appbar-user"
                                     anchorEl={anchorElUser}
                                     anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
                                     keepMounted
@@ -337,25 +355,46 @@ function NavigationBar({
                                         sx: {
                                             mt: '50px',
                                             background: 'rgba(25, 30, 45, 0.92)',
-                                            backdropFilter: 'blur(15px)', WebkitBackdropFilter: 'blur(15px)',
+                                            backdropFilter: 'blur(15px)',
+                                            WebkitBackdropFilter: 'blur(15px)',
                                             borderRadius: '12px',
                                             border: '1px solid rgba(255, 255, 255, 0.12)',
                                             boxShadow: '0 8px 25px rgba(0, 0, 0, 0.35)',
                                             minWidth: '200px',
-                                        }
+                                        },
                                     }}
                                     MenuListProps={{ sx: { padding: '8px' } }}
                                 >
                                     {settingsMenu.map((setting) => (
-                                        <MenuItem key={setting.text} onClick={() => handleSettingClick(setting.action)} sx={{ borderRadius: '8px', margin: '4px 0', color: 'rgba(255, 255, 255, 0.9)', '&:hover': { background: 'rgba(255, 255, 255, 0.15)', color: 'white' } }}>
-                                            {setting.icon && <ListItemIcon sx={{ color: 'inherit', minWidth: '36px' }}>{setting.icon}</ListItemIcon>}
-                                            <Typography textAlign="left" sx={{ flexGrow: 1 }}>{setting.text}</Typography>
+                                        <MenuItem
+                                            key={setting.text}
+                                            onClick={() => handleSettingClick(setting.action)}
+                                            sx={{
+                                                borderRadius: '8px',
+                                                margin: '4px 0',
+                                                color: 'rgba(255, 255, 255, 0.9)',
+                                                '&:hover': {
+                                                    background: 'rgba(255, 255, 255, 0.15)',
+                                                    color: 'white',
+                                                },
+                                            }}
+                                        >
+                                            {setting.icon && (
+                                                <ListItemIcon sx={{ color: 'inherit', minWidth: '36px' }}>
+                                                    {setting.icon}
+                                                </ListItemIcon>
+                                            )}
+                                            <Typography textAlign="left" sx={{ flexGrow: 1 }}>
+                                                {setting.text}
+                                            </Typography>
                                         </MenuItem>
                                     ))}
                                 </Menu>
                             </Box>
                         ) : (
-                            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1.5 }}>
+                            <Box
+                                sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1.5 }}
+                            >
                                 <Button component={Link} to="/signin" sx={signInButtonStyles}>
                                     Увійти
                                 </Button>
