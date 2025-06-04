@@ -37,10 +37,9 @@ const DEFAULT_SETTINGS_MENU = [
     { text: 'Вихід', icon: <LogoutIcon fontSize="small" />, action: 'Вихід' }
 ];
 
-const ACCENT_COLOR_MAIN = '#00A9FF'; // Яскраво-блакитний
-const ACCENT_COLOR_SECONDARY = '#0077B6'; // Темніший блакитний
+const ACCENT_COLOR_MAIN = '#00A9FF';
+const ACCENT_COLOR_SECONDARY = '#0077B6';
 
-// Стилі для кнопок навігації (як у попередньому варіанті)
 const navButtonStyles = (isActive) => ({
     my: 2,
     color: isActive ? ACCENT_COLOR_MAIN : 'rgba(255, 255, 255, 0.8)',
@@ -76,7 +75,6 @@ const navButtonStyles = (isActive) => ({
     })
 });
 
-// Стилі для кнопки "Увійти" (як у попередньому варіанті)
 const signInButtonStyles = {
     ...navButtonStyles(false),
     color: 'rgba(255, 255, 255, 0.8)',
@@ -91,7 +89,6 @@ const signInButtonStyles = {
     }
 };
 
-// Стилі для кнопки "Зареєструватися" (як у попередньому варіанті)
 const signUpButtonStyles = {
     my: 2,
     color: 'white',
@@ -152,24 +149,26 @@ function NavigationBar({
     return (
         <AppBar
             position="sticky"
-            elevation={0} // Прибираємо стандартну тінь, будемо керувати через boxShadow
+            elevation={0}
             sx={{
-                // ПОВЕРТАЄМО ГРАДІЄНТ, ЯКИЙ МІГ ВАМ СПОДОБАТИСЯ РАНІШЕ
-                // Варіант 1 (з перших версій):
                 background: 'linear-gradient(90deg, rgba(30, 35, 50, 0.8) 0%, rgba(50, 55, 75, 0.9) 100%)',
-                // АБО Варіант 2 (трохи темніший з однієї з наступних ітерацій):
-                // background: 'linear-gradient(90deg, rgba(28, 32, 46, 0.85) 0%, rgba(45, 50, 70, 0.95) 100%)',
-
-                backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', // Можна налаштувати силу блюру
-                borderBottomLeftRadius: { sm: '20px' }, borderBottomRightRadius: { sm: '20px' }, // Можна налаштувати радіус
-                boxShadow: '0 5px 25px rgba(0, 0, 0, 0.25)', // Можна налаштувати тінь
+                backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+                borderBottomLeftRadius: { sm: '20px' }, borderBottomRightRadius: { sm: '20px' },
+                boxShadow: '0 5px 25px rgba(0, 0, 0, 0.25)',
                 borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                // borderTop: '1px solid rgba(255, 255, 255, 0.05)', // Якщо потрібна верхня межа
                 zIndex: 1200,
-                willChange: 'backdrop-filter', // Залишаємо willChange
+                willChange: 'backdrop-filter',
             }}
         >
             <Container maxWidth="xl">
+                {/*
+                    Toolbar є flex-контейнером.
+                    1. Логотип (Desktop)
+                    2. Мобільне меню (іконка)
+                    3. Мобільне лого (текст)
+                    4. Блок навігації (Desktop) - ЦЕЙ БЛОК МАЄ РОЗТЯГУВАТИСЯ І ЦЕНТРУВАТИ СВІЙ ВМІСТ
+                    5. Блок авторизації/користувача (Desktop/Mobile Avatar)
+                */}
                 <Toolbar disableGutters sx={{ minHeight: { xs: 56, sm: 68 } }}>
                     {/* Desktop Logo */}
                     <Typography
@@ -178,7 +177,7 @@ function NavigationBar({
                         component={Link}
                         to="/"
                         sx={{
-                            mr: 3,
+                            // mr: 2, // Замість mr, дозволимо наступному flex-елементу розтягуватися
                             display: { xs: 'none', md: 'flex' },
                             alignItems: 'center',
                             fontFamily: 'inherit',
@@ -191,14 +190,18 @@ function NavigationBar({
                             '&:hover': {
                                 transform: 'scale(1.02)',
                                 textShadow: `0 0 12px rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1,3),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3,5),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5,7),16)}, 0.7)`,
-                            }
+                            },
+                            // Додамо невеликий правий відступ, щоб не прилипало до навігації
+                            // або можна використати gap на батьківському Toolbar, якщо він підтримує
+                            // Для Toolbar краще використовувати Box як обгортки для секцій
+                            // Поки що залишимо так, або додамо margin на наступний елемент
                         }}
                     >
                         GRINDZONE
                     </Typography>
 
-                    {/* Mobile Menu Icon */}
-                    <Box sx={{ flexGrow: { xs: 1, md: 0 }, display: { xs: 'flex', md: 'none' } }}>
+                    {/* Mobile: Burger Icon + Menu */}
+                    <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center' /* flexGrow: 1, якщо логотип теж flexGrow: 1 */ }}>
                         <IconButton
                             size="large"
                             onClick={handleOpenNavMenu}
@@ -207,7 +210,7 @@ function NavigationBar({
                             <MenuIcon />
                         </IconButton>
                         <Menu
-                            id="menu-appbar-mobile"
+                            id="menu-appbar-mobile" // ... (код мобільного меню залишається без змін)
                             anchorEl={anchorElNav}
                             anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
                             keepMounted
@@ -216,7 +219,7 @@ function NavigationBar({
                             onClose={handleCloseNavMenu}
                             PaperProps={{
                                 sx: {
-                                    background: 'rgba(25, 30, 45, 0.92)', // Фон для мобільного меню
+                                    background: 'rgba(25, 30, 45, 0.92)',
                                     backdropFilter: 'blur(15px)', WebkitBackdropFilter: 'blur(15px)',
                                     borderRadius: '12px',
                                     border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -254,7 +257,7 @@ function NavigationBar({
                         to="/"
                         sx={{
                             display: { xs: 'flex', md: 'none' },
-                            flexGrow: 1,
+                            flexGrow: 1, // Дозволяє цьому елементу зайняти простір і центрувати текст
                             justifyContent: 'center',
                             alignItems: 'center',
                             fontWeight: 700,
@@ -262,13 +265,25 @@ function NavigationBar({
                             color: 'white',
                             textDecoration: 'none',
                             textShadow: `0 0 8px rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1,3),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3,5),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5,7),16)}, 0.5)`,
+                            // Важливо: якщо справа є ще елементи на мобільному (наприклад, аватар), то це центрування буде відносним.
+                            // Для ідеального центрування тексту, цей Typography має бути єдиним flexGrow: 1 елементом між крайніми фіксованими.
+                            // Наприклад, IconButton для бургер-меню зліва, і IconButton для аватара справа.
                         }}
                     >
                         GRINDZONE
                     </Typography>
 
-                    {/* Desktop Navigation Links */}
-                    <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, justifyContent: 'center', alignItems: 'center', gap: 0.5 }}>
+                    {/* Desktop Navigation Links - ЦЕНТРАЛЬНИЙ БЛОК */}
+                    <Box
+                        sx={{
+                            flexGrow: 1, // Цей блок займає весь доступний простір між логотипом та блоком користувача
+                            display: { xs: 'none', md: 'flex' },
+                            justifyContent: 'center', // Центрує кнопки всередині себе
+                            alignItems: 'center',
+                            // mx: 2, // Додаємо горизонтальні відступи, щоб не прилипало до країв
+                            gap: 0.5, // Відстань між кнопками
+                        }}
+                    >
                         {isAuthenticated && pagesNav.map((page) => (
                             <Button
                                 key={page.title}
@@ -281,10 +296,10 @@ function NavigationBar({
                         ))}
                     </Box>
 
-                    {/* Auth buttons / User Menu */}
-                    <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center', gap: { xs: 1, md: 1.5 } }}>
+                    {/* Auth buttons / User Menu - ПРАВИЙ БЛОК */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 1.5 }, ml: { md: 2 } /* Додаємо відступ зліва для десктопу */ }}>
                         {isAuthenticated && currentUser ? (
-                            <Box>
+                            <Box> {/* Внутрішній Box для Tooltip та Menu */}
                                 <Tooltip title="Відкрити налаштування">
                                     <IconButton
                                         onClick={handleOpenUserMenu}
@@ -310,7 +325,7 @@ function NavigationBar({
                                     </IconButton>
                                 </Tooltip>
                                 <Menu
-                                    id="menu-appbar-user"
+                                    id="menu-appbar-user" // ... (код меню користувача залишається без змін)
                                     anchorEl={anchorElUser}
                                     anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
                                     keepMounted
@@ -320,7 +335,7 @@ function NavigationBar({
                                     PaperProps={{
                                         sx: {
                                             mt: '50px',
-                                            background: 'rgba(25, 30, 45, 0.92)', // Фон для меню користувача
+                                            background: 'rgba(25, 30, 45, 0.92)',
                                             backdropFilter: 'blur(15px)', WebkitBackdropFilter: 'blur(15px)',
                                             borderRadius: '12px',
                                             border: '1px solid rgba(255, 255, 255, 0.12)',
