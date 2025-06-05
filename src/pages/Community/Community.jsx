@@ -167,15 +167,35 @@ const formatTimestamp = (isoString) => {
     if (!isoString) return '';
     const date = new Date(isoString);
     const now = new Date();
-    const diffSeconds = Math.round((now.getTime() - date.getTime()) / 1000);
-    const diffMinutes = Math.round(diffSeconds / 60);
-    const diffHours = Math.round(diffMinutes / 60);
-    const diffDays = Math.round(diffHours / 24);
 
-    if (diffSeconds < 60) return `${diffSeconds} сек тому`;
-    if (diffMinutes < 60) return `${diffMinutes} хв тому`;
-    if (diffHours < 24) return `${diffHours} год тому`;
-    if (diffDays === 1) return `Вчора, ${date.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
+    let diffSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffSeconds < 0) {
+        diffSeconds = 0;
+    }
+
+    if (diffSeconds < 5) {
+        return "щойно";
+    }
+    if (diffSeconds < 60) {
+        return `${diffSeconds} сек тому`;
+    }
+
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) {
+        return `${diffMinutes} хв тому`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) {
+        return `${diffHours} год тому`;
+    }
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) {
+        return `Вчора, ${date.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+
     return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' }) + ` о ${date.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
 };
 
@@ -288,20 +308,17 @@ function CommunityPage(props) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Помилка створення поста');
             }
-            const { post } = await response.json();
-            setPosts(prev => [post, ...prev.filter(p => p.id !== post.id)]); // Додаємо новий пост, уникаючи дублікатів якщо вже є
+
             setNewPostText("");
             setNewPostType('text');
             clearPreviewMedia();
-            if (currentPage !== 1 && posts.length + 1 > POSTS_PER_PAGE * (currentPage -1) ) { // Перевірка чи треба скидати на 1 сторінку
-                // Якщо постів стає більше ніж на поточній сторінці, можна оновити дані для поточної
-                // або перекинути на першу, щоб новий пост був видимий
-                fetchPosts(1, searchTerm); // Оновлюємо пости з першої сторінки
+
+            if (searchTerm || currentPage !== 1) {
                 setCurrentPage(1);
-            } else if (posts.length + 1 <= POSTS_PER_PAGE){
-                // Якщо постів ще мало і всі вміщаються на першу сторінку
-                setCurrentPage(1); // Залишаємось або переходимо на 1-шу
+            } else {
+                fetchPosts(1, searchTerm);
             }
+
         } catch (error) {
             console.error('Error creating post:', error);
             alert(`Не вдалося створити пост: ${error.message}`);
