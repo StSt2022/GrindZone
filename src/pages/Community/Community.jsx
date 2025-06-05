@@ -44,7 +44,7 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 
-import { useAuth } from '../../context/AuthContext'; // Адаптуйте шлях
+import { useAuth } from '../../context/AuthContext';
 
 const gridLineGlow = keyframes`0% { opacity: 0.05; } 50% { opacity: 0.1; } 100% { opacity: 0.05; }`;
 
@@ -264,6 +264,8 @@ function CommunityPage(props) {
             setTotalPages(data.totalPages);
         } catch (error) {
             console.error('Error fetching posts:', error);
+            setPosts([]);
+            setTotalPages(1);
         } finally {
             setLoading(false);
         }
@@ -417,7 +419,7 @@ function CommunityPage(props) {
                 ...prev,
                 [selectedPostForComment.id]: [...(prev[selectedPostForComment.id] || []), comment]
             }));
-            setPosts(prev => prev.map(p => p.id === selectedPostForComment.id ? { ...p, commentsCount: (comments[selectedPostForComment.id]?.length || 0) + 1 } : p));
+            setPosts(prev => prev.map(p => p.id === selectedPostForComment.id ? { ...p, commentsCount: (p.commentsCount || 0) + 1 } : p));
             setNewCommentText("");
         } catch (error) {
             console.error('Error posting comment:', error);
@@ -438,7 +440,7 @@ function CommunityPage(props) {
                 ...prev,
                 [postId]: prev[postId].filter(c => c.id !== commentId)
             }));
-            setPosts(prev => prev.map(p => p.id === postId ? { ...p, commentsCount: (comments[postId]?.length || 1) - 1 } : p));
+            setPosts(prev => prev.map(p => p.id === postId ? { ...p, commentsCount: Math.max(0, (p.commentsCount || 0) - 1) } : p));
         } catch (error) {
             console.error('Error deleting comment:', error);
             alert('Не вдалося видалити коментар.');
@@ -475,60 +477,24 @@ function CommunityPage(props) {
     }, [currentPage, searchTerm, isAuthenticated, isLoadingAuth, currentUser]);
 
 
-    const filteredPosts = React.useMemo(() => posts.filter(post => {
-        const searchTermLower = searchTerm.toLowerCase();
-        const textMatch = post.text.toLowerCase().includes(searchTermLower);
-        const tagMatch = post.tags.some(tag => tag.toLowerCase().includes(searchTermLower));
-        const authorName = post.isAnonymous ? "" : post.author?.name || "";
-        const authorMatch = authorName.toLowerCase().includes(searchTermLower);
-        return textMatch || tagMatch || authorMatch;
-    }), [posts, searchTerm]);
-
-    const paginatedPosts = React.useMemo(() => {
-        return filteredPosts.slice((currentPage - 1) * POSTS_PER_PAGE, currentPage * POSTS_PER_PAGE);
-    }, [filteredPosts, currentPage]);
-
-    const pageCount = React.useMemo(() => {
-        return Math.max(totalPages, Math.ceil(filteredPosts.length / POSTS_PER_PAGE)) || 1;
-    }, [totalPages, filteredPosts.length]);
-
-
     React.useEffect(() => {
-        if (currentPage > pageCount && pageCount > 0) {
-            setCurrentPage(pageCount);
-        } else if (filteredPosts.length > 0 && currentPage === 0 && pageCount > 0) {
-            setCurrentPage(1);
+        if (totalPages > 0 && currentPage > totalPages) {
+            setCurrentPage(totalPages);
         }
-    }, [filteredPosts.length, currentPage, pageCount]);
+    }, [currentPage, totalPages]);
 
     React.useEffect(() => {
         const hash = location.hash;
         if (hash && hash.startsWith('#post-')) {
             const targetPostId = hash.substring('#post-'.length);
-            const postIndex = filteredPosts.findIndex(p => p.id === targetPostId);
-
-            if (postIndex !== -1) {
-                const targetPage = Math.floor(postIndex / POSTS_PER_PAGE) + 1;
-                if (currentPage !== targetPage) {
-                    setCurrentPage(targetPage);
-                }
-            }
-        }
-    }, [location.hash, filteredPosts, currentPage]); // Не додаємо paginatedPosts, щоб уникнути циклу при зміні сторінки
-
-    React.useEffect(() => {
-        const hash = location.hash;
-        if (hash && hash.startsWith('#post-')) {
-            const targetPostId = hash.substring('#post-'.length);
-            // Чекаємо, поки пости завантажаться і відфільтруються для поточної сторінки
-            if (!loading && paginatedPosts.some(p => p.id === targetPostId)) {
+            if (!loading && posts.some(p => p.id === targetPostId)) {
                 const element = document.getElementById(`post-${targetPostId}`);
                 if (element) {
                     element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }
         }
-    }, [location.hash, paginatedPosts, loading, currentPage]);
+    }, [location.hash, posts, loading, currentPage]);
 
 
     const textFieldSx = (isMultiline, isComment = false, textValue = "") => ({
@@ -662,7 +628,7 @@ function CommunityPage(props) {
 
                     {loading ? (
                         <Typography sx={{textAlign:'center', color:'rgba(255,255,255,0.6)', p:3}}>Завантаження постів...</Typography>
-                    ) : paginatedPosts.length > 0 ? paginatedPosts.map(post => (
+                    ) : posts.length > 0 ? posts.map(post => (
                         <PostCardStyled key={post.id} id={`post-${post.id}`} sx={{ mb: {xs: 2.5, sm: 3} }}>
                             <CardHeader
                                 avatar={<Avatar src={post.isAnonymous ? "/static/images/avatar/anonymous.png" : post.author?.avatarUrl || "/static/images/avatar/default.jpg"} sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.2), color: theme.palette.secondary.main, border: `1px solid ${alpha(theme.palette.secondary.main, 0.4)}` }}>{post.isAnonymous ? 'A' : post.author?.name?.charAt(0)}</Avatar>}
@@ -701,9 +667,9 @@ function CommunityPage(props) {
                     )}
 
 
-                    {pageCount > 1 && isAuthenticated &&
+                    {totalPages > 1 && isAuthenticated &&
                         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, mb: 2 }}>
-                            <Pagination count={pageCount} page={currentPage} onChange={(e, value) => setCurrentPage(value)}
+                            <Pagination count={totalPages} page={currentPage} onChange={(e, value) => setCurrentPage(value)}
                                         sx={{ '& .MuiPaginationItem-root': { color: 'rgba(255,255,255,0.7)', '&:hover': {backgroundColor: alpha(theme.palette.secondary.main,0.1)}, '&.Mui-selected': {backgroundColor: alpha(theme.palette.secondary.main,0.25), color: 'white', fontWeight:'bold'} }}}
                             />
                         </Box>
