@@ -1,4 +1,3 @@
-// src/components/activities/Equipment.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import Slider from "react-slick";
 import Box from '@mui/material/Box';
@@ -14,22 +13,19 @@ import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import { styled } from '@mui/material/styles';
-import CircularProgress from '@mui/material/CircularProgress'; // Для індикатора завантаження
+import CircularProgress from '@mui/material/CircularProgress'; 
 
-// Icons
+
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import EventSeatIcon from '@mui/icons-material/EventSeat';
 
-import { Global, keyframes, css } from '@emotion/react';
+import { Global, css } from '@emotion/react';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-// keyframes та styled компоненти залишаються без змін
-const cardHoverShine = keyframes`
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-`;
+
+
 
 const slickDotsStyles = css`
     .slick-dots li button:before {
@@ -38,12 +34,10 @@ const slickDotsStyles = css`
         opacity: 0.75;
         transition: all 0.3s ease;
     }
+
     .slick-dots li.slick-active button:before {
         color: #b388ff;
         opacity: 1;
-    }
-    .slick-dots {
-        bottom: -45px;
     }
 `;
 
@@ -67,11 +61,11 @@ const StyledBookButton = styled(Button)(({ theme }) => ({
 }));
 
 const EquipmentCard = ({ equipment, onBookClick }) => {
-    const cardMinHeight = 430; // Можна зробити 440-450 для більшого простору
+    const cardMinHeight = 430; 
 
     const cardStyles = {
         minHeight: `${cardMinHeight}px`,
-        height: '100%', // Важливо для flex-контейнера слайдера
+        height: '100%', 
         background: 'rgba(38, 30, 65, 0.92)',
         borderRadius: '20px',
         border: '1px solid rgba(138, 43, 226, 0.25)',
@@ -126,7 +120,7 @@ const EquipmentCard = ({ equipment, onBookClick }) => {
                 }}>
                     <Typography variant="h6" component="div" sx={{
                         fontWeight: '600', color: 'white', fontSize: '1.1rem', mb: 1.5,
-                        lineHeight: 1.3, minHeight: '46px', // Забезпечуємо мінімальну висоту для 2 рядків
+                        lineHeight: 1.3, minHeight: '46px', 
                         textAlign: 'left',
                     }}>
                         {equipment.name}
@@ -134,7 +128,7 @@ const EquipmentCard = ({ equipment, onBookClick }) => {
                     <Typography variant="body2" color="rgba(230, 220, 255, 0.75)" sx={{
                         fontSize: '0.88rem', lineHeight: 1.55, mb: 2,
                         flexGrow: 1,
-                        minHeight: '70px', // Забезпечуємо мінімальну висоту для ~4 рядків
+                        minHeight: '70px', 
                         textAlign: 'left',
                         overflow: 'hidden', textOverflow: 'ellipsis',
                         display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical',
@@ -162,7 +156,7 @@ const CustomArrow = ({ direction, onClick }) => {
             onClick={onClick}
             sx={{
                 position: 'absolute',
-                top: 'calc(50% - 40px)', // Або 50% і transform, залежно від висоти картки
+                top: 'calc(50% - 40px)', 
                 transform: 'translateY(-50%)',
                 ...(direction === 'prev' ? { left: {xs: -10, sm:-15, md:-25} } : { right: {xs: -10, sm:-15, md:-25} }),
                 zIndex: 2,
@@ -180,52 +174,52 @@ const CustomArrow = ({ direction, onClick }) => {
     );
 };
 
-// Компонент тепер приймає `zones` та `equipment` як пропси
+
 const Equipment = ({ zones, equipment, onBookEquipment }) => {
     const [selectedZoneId, setSelectedZoneId] = useState('');
     const [filteredEquipment, setFilteredEquipment] = useState([]);
     const sliderRef = useRef(null);
 
-    // Встановлюємо першу зону за замовчуванням, якщо зони завантажені
+    
     useEffect(() => {
         if (zones && zones.length > 0 && !selectedZoneId) {
             setSelectedZoneId(zones[0].id);
         }
-    }, [zones, selectedZoneId]); // Залежність від zones та selectedZoneId
+    }, [zones, selectedZoneId]); 
 
-    // Фільтруємо обладнання при зміні selectedZoneId або списку equipment
+    
     useEffect(() => {
         if (selectedZoneId && equipment) {
-            // Фільтруємо обладнання за `zoneId`
+            
             const newFilteredEquipment = equipment.filter(eq => eq.zoneId === selectedZoneId);
             setFilteredEquipment(newFilteredEquipment);
         } else if (!selectedZoneId && equipment) {
-            // Якщо зона не обрана, показуємо все обладнання (або можна залишити порожнім)
-            // setFilteredEquipment(equipment); // Розкоментуй, якщо хочеш показувати все за замовчуванням
-            setFilteredEquipment([]); // Або порожній масив, поки не обрано зону
+            
+            
+            setFilteredEquipment([]); 
         } else {
             setFilteredEquipment([]);
         }
 
-        // Скидаємо слайдер на початок при зміні фільтра
+        
         if (sliderRef.current) {
             sliderRef.current.slickGoTo(0);
         }
-    }, [selectedZoneId, equipment]); // Залежність від selectedZoneId та equipment
+    }, [selectedZoneId, equipment]); 
 
     const handleZoneChange = (event) => {
         setSelectedZoneId(event.target.value);
     };
 
     const slidesToShowDefault = 3;
-    // Включаємо centerMode, якщо обладнання більше або дорівнює slidesToShowDefault
+    
     const enableCenterMode = filteredEquipment.length >= slidesToShowDefault;
 
     const sliderSettings = {
         dots: filteredEquipment.length > (enableCenterMode ? 1 : slidesToShowDefault),
         infinite: filteredEquipment.length > (enableCenterMode ? 1 : slidesToShowDefault),
         speed: 600,
-        // Кількість слайдів для показу: або дефолт, або менше, якщо елементів недостатньо
+        
         slidesToShow: Math.min(slidesToShowDefault, filteredEquipment.length) || 1,
         slidesToScroll: 1,
         autoplay: filteredEquipment.length > (enableCenterMode ? 1 : slidesToShowDefault),
@@ -274,10 +268,10 @@ const Equipment = ({ zones, equipment, onBookEquipment }) => {
         ],
     };
 
-    // Перевірка, чи дані ще завантажуються (це має оброблятися на рівні ActivitiesPage)
-    // Але можна додати локальний індикатор, якщо пропси ще не прийшли
+    
+    
     if (!zones || zones.length === 0 || !equipment) {
-        // Цей стан має бути короткочасним, якщо ActivitiesPage правильно керує isLoading
+        
         return (
             <Box sx={{ textAlign: 'center', py: 5 }}>
                 <CircularProgress />

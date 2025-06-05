@@ -1,4 +1,3 @@
-// src/components/activities/Zones.jsx
 import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -10,19 +9,19 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-// import Chip from '@mui/material/Chip'; // Chip не використовується, можна видалити
+
 import { keyframes } from '@emotion/react';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 
-// Видаляємо імпорт mockEquipment, бо отримуємо allEquipment через пропси
-// import { mockEquipment } from './mockDb.jsx'; // ВИДАЛИТИ ЦЕЙ РЯДОК
+
+
 
 const fadeInUp = keyframes`
   from { opacity: 0; transform: translateY(30px) translateZ(0); }
   to { opacity: 1; transform: translateY(0) translateZ(0); }
 `;
 
-// ZoneCard тепер приймає allEquipment як проп
+
 const ZoneCard = ({ zone, index, allEquipment }) => {
     const accent = zone.accentColor || 'rgba(138, 43, 226, 0.45)';
 
@@ -61,14 +60,14 @@ const ZoneCard = ({ zone, index, allEquipment }) => {
         }
     };
 
-    // Отримуємо список обладнання для цієї зони
-    // Тепер ми не використовуємо zone.equipmentIds, а фільтруємо allEquipment по zone.id
+
+
     const equipmentInZone = allEquipment
         .filter(eq => eq.zoneId === zone.id)
         .map(eq => eq.name)
-        .slice(0, 4); // Показуємо перші 4 для прикладу
+        .slice(0, 4);
 
-    // Загальна кількість обладнання в зоні
+
     const totalEquipmentInZoneCount = allEquipment.filter(eq => eq.zoneId === zone.id).length;
 
 
@@ -170,12 +169,12 @@ const ZoneCard = ({ zone, index, allEquipment }) => {
     );
 };
 
-// Zones тепер приймає allEquipment як проп
+
 const Zones = ({ zones, allEquipment }) => {
     if (!zones || zones.length === 0) {
         return <Typography color="text.secondary" sx={{ textAlign: 'center', my: 4, fontStyle: 'italic' }}>Інформація про зони наразі недоступна.</Typography>;
     }
-    if (!allEquipment) { // Додаткова перевірка, хоча isLoading на рівні сторінки має це покрити
+    if (!allEquipment) {
         return <Typography color="text.secondary" sx={{ textAlign: 'center', my: 4, fontStyle: 'italic' }}>Завантаження даних про обладнання...</Typography>;
     }
 

@@ -114,11 +114,7 @@ function Home(props) {
         if (isAuthenticated) {
             navigate('/profile');
         } else {
-            // Замість toggleAuth(), тепер це може бути перехід на сторінку логіну/реєстрації
-            // Для демонстрації можна залишити setIsAuthenticated, але в реальному додатку це буде API
-            // setIsAuthenticated(true);
-            // setCurrentUser({ name: "Тестовий Юзер", avatarUrl: "/static/images/avatar/1.jpg" });
-            navigate('/signup'); // Або '/signin'
+            navigate('/signup');
         }
     };
 

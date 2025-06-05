@@ -1,4 +1,3 @@
-// src/components/activities/InfoCardsSection.jsx
 import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -9,8 +8,8 @@ import { keyframes } from '@emotion/react';
 
 import CheckroomIcon from '@mui/icons-material/Checkroom';
 import RuleFolderIcon from '@mui/icons-material/RuleFolder';
-import DevicesIcon from '@mui/icons-material/Devices'; // SafetyAndGuidance or other relevant
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline'; // Default
+import DevicesIcon from '@mui/icons-material/Devices';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 const iconMap = {
     Checkroom: <CheckroomIcon sx={{ fontSize: '3rem', color: '#c67eff' }} />,
@@ -66,7 +65,7 @@ const InfoCardsSection = ({ infoCards }) => {
                                 boxShadow: '0 18px 45px rgba(138, 43, 226, 0.3), 0 0 25px rgba(138, 43, 226, 0.2)',
                                 borderColor: 'rgba(198, 126, 255, 0.6)',
                             },
-                            '&::before': { // Top highlight bar
+                            '&::before': {
                                 content: '""', position: 'absolute', top: 0, left: 0, right: 0, height: '5px',
                                 background: 'linear-gradient(90deg, #a96cff, #c67eff, #8a2be2)',
                                 opacity: 0.75,

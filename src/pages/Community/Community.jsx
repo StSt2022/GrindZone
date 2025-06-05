@@ -44,7 +44,7 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 
-import { useAuth } from '../../context/AuthContext'; // Адаптуйте шлях
+import { useAuth } from '../../context/AuthContext';
 
 const gridLineGlow = keyframes`0% { opacity: 0.05; } 50% { opacity: 0.1; } 100% { opacity: 0.05; }`;
 
@@ -514,13 +514,13 @@ function CommunityPage(props) {
                 }
             }
         }
-    }, [location.hash, filteredPosts, currentPage]); // Не додаємо paginatedPosts, щоб уникнути циклу при зміні сторінки
+    }, [location.hash, filteredPosts, currentPage]);
 
     React.useEffect(() => {
         const hash = location.hash;
         if (hash && hash.startsWith('#post-')) {
             const targetPostId = hash.substring('#post-'.length);
-            // Чекаємо, поки пости завантажаться і відфільтруються для поточної сторінки
+
             if (!loading && paginatedPosts.some(p => p.id === targetPostId)) {
                 const element = document.getElementById(`post-${targetPostId}`);
                 if (element) {

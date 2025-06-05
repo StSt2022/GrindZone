@@ -14,7 +14,7 @@ import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 
-// Іконки (залишаємо для мобільного меню та меню користувача)
+
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -142,7 +142,7 @@ function NavigationBar({
             navigate('/profile');
         } else if (settingAction === 'Налаштування') {
             console.log("Перехід до налаштувань");
-            // navigate('/settings');
+
         }
     };
 
@@ -161,23 +161,14 @@ function NavigationBar({
             }}
         >
             <Container maxWidth="xl">
-                {/*
-                    Toolbar є flex-контейнером.
-                    1. Логотип (Desktop)
-                    2. Мобільне меню (іконка)
-                    3. Мобільне лого (текст)
-                    4. Блок навігації (Desktop) - ЦЕЙ БЛОК МАЄ РОЗТЯГУВАТИСЯ І ЦЕНТРУВАТИ СВІЙ ВМІСТ
-                    5. Блок авторизації/користувача (Desktop/Mobile Avatar)
-                */}
                 <Toolbar disableGutters sx={{ minHeight: { xs: 56, sm: 68 } }}>
-                    {/* Desktop Logo */}
                     <Typography
                         variant="h6"
                         noWrap
                         component={Link}
                         to="/"
                         sx={{
-                            // mr: 2, // Замість mr, дозволимо наступному flex-елементу розтягуватися
+
                             display: { xs: 'none', md: 'flex' },
                             alignItems: 'center',
                             fontFamily: 'inherit',
@@ -191,10 +182,10 @@ function NavigationBar({
                                 transform: 'scale(1.02)',
                                 textShadow: `0 0 12px rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1,3),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3,5),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5,7),16)}, 0.7)`,
                             },
-                            // Додамо невеликий правий відступ, щоб не прилипало до навігації
-                            // або можна використати gap на батьківському Toolbar, якщо він підтримує
-                            // Для Toolbar краще використовувати Box як обгортки для секцій
-                            // Поки що залишимо так, або додамо margin на наступний елемент
+
+
+
+
                         }}
                     >
                         GRINDZONE
@@ -210,7 +201,7 @@ function NavigationBar({
                             <MenuIcon />
                         </IconButton>
                         <Menu
-                            id="menu-appbar-mobile" // ... (код мобільного меню залишається без змін)
+                            id="menu-appbar-mobile"
                             anchorEl={anchorElNav}
                             anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
                             keepMounted
@@ -248,8 +239,6 @@ function NavigationBar({
                                 ]}
                         </Menu>
                     </Box>
-
-                    {/* Mobile Logo (centered) */}
                     <Typography
                         variant="h5"
                         noWrap
@@ -257,7 +246,7 @@ function NavigationBar({
                         to="/"
                         sx={{
                             display: { xs: 'flex', md: 'none' },
-                            flexGrow: 1, // Дозволяє цьому елементу зайняти простір і центрувати текст
+                            flexGrow: 1,
                             justifyContent: 'center',
                             alignItems: 'center',
                             fontWeight: 700,
@@ -265,15 +254,13 @@ function NavigationBar({
                             color: 'white',
                             textDecoration: 'none',
                             textShadow: `0 0 8px rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1,3),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3,5),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5,7),16)}, 0.5)`,
-                            // Важливо: якщо справа є ще елементи на мобільному (наприклад, аватар), то це центрування буде відносним.
-                            // Для ідеального центрування тексту, цей Typography має бути єдиним flexGrow: 1 елементом між крайніми фіксованими.
-                            // Наприклад, IconButton для бургер-меню зліва, і IconButton для аватара справа.
+
+
+
                         }}
                     >
                         GRINDZONE
                     </Typography>
-
-                    {/* Desktop Navigation Links - ЦЕНТРАЛЬНИЙ БЛОК */}
                     <Box
                         sx={{
                             position: 'absolute',
@@ -296,18 +283,16 @@ function NavigationBar({
                             </Button>
                         ))}
                     </Box>
-
-                    {/* Auth buttons / User Menu - ПРАВИЙ БЛОК */}
                     <Box
                         sx={{
-                            position: { md: 'absolute' }, // Абсолютне позиціонування тільки для десктопу
-                            right: { md: 0 }, // Притискаємо до правого краю
-                            top: { md: '50%' }, // Вертикальне центрування
-                            transform: { md: 'translateY(-50%)' }, // Вертикальне центрування
+                            position: { md: 'absolute' },
+                            right: { md: 0 },
+                            top: { md: '50%' },
+                            transform: { md: 'translateY(-50%)' },
                             display: 'flex',
                             alignItems: 'center',
                             gap: { xs: 1, md: 1.5 },
-                            // Видаляємо ml: { md: 2 }, оскільки воно більше не потрібне
+
                         }}
                     >
                         {isAuthenticated && currentUser ? (
