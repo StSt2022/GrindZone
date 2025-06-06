@@ -1,6 +1,6 @@
-// src/pages/Profile/Profile.jsx
+
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // Додано імпорт Link
+import { useNavigate, Link } from 'react-router-dom';
 import {
     Box, Typography, Container, Button, CssBaseline, Card, CardContent,
     Grid, Avatar, Paper, IconButton, Divider, Tooltip, LinearProgress,
@@ -15,11 +15,11 @@ import AppTheme from '../../shared-theme/AppTheme';
 import Footer from "../../components/Footer";
 import { useAuth } from '../../context/AuthContext';
 
-// Firebase (розкоментуй та налаштуй, коли будеш інтегрувати)
-// import { storage } from '../../firebase-config';
-// import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-// Icons (всі іконки залишаються)
+
+
+
+
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -59,7 +59,7 @@ import LoyaltyIcon from '@mui/icons-material/Loyalty';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 
 
-// ... (keyframes, styled компоненти, iconMap, motivationalMessages, activityLevelDescriptions залишаються без змін)
+
 const gridLineGlow = keyframes`0% { opacity: 0.03; } 50% { opacity: 0.07; } 100% { opacity: 0.03; }`;
 const textFadeInUp = keyframes`from {opacity: 0; transform: translateY(15px) translateZ(0);} to {opacity: 1; transform: translateY(0) translateZ(0);}`;
 const pulseEffect = keyframes`
@@ -333,21 +333,21 @@ function ProfilePage(props) {
         };
 
         fetchUserProfile();
-    }, [authenticatedUser, isLoadingAuth]); // Видалив navigate з залежностей, він стабільний
+    }, [authenticatedUser, isLoadingAuth]);
 
     const handleTabChange = (event, newValue) => {
         setTabValue(newValue);
     };
 
     const handleEditToggle = () => {
-        if (isEditing && userProfile) { // Додав перевірку на userProfile
+        if (isEditing && userProfile) {
             setEditableProfile(JSON.parse(JSON.stringify(userProfile)));
         }
         setIsEditing(!isEditing);
     };
 
     const handleSave = async () => {
-        if (!authenticatedUser || !authenticatedUser.userId || !editableProfile) { // Додав перевірку на editableProfile
+        if (!authenticatedUser || !authenticatedUser.userId || !editableProfile) {
             setError("Дані для збереження не готові або користувач не авторизований.");
             return;
         }
@@ -382,13 +382,13 @@ function ProfilePage(props) {
                 throw new Error(data.message || `Помилка збереження профілю: ${response.statusText}`);
             }
 
-            // Оновлюємо userProfile даними з відповіді сервера, якщо вони є
-            // Або оновлюємо тим, що відправили + лічильник
+
+
             const updatedProfileData = data.user || {
-                ...userProfile, // Беремо поточний userProfile за основу
-                ...profileUpdates, // Накладаємо зміни, що були відправлені
-                // Сервер має оновити profileUpdatesCount та lastGoalUpdate,
-                // тому краще покладатися на дані з data.user
+                ...userProfile,
+                ...profileUpdates,
+
+
                 profileUpdatesCount: data.user?.profile?.profileUpdatesCount || (userProfile?.profileUpdatesCount || 0) + 1,
                 lastGoalUpdate: data.user?.profile?.lastGoalUpdate || new Date().toISOString()
             };
@@ -403,12 +403,12 @@ function ProfilePage(props) {
                     setAge(differenceInYears(new Date(), userBirthDate));
                 }
             }
-            // Можна показати Snackbar з повідомленням про успіх
-            // showSnackbar("Профіль успішно оновлено!", "success"); // Якщо є функція showSnackbar
+
+
         } catch (err) {
             console.error("Failed to save profile:", err);
             setError(err.message);
-            // showSnackbar(`Помилка збереження: ${err.message}`, "error");
+
         } finally {
             setIsSaving(false);
         }
@@ -510,18 +510,18 @@ function ProfilePage(props) {
         );
     }
 
-    const displayName = userProfile.name || 'Користувач'; // Беремо з userProfile
-    const displayEmail = userProfile.email || 'Не вказано'; // Беремо з userProfile
+    const displayName = userProfile.name || 'Користувач';
+    const displayEmail = userProfile.email || 'Не вказано';
     const displayJoinDate = userProfile.joinDate ? format(parseISO(userProfile.joinDate), 'd MMMM yyyy', { locale: uk }) : 'Невідомо';
 
-    // Деструктуризація для полів, що відображаються та редагуються
+
     const {
         avatarUrl, birthDate, height, weight, goal, dietType, activityLevel,
         wakeUpTime, trainingTime, sleepTime, firstMealTime, hydrationReminderTime, lastMealTime, personalTime
-        // profileUpdatesCount та lastGoalUpdate тепер будуть братися з userProfile для відображення
+
     } = isEditing ? editableProfile : userProfile;
 
-    // Ці поля завжди беремо з userProfile для відображення, бо вони оновлюються сервером або розраховуються
+
     const displayProfileUpdatesCount = userProfile.profileUpdatesCount || 0;
     const displayLastGoalUpdate = userProfile.lastGoalUpdate ? formatDistanceToNow(parseISO(userProfile.lastGoalUpdate), { addSuffix: true, locale: uk }) : 'Не оновлювалось';
 

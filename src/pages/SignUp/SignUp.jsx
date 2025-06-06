@@ -122,7 +122,7 @@ export default function SignUp({ onLoginSuccess }) {
       email: result.email,
       avatarUrl: result.avatarUrl || null
     };
-    const token = result.token || null; // Припускаємо, що сервер може повернути токен
+    const token = result.token || null;
     onLoginSuccess(userData, token);
     navigate('/');
   }

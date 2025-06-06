@@ -8,17 +8,17 @@ const path = require('path');
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
 const TextToSpeech = require('@google-cloud/text-to-speech');
 
-// --- Firebase Admin SDK та Multer ---
+
 const admin = require('firebase-admin');
 const multer = require('multer');
-// --- КІНЕЦЬ Firebase Admin SDK та Multer ---
+
 
 dotenv.config({ path: './server/config.env' });
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// --- Ініціалізація Firebase Admin ---
+
 let bucket;
 try {
     const firebaseKeyPath = process.env.FIREBASE_ADMIN_KEY_PATH || path.join(__dirname, 'FIREBASE_ADMIN_SDK_KEY.json');
@@ -37,17 +37,17 @@ try {
 } catch (error) {
     console.error('Error initializing Firebase Admin SDK:', error);
 }
-// --- КІНЕЦЬ Ініціалізації Firebase Admin ---
 
 
-// --- Налаштування Multer для завантаження файлів в пам'ять ---
+
+
 const multerUpload = multer({
     storage: multer.memoryStorage(),
     limits: {
-        fileSize: 50 * 1024 * 1024, // 50 MB ліміт
+        fileSize: 50 * 1024 * 1024,
     },
     fileFilter: (req, file, cb) => {
-        // Дозволяємо зображення та відео
+
         if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
             cb(null, true);
         } else {
@@ -55,7 +55,7 @@ const multerUpload = multer({
         }
     }
 });
-// --- КІНЕЦЬ Налаштування Multer ---
+
 
 let clientGoogle;
 if (process.env.GOOGLE_CLIENT_ID) {
@@ -130,13 +130,13 @@ if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
         console.log('Google Cloud Text-to-Speech client initialized.');
     } catch (e) {
         console.error('Failed to initialize Google Cloud Text-to-Speech client:', e);
-        // ... (твій код обробки помилки)
+
     }
 } else {
     console.warn('WARN: GOOGLE_APPLICATION_CREDENTIALS is not set. Voice generation will be disabled.');
 }
 
-// --- AUTH ROUTES ---
+
 app.post('/signup', async (req, res) => {
     try {
         const { name, email, password, allowExtraEmails } = req.body;
@@ -155,7 +155,7 @@ app.post('/signup', async (req, res) => {
             allowExtraEmails: allowExtraEmails || false,
             joinDate: new Date(),
             profile: {
-                avatarUrl: null, // За замовчуванням аватарки немає
+                avatarUrl: null,
                 birthDate: null, height: null, weight: null, goal: "", goalKeywords: [],
                 dietType: "Збалансована", activityLevel: "Помірний", profileUpdatesCount: 0, lastGoalUpdate: new Date(),
                 dailySchedule: { wakeUpTime: "07:00", firstMealTime: "08:00", hydrationReminderTime: "10:00", trainingTime: "18:00", lastMealTime: "20:00", personalTime: "21:00", sleepTime: "23:00" }
@@ -172,9 +172,9 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-// Функція для завантаження URL зображення на Firebase Storage
+
 async function uploadImageToFirebase(imageUrl, userIdForPath, fileNamePrefix = 'google') {
-    if (!imageUrl || !bucket) return null; // bucket перевіряється тут
+    if (!imageUrl || !bucket) return null;
 
     try {
         const response = await fetch(imageUrl);
@@ -183,7 +183,7 @@ async function uploadImageToFirebase(imageUrl, userIdForPath, fileNamePrefix = '
             return null;
         }
         const imageBuffer = Buffer.from(await response.arrayBuffer());
-        const fileExtension = imageUrl.split('.').pop().split('?')[0] || 'jpg'; // Отримуємо розширення
+        const fileExtension = imageUrl.split('.').pop().split('?')[0] || 'jpg';
         const imageName = `avatars/${userIdForPath}/${fileNamePrefix}-${Date.now()}.${fileExtension}`;
         const file = bucket.file(imageName);
 
@@ -237,7 +237,7 @@ app.post('/signup/google', async (req, res) => {
         let user = await usersCollection.findOne({ email });
 
         let avatarUrlFromGoogle = payload.picture;
-        let finalAvatarUrl = clientAvatarUrl || null; // Починаємо з clientAvatarUrl або null
+        let finalAvatarUrl = clientAvatarUrl || null;
 
         if (avatarUrlFromGoogle && avatarUrlFromGoogle.startsWith('https://lh3.googleusercontent.com/')) {
             const uploadedGoogleAvatar = await uploadImageToFirebase(avatarUrlFromGoogle, googleId, 'google');
@@ -249,22 +249,22 @@ app.post('/signup/google', async (req, res) => {
 
         if (user) {
             const updateData = { googleId: googleId, name: user.name || name };
-            // Оновлюємо аватарку, якщо вона нова (з Firebase) або якщо користувач ще не мав аватарки
+
             if (finalAvatarUrl && (!user.profile?.avatarUrl || user.profile?.avatarUrl.startsWith('https://lh3.googleusercontent.com/'))) {
                 updateData['profile.avatarUrl'] = finalAvatarUrl;
-            } else if (!user.profile?.avatarUrl && finalAvatarUrl) { // Якщо аватарки не було
+            } else if (!user.profile?.avatarUrl && finalAvatarUrl) {
                 updateData['profile.avatarUrl'] = finalAvatarUrl;
-            } else if (!finalAvatarUrl && user.profile?.avatarUrl === null) { // Якщо і нова і стара null - нічого не робимо
-                // нічого не робимо
-            } else if (finalAvatarUrl === null && user.profile?.avatarUrl) { // Якщо нова null, а стара була - оновлюємо
+            } else if (!finalAvatarUrl && user.profile?.avatarUrl === null) {
+
+            } else if (finalAvatarUrl === null && user.profile?.avatarUrl) {
                 updateData['profile.avatarUrl'] = null;
             }
 
 
-            if (!user.googleId || Object.keys(updateData).length > 2) { // >2 бо googleId і name завжди є
+            if (!user.googleId || Object.keys(updateData).length > 2) {
                 await usersCollection.updateOne({ email }, { $set: updateData });
             }
-            user = await usersCollection.findOne({ email }); // Перезавантажуємо користувача
+            user = await usersCollection.findOne({ email });
             res.status(200).json({ message: 'Користувач успішно увійшов через Google', userId: user._id, email: user.email, name: user.name, avatarUrl: user.profile?.avatarUrl });
         } else {
             const newUser = {
@@ -307,7 +307,7 @@ app.post('/auth/google/fedcm', async (req, res) => {
         const usersCollection = db.collection('users');
         let user = await usersCollection.findOne({ email });
 
-        let finalAvatarUrl = null; // Починаємо з null
+        let finalAvatarUrl = null;
         if (avatarUrlFromGoogle && avatarUrlFromGoogle.startsWith('https://lh3.googleusercontent.com/')) {
             const uploadedGoogleAvatar = await uploadImageToFirebase(avatarUrlFromGoogle, googleId, 'fedcm');
             if (uploadedGoogleAvatar) {
@@ -373,24 +373,24 @@ app.post('/signin', async (req, res) => {
         res.status(500).json({ message: 'Помилка сервера під час входу' });
     }
 });
-// --- END AUTH ROUTES ---
 
-// --- PROFILE ROUTES ---
+
+
 const ALL_ACHIEVEMENTS_DEFINITIONS = [
     { id: "ach01", name: "Перший Рубіж", description: "Завершено перше тренування.", iconName: "FitnessCenter", color: '#a5d6a7' },
-    { id: "ach02", name: "Залізна Воля", description: "30 днів тренувань поспіль.", iconName: "EventNote", color: '#ffcc80' }, // Змінив на 30 днів тренувань
+    { id: "ach02", name: "Залізна Воля", description: "30 днів тренувань поспіль.", iconName: "EventNote", color: '#ffcc80' },
     { id: "ach03", name: "Світанок Воїна", description: "20 тренувань до 7 ранку.", iconName: "WbSunny", color: '#ffd54f' },
     { id: "ach04", name: "Майстер Витривалості", description: "100 тренувань загалом.", iconName: "EmojiEvents", color: '#81d4fa' },
     { id: "ach05", name: "Зональний Турист", description: "Відвідано всі зони спортзалу.", iconName: "Explore", color: '#cf9fff' },
     { id: "ach06", name: "Груповий Боєць", description: "Заброньовано 5 групових занять.", iconName: "Group", color: '#f48fb1' },
     { id: "ach07", name: "Нічна Зміна", description: "10 тренувань після 22:00.", iconName: "NightsStay", color: '#90a4ae' },
-    { id: "ach08", name: "Профіль Завершено", description: "Заповнено усі основні поля профілю, включаючи аватарку.", iconName: "CheckCircleOutline", color: '#80cbc4' }, // Оновлено опис
+    { id: "ach08", name: "Профіль Завершено", description: "Заповнено усі основні поля профілю, включаючи аватарку.", iconName: "CheckCircleOutline", color: '#80cbc4' },
     { id: "ach09", name: "Планувальник PRO", description: "Заплановано 7 тренувань наперед.", iconName: "EventAvailable", color: '#ffab91' },
     { id: "ach10", name: "Ранній Старт", description: "Перше тренування протягом 3 днів після реєстрації.", iconName: "StarBorder", color: '#fff59d' },
-    { id: "ach11", name: "Відданий Grind'ер", description: "30 днів активності поспіль.", iconName: "Loyalty", color: '#ef9a9a' }, // Змінив на 30 днів активності
+    { id: "ach11", name: "Відданий Grind'ер", description: "30 днів активності поспіль.", iconName: "Loyalty", color: '#ef9a9a' },
 ];
 
-// Маршрут для завантаження аватарки
+
 app.post('/api/profile/:userId/avatar', multerUpload.single('avatarFile'), async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
@@ -412,11 +412,11 @@ app.post('/api/profile/:userId/avatar', multerUpload.single('avatarFile'), async
             return res.status(404).json({ message: 'Користувача не знайдено.' });
         }
 
-        // Видалення старої аватарки, якщо вона є і завантажена користувачем (не Google)
+
         if (user.profile && user.profile.avatarUrl) {
             const oldAvatarUrl = user.profile.avatarUrl;
-            // Перевіряємо, чи URL вказує на наш Firebase Storage та чи містить /avatars/userId/
-            // Це запобігає видаленню дефолтних аватарок або тих, що не в цій структурі
+
+
             if (oldAvatarUrl.startsWith(`https://storage.googleapis.com/${bucket.name}/avatars/${userId}/`)) {
                 try {
                     const oldFileName = decodeURIComponent(oldAvatarUrl.split(`${bucket.name}/`)[1].split('?')[0]);
@@ -432,9 +432,9 @@ app.post('/api/profile/:userId/avatar', multerUpload.single('avatarFile'), async
             }
         }
 
-        // Створюємо унікальне ім'я файлу
+
         const originalName = req.file.originalname.replace(/\s+/g, '_');
-        const fileExtension = path.extname(originalName) || '.jpg'; // Додаємо .jpg якщо розширення немає
+        const fileExtension = path.extname(originalName) || '.jpg';
         const baseName = path.basename(originalName, fileExtension);
         const fileName = `avatars/${userId}/${baseName}-${Date.now()}${fileExtension}`;
         const fileUpload = bucket.file(fileName);
@@ -466,7 +466,7 @@ app.post('/api/profile/:userId/avatar', multerUpload.single('avatarFile'), async
                 return res.status(404).json({ message: 'Користувача не знайдено для оновлення аватарки.' });
             }
 
-            // Перевірка ачівки "Профіль Завершено" після завантаження аватарки
+
             const updatedUser = await usersCollection.findOne({ _id: new ObjectId(userId) });
             const profileForCompletionCheck = updatedUser.profile || {};
             let finalUnlockedIds = new Set(updatedUser.unlockedAchievementIds || []);
@@ -487,7 +487,7 @@ app.post('/api/profile/:userId/avatar', multerUpload.single('avatarFile'), async
             res.status(200).json({
                 message: 'Аватарку успішно оновлено!',
                 avatarUrl: publicUrl,
-                unlockedAchievements: achievementsModifiedAfterSave ? ["ach08"] : [] // Повертаємо ID нової ачівки, якщо розблоковано
+                unlockedAchievements: achievementsModifiedAfterSave ? ["ach08"] : []
             });
         });
 
@@ -580,13 +580,13 @@ app.get('/api/profile/:userId', async (req, res) => {
         const visitedZoneIds = new Set(completedUserBookings.map(b => b.zoneId));
         let allGymZoneIds = [];
         const zonesCollection = db.collection('zones');
-        if (zonesCollection) { // Перевірка, чи існує колекція
+        if (zonesCollection) {
             allGymZoneIds = (await zonesCollection.find({}, { projection: { id: 1, _id: 0 } }).toArray()).map(z => z.id);
         }
         if (allGymZoneIds.length > 0 && allGymZoneIds.every(zoneId => visitedZoneIds.has(zoneId))) unlockAchievement("ach05");
 
         const profile = user.profile || {};
-        // Оновлена умова для ачівки "Профіль Завершено"
+
         if (profile.avatarUrl && profile.birthDate && profile.height && profile.weight && profile.goal && profile.dietType && profile.activityLevel) {
             unlockAchievement("ach08");
         }
@@ -605,8 +605,8 @@ app.get('/api/profile/:userId', async (req, res) => {
         if (futureConfirmedBookingsCount >= 7) unlockAchievement("ach09");
 
         if (user.gamification?.consecutiveActivityDays >= 30) {
-            unlockAchievement("ach02"); // За 30 днів тренувань (якщо вважати активність = тренування)
-            unlockAchievement("ach11"); // За 30 днів активності
+            unlockAchievement("ach02");
+            unlockAchievement("ach11");
         }
 
 
@@ -677,8 +677,8 @@ app.put('/api/profile/:userId', async (req, res) => {
         const usersCollection = db.collection('users');
 
         const fieldsToSet = {};
-        // Дозволяємо оновлювати avatarUrl, якщо передано (наприклад, для скидання на null)
-        // але завантаження файлу йде через окремий ендпоінт.
+
+
         if (updates.avatarUrl !== undefined) fieldsToSet['profile.avatarUrl'] = updates.avatarUrl;
         if (updates.birthDate !== undefined) fieldsToSet['profile.birthDate'] = updates.birthDate ? new Date(updates.birthDate) : null;
         if (updates.height !== undefined) fieldsToSet['profile.height'] = updates.height === '' || updates.height === null ? null : parseInt(updates.height, 10);
@@ -709,7 +709,7 @@ app.put('/api/profile/:userId', async (req, res) => {
         let finalUnlockedIds = new Set(userAfterUpdate.unlockedAchievementIds || []);
         let achievementsModifiedAfterSave = false;
         const profileForCompletionCheck = userAfterUpdate.profile || {};
-        // Оновлена умова для ачівки "Профіль Завершено"
+
         if (profileForCompletionCheck.avatarUrl && profileForCompletionCheck.birthDate && profileForCompletionCheck.height && profileForCompletionCheck.weight && profileForCompletionCheck.goal && profileForCompletionCheck.dietType && profileForCompletionCheck.activityLevel) {
             if (!finalUnlockedIds.has("ach08")) {
                 finalUnlockedIds.add("ach08");
@@ -724,7 +724,7 @@ app.put('/api/profile/:userId', async (req, res) => {
             userAfterUpdate.unlockedAchievementIds = Array.from(finalUnlockedIds);
         }
 
-        const xpPerLevel = 1000; // XP потрібні для одного рівня
+        const xpPerLevel = 1000;
         const currentTotalXpAfterUpdate = userAfterUpdate.gamification?.experiencePoints || 0;
         const progressToNextLevelAfterUpdate = Math.floor((currentTotalXpAfterUpdate % xpPerLevel) / (xpPerLevel / 100));
 
@@ -767,9 +767,9 @@ app.put('/api/profile/:userId', async (req, res) => {
         res.status(500).json({ message: 'Помилка сервера при оновленні профілю.' });
     }
 });
-// --- END PROFILE ROUTES ---
 
-// --- GYM DATA & BOOKING ROUTES ---
+
+
 app.get('/api/zones', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
@@ -910,7 +910,7 @@ app.post('/api/bookings', async (req, res) => {
         } else if (type === 'equipment') {
             const conflictingBooking = await bookingsCollection.findOne({
                 itemId: itemId,
-                bookingDate: targetBookingDate, // Важливо, щоб дата була саме об'єктом Date
+                bookingDate: targetBookingDate,
                 status: "confirmed",
                 $or: [
                     { startTime: { $lt: endTime }, endTime: { $gt: startTime } }
@@ -932,8 +932,8 @@ app.post('/api/bookings', async (req, res) => {
             );
         }
 
-        // Припускаємо, що "confirmed" бронювання вже є тренуванням для нарахування досвіду.
-        // Якщо це не так, і XP нараховуються за "completed", цю логіку треба перемістити.
+
+
         if (result.insertedId) {
             await awardExperienceAndLevelUp(userId, type, durationMinutes);
         }
@@ -946,10 +946,10 @@ app.post('/api/bookings', async (req, res) => {
         res.status(500).json({ message: 'Помилка сервера при створенні бронювання.' });
     }
 });
-// --- END GYM DATA & BOOKING ROUTES ---
 
 
-// --- FOOD & CHAT ROUTES ---
+
+
 app.get('/api/food', async (req, res) => {
     try {
         if (!db) {
@@ -1047,13 +1047,13 @@ app.post('/api/chat', async (req, res) => {
             textForSpeech = textForSpeech.replace(/\s+/g, ' ').trim();
             console.log(`[${new Date().toISOString()}] Text prepared for TTS: ${textForSpeech.substring(0,150)}...`);
 
-            const languageCode = 'uk-UA'; // Змінено на українську
-            // Голоси для української (перевір список доступних в документації, якщо ці не підійдуть):
-            // 'uk-UA-Standard-A' (жіночий, стандартний)
-            // 'uk-UA-Wavenet-A' (жіночий, WaveNet)
-            // 'uk-UA-Polyglot-1' (чоловічий, може бути експериментальним)
-            const voiceName = 'uk-UA-Wavenet-A'; // Спробуємо WaveNet для кращої якості
-            const speakingRate = 1.05; // Трохи повільніше для української може бути краще
+            const languageCode = 'uk-UA';
+
+
+
+
+            const voiceName = 'uk-UA-Wavenet-A';
+            const speakingRate = 1.05;
 
             console.log(`[${new Date().toISOString()}] Attempting to generate audio with Google Cloud TTS (Voice: ${voiceName}, Lang: ${languageCode}, Rate: ${speakingRate}.`);
 
@@ -1098,12 +1098,12 @@ app.post('/api/chat', async (req, res) => {
         res.status(500).json({ error: "Внутрішня помилка сервера при обробці чат-запиту." });
     }
 });
-// --- END FOOD & CHAT ROUTES ---
 
-// --- COMMUNITY ROUTES ---
+
+
 const POST_TYPES = ['text', 'question', 'article', 'achievement'];
 
-// Створення нового поста
+
 app.post('/api/posts', multerUpload.single('media'), async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
@@ -1186,7 +1186,7 @@ app.post('/api/posts', multerUpload.single('media'), async (req, res) => {
     }
 });
 
-// Отримання постів із пагінацією та пошуком
+
 app.get('/api/posts', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
@@ -1240,7 +1240,7 @@ app.get('/api/posts', async (req, res) => {
     }
 });
 
-// Видалення поста
+
 app.delete('/api/posts/:postId', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
@@ -1266,7 +1266,7 @@ app.delete('/api/posts/:postId', async (req, res) => {
             return res.status(403).json({ message: 'Ви не можете видалити цей пост.' });
         }
 
-        // Видаляємо медіа з Firebase, якщо є
+
         if (post.media?.url && post.media.url.startsWith(`https://storage.googleapis.com/${bucket.name}/post-media/`)) {
             try {
                 const fileName = decodeURIComponent(post.media.url.split(`${bucket.name}/`)[1].split('?')[0]);
@@ -1287,7 +1287,7 @@ app.delete('/api/posts/:postId', async (req, res) => {
     }
 });
 
-// Лайк/дизлайк поста
+
 app.post('/api/posts/:postId/like', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
@@ -1342,7 +1342,7 @@ app.post('/api/posts/:postId/like', async (req, res) => {
     }
 });
 
-// Скарга на пост
+
 app.post('/api/posts/:postId/report', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
@@ -1377,7 +1377,7 @@ app.post('/api/posts/:postId/report', async (req, res) => {
     }
 });
 
-// Створення коментаря
+
 app.post('/api/posts/:postId/comments', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
@@ -1438,7 +1438,7 @@ app.post('/api/posts/:postId/comments', async (req, res) => {
     }
 });
 
-// Отримання коментарів до поста
+
 app.get('/api/posts/:postId/comments', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
@@ -1471,7 +1471,7 @@ app.get('/api/posts/:postId/comments', async (req, res) => {
     }
 });
 
-// Видалення коментаря
+
 app.delete('/api/posts/:postId/comments/:commentId', async (req, res) => {
     try {
         if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
@@ -1509,9 +1509,9 @@ app.delete('/api/posts/:postId/comments/:commentId', async (req, res) => {
         res.status(500).json({ message: 'Помилка сервера при видаленні коментаря.' });
     }
 });
-// --- END COMMUNITY ROUTES ---
 
-// Catch-all for frontend
+
+
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'), (err) => {
         if (err) {

@@ -1,19 +1,19 @@
-// src/pages/ActivitiesPage.jsx
-import React, { useState, useEffect } from 'react'; // Додано useEffect
+
+import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import CssBaseline from '@mui/material/CssBaseline';
 import Divider from '@mui/material/Divider';
 import { keyframes, alpha, styled } from '@mui/material/styles';
-import CircularProgress from '@mui/material/CircularProgress'; // Для індикатора завантаження
+import CircularProgress from '@mui/material/CircularProgress';
 
 import AppTheme from '../../shared-theme/AppTheme';
 import Footer from '../../components/Footer';
 
-// Видаляємо імпорти mockZones, mockEquipment, mockGroupClasses
-// mockInfoCards залишаємо, якщо вони все ще потрібні напряму
-import { mockInfoCards } from './components/mockDb'; // Залишаємо, якщо InfoCards не через API
+
+
+import { mockInfoCards } from './components/mockDb';
 import Zones from './components/Zones';
 import Equipment from './components/Equipment';
 import Classes from './components/Classes';
@@ -21,7 +21,7 @@ import BookingSection from './components/BookingSection';
 import InfoCardsSection from './components/InfoCardsSection';
 import { parse } from "date-fns";
 
-// ... (keyframes та styled компоненти залишаються без змін)
+
 const gridLineGlow = keyframes`0% { opacity: 0.04; } 50% { opacity: 0.08; } 100% { opacity: 0.04; }`;
 
 const titleTextPopIn = keyframes`
@@ -75,8 +75,8 @@ const GrindSpan = styled('span')(({ theme }) => ({
 function ActivitiesPage(props) {
     const [zones, setZones] = useState([]);
     const [equipment, setEquipment] = useState([]);
-    const [groupClasses, setGroupClasses] = useState([]); // Це буде для ВСІХ класів з API
-    const [upcomingClasses, setUpcomingClasses] = useState([]); // Для відфільтрованих
+    const [groupClasses, setGroupClasses] = useState([]);
+    const [upcomingClasses, setUpcomingClasses] = useState([]);
 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -91,7 +91,7 @@ function ActivitiesPage(props) {
                 const [zonesRes, equipmentRes, classesRes] = await Promise.all([
                     fetch('/api/zones'),
                     fetch('/api/equipment'),
-                    fetch('/api/group-classes') // Цей ендпоінт вже фільтрує за датою на сервері
+                    fetch('/api/group-classes')
                 ]);
 
                 if (!zonesRes.ok) throw new Error(`Failed to fetch zones: ${zonesRes.statusText}`);
@@ -104,8 +104,8 @@ function ActivitiesPage(props) {
 
                 setZones(zonesData);
                 setEquipment(equipmentData);
-                setGroupClasses(classesData); // Зберігаємо всі завантажені класи (вже відфільтровані сервером)
-                setUpcomingClasses(classesData); // Поки що те саме, але можна додати клієнтську фільтрацію/сортування якщо треба
+                setGroupClasses(classesData);
+                setUpcomingClasses(classesData);
 
             } catch (err) {
                 console.error("Error fetching activities data:", err);
@@ -116,7 +116,7 @@ function ActivitiesPage(props) {
         };
 
         fetchData();
-    }, []); // Пустий масив залежностей, щоб виконалось один раз при монтуванні
+    }, []);
 
     const handleBookEquipment = (equipmentItem) => {
         setBookingTarget({ type: 'equipment', item: equipmentItem });
@@ -131,9 +131,9 @@ function ActivitiesPage(props) {
     const handleBookingConfirmed = (bookingDetails) => {
         console.log("Бронювання підтверджено (ActivitiesPage):", bookingDetails);
         if (bookingDetails.type === 'class') {
-            // Оновлюємо стан groupClasses та upcomingClasses, щоб відобразити зміну
-            // (наприклад, кількість заброньованих місць, якщо сервер повертає оновлений об'єкт класу)
-            // Або просто перезавантажуємо дані про класи:
+
+
+
             const fetchClassesAgain = async () => {
                 try {
                     const classesRes = await fetch('/api/group-classes');
@@ -147,7 +147,7 @@ function ActivitiesPage(props) {
             };
             fetchClassesAgain();
         }
-        // Для тренажерів також можна оновлювати дані, якщо є стан їх доступності
+
         setBookingTarget(null);
     };
 
@@ -244,7 +244,7 @@ function ActivitiesPage(props) {
                     <Box sx={sectionStyles(true)}>
                         <BookingSection
                             allEquipment={equipment}
-                            allClasses={upcomingClasses} // Використовуємо вже відфільтровані/відсортовані класи
+                            allClasses={upcomingClasses}
                             allZones={zones}
                             initialTarget={bookingTarget}
                             onBookingConfirmed={handleBookingConfirmed}

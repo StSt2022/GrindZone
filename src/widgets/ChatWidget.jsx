@@ -172,7 +172,7 @@ const ChatWidget = () => {
                                         ? 'text-purple-300 hover:bg-purple-700/50 focus:ring-purple-500'
                                         : 'text-slate-500 hover:bg-slate-700/50 focus:ring-slate-500'
                                 }`}
-                                style={{ width: '28px', height: '28px' }} // Задаємо однаковий розмір для обох кнопок
+                                style={{ width: '28px', height: '28px' }}
                                 aria-label={isTtsEnabled ? "Вимкнути озвучування" : "Увімкнути озвучування"}
                                 title={isTtsEnabled ? "Вимкнути озвучування" : "Увімкнути озвучування"}
                             >

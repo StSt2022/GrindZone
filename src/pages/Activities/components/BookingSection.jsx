@@ -1,4 +1,4 @@
-// src/components/activities/BookingSection.jsx
+
 import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -34,9 +34,9 @@ import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 
-import { useAuth } from '../../../context/AuthContext'; // Перевір шлях
+import { useAuth } from '../../../context/AuthContext';
 
-// ... (стилі залишаються такими ж)
+
 const primaryPurple = '#8737c9';
 const secondaryPurple = '#601ab6';
 const hoverPurple = '#550f8d';
@@ -215,12 +215,12 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
         setClassBookerPhone('');
     };
 
-    // Функція для обробки введення номера телефону (тільки цифри та обмеження довжини)
+
     const handlePhoneInputChange = (event, setter) => {
         const rawValue = event.target.value;
-        const numericValue = rawValue.replace(/[^0-9]/g, ''); // Видаляємо всі нецифрові символи
-        // Можна додати обмеження довжини, наприклад, до 12-13 символів (для +380XXXXXXXXX)
-        setter(numericValue.slice(0, 12)); // Приклад: обмежуємо до 12 цифр
+        const numericValue = rawValue.replace(/[^0-9]/g, '');
+
+        setter(numericValue.slice(0, 12));
     };
 
 
@@ -273,7 +273,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
             showSnackbar("Будь ласка, заповніть усі обов'язкові поля для тренажера.", "error");
             return;
         }
-        if (equipmentBookerPhone.length < 9 || equipmentBookerPhone.length > 12) { // Приклад валідації довжини
+        if (equipmentBookerPhone.length < 9 || equipmentBookerPhone.length > 12) {
             showSnackbar("Номер телефону має містити від 9 до 12 цифр.", "error");
             return;
         }
@@ -297,7 +297,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
             startTime: format(equipmentStartTime, 'HH:mm'),
             endTime: format(calculatedEndTime, 'HH:mm'),
             duration: equipmentDuration,
-            bookerPhone: equipmentBookerPhone // Вже тільки цифри
+            bookerPhone: equipmentBookerPhone
         };
 
         try {
@@ -333,7 +333,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
             showSnackbar("Будь ласка, оберіть заняття та вкажіть телефон.", "error");
             return;
         }
-        if (classBookerPhone.length < 9 || classBookerPhone.length > 12) { // Приклад валідації довжини
+        if (classBookerPhone.length < 9 || classBookerPhone.length > 12) {
             showSnackbar("Номер телефону має містити від 9 до 12 цифр.", "error");
             return;
         }
@@ -360,7 +360,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
             bookingDate: classDetails.date,
             startTime: classDetails.startTime,
             endTime: classDetails.endTime,
-            bookerPhone: classBookerPhone // Вже тільки цифри
+            bookerPhone: classBookerPhone
         };
 
         try {
@@ -489,15 +489,15 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                 </Grid>
                                 <TextField
                                     label="Ваш телефон"
-                                    type="tel" // Залишаємо type="tel" для семантики та потенційної мобільної клавіатури
-                                    inputMode="numeric" // Підказка для браузера про тип клавіатури
-                                    pattern="[0-9]*"    // Додаткова підказка для валідації (не завжди працює як очікується для блокування)
+                                    type="tel"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
                                     fullWidth
                                     required
                                     sx={formControlBaseStyles(isEquipmentBooking)}
                                     value={equipmentBookerPhone}
                                     onChange={(e) => handlePhoneInputChange(e, setEquipmentBookerPhone)}
-                                    placeholder="+380 XX XXX XX XX" // Можна залишити для формату
+                                    placeholder="+380 XX XXX XX XX"
                                     disabled={isEquipmentBooking}
                                     InputProps={{
                                         startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}}/>
