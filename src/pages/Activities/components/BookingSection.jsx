@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
@@ -12,15 +11,15 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import FormHelperText from '@mui/material/FormHelperText';
-import { styled, alpha } from '@mui/material/styles';
+import {styled, alpha} from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { TimePicker } from '@mui/x-date-pickers/TimePicker';
-import { uk } from 'date-fns/locale';
-import { addMinutes, format, parse, isValid as isValidDate } from 'date-fns';
+import {AdapterDateFns} from '@mui/x-date-pickers/AdapterDateFns';
+import {LocalizationProvider} from '@mui/x-date-pickers/LocalizationProvider';
+import {DatePicker} from '@mui/x-date-pickers/DatePicker';
+import {TimePicker} from '@mui/x-date-pickers/TimePicker';
+import {uk} from 'date-fns/locale';
+import {addMinutes, format, parse, isValid as isValidDate} from 'date-fns';
 
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import Diversity3Icon from '@mui/icons-material/Diversity3';
@@ -34,7 +33,7 @@ import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 
-import { useAuth } from '../../../context/AuthContext';
+import {useAuth} from '../../../context/AuthContext';
 
 
 const primaryPurple = '#8737c9';
@@ -73,7 +72,7 @@ const formControlBaseStyles = (isDisabled = false) => ({
         '&.Mui-disabled': {
             WebkitTextFillColor: alpha(lightText, 0.55),
             color: alpha(lightText, 0.55),
-            '& fieldset': { borderColor: `${alpha(primaryPurple, 0.25)} !important` },
+            '& fieldset': {borderColor: `${alpha(primaryPurple, 0.25)} !important`},
         },
         '& .MuiInputAdornment-root .MuiSvgIcon-root': {
             color: isDisabled ? alpha(iconColor, 0.5) : iconColor,
@@ -107,14 +106,14 @@ const menuProps = {
             maxHeight: 300,
             '& .MuiMenuItem-root': {
                 fontSize: '1rem',
-                '&:hover': { backgroundColor: alpha(primaryPurple, 0.25) },
-                '&.Mui-selected': { backgroundColor: `${alpha(primaryPurple, 0.4)} !important` }
+                '&:hover': {backgroundColor: alpha(primaryPurple, 0.25)},
+                '&.Mui-selected': {backgroundColor: `${alpha(primaryPurple, 0.4)} !important`}
             }
         },
     },
 };
 
-const StyledBookingButton = styled(Button)(({ theme, disabled }) => ({
+const StyledBookingButton = styled(Button)(({theme, disabled}) => ({
     padding: theme.spacing(1.75, 4),
     borderRadius: '16px',
     fontWeight: '600',
@@ -150,7 +149,7 @@ const StyledBookingButton = styled(Button)(({ theme, disabled }) => ({
     },
 }));
 
-const BookingFormCard = styled(Card)(({ theme }) => ({
+const BookingFormCard = styled(Card)(({theme}) => ({
     width: '100%',
     maxWidth: '720px',
     background: cardBg,
@@ -175,8 +174,8 @@ const BookingFormCard = styled(Card)(({ theme }) => ({
 }));
 
 
-const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onBookingConfirmed, onClearTarget }) => {
-    const { currentUser, isAuthenticated } = useAuth();
+const BookingSection = ({allEquipment, allClasses, allZones, initialTarget, onBookingConfirmed, onClearTarget}) => {
+    const {currentUser, isAuthenticated} = useAuth();
 
     const [selectedEquipmentId, setSelectedEquipmentId] = useState('');
     const [equipmentDate, setEquipmentDate] = useState(null);
@@ -251,15 +250,21 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                         const parsedEndTime = parse(`${sClass.date} ${sClass.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
                         if (isValidDate(parsedEndTime)) setClassEndTime(parsedEndTime); else setClassEndTime(null);
                     } else {
-                        setClassDate(null); setClassStartTime(null); setClassEndTime(null);
+                        setClassDate(null);
+                        setClassStartTime(null);
+                        setClassEndTime(null);
                     }
                 } catch (error) {
                     console.error('Error parsing class time:', error);
-                    setClassDate(null); setClassStartTime(null); setClassEndTime(null);
+                    setClassDate(null);
+                    setClassStartTime(null);
+                    setClassEndTime(null);
                 }
             }
         } else {
-            setClassDate(null); setClassStartTime(null); setClassEndTime(null);
+            setClassDate(null);
+            setClassStartTime(null);
+            setClassEndTime(null);
         }
     }, [selectedClassId, allClasses]);
 
@@ -303,7 +308,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
         try {
             const response = await fetch('/api/bookings', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             });
             const data = await response.json();
@@ -366,7 +371,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
         try {
             const response = await fetch('/api/bookings', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             });
             const data = await response.json();
@@ -390,16 +395,16 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
     const isGroupClassFull = selectedGroupClass ? (selectedGroupClass.bookedUserIds.length >= selectedGroupClass.maxCapacity) : false;
 
     const durationOptions = [
-        { value: 30, label: '30 хвилин' },
-        { value: 45, label: '45 хвилин' },
-        { value: 60, label: '1 година' },
-        { value: 90, label: '1.5 години' },
+        {value: 30, label: '30 хвилин'},
+        {value: 45, label: '45 хвилин'},
+        {value: 60, label: '1 година'},
+        {value: 90, label: '1.5 години'},
     ];
 
     if (!allEquipment || !allClasses || !allZones) {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
-                <CircularProgress />
+            <Box sx={{display: 'flex', justifyContent: 'center', py: 5}}>
+                <CircularProgress/>
                 <Typography sx={{ml: 2}}>Завантаження форм бронювання...</Typography>
             </Box>
         );
@@ -407,7 +412,7 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
 
     return (
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={uk}>
-            <Box component="section" sx={{ py: { xs: 5, md: 8 } }}>
+            <Box component="section" sx={{py: {xs: 5, md: 8}}}>
                 <Typography
                     variant="h2"
                     component="h2"
@@ -415,9 +420,9 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                         textAlign: 'center',
                         fontWeight: 'bold',
                         color: 'white',
-                        mb: { xs: 5, md: 7 },
+                        mb: {xs: 5, md: 7},
                         textShadow: '0 0 20px rgba(198, 126, 255, 0.4)',
-                        fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
+                        fontSize: {xs: '2.5rem', sm: '3rem', md: '3.5rem'},
                         background: 'linear-gradient(120deg, #e6ceff 0%, #c67eff 60%, #a96cff 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
@@ -430,59 +435,76 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: { xs: 4, md: 6 },
+                    gap: {xs: 4, md: 6},
                 }}>
                     <BookingFormCard>
-                        <CardContent sx={{ p: { xs: 3, sm: 4, md: 4.5 }}}>
+                        <CardContent sx={{p: {xs: 3, sm: 4, md: 4.5}}}>
                             <Box sx={{display: 'flex', alignItems: 'center', color: lightText, mb: 4.5}}>
                                 <FitnessCenterIcon sx={{fontSize: '3rem', mr: 2, color: iconColor}}/>
-                                <Typography variant="h5" sx={{ fontWeight: '600', color: iconColor }}>Тренажер</Typography>
+                                <Typography variant="h5"
+                                            sx={{fontWeight: '600', color: iconColor}}>Тренажер</Typography>
                             </Box>
                             <Box component="form" onSubmit={handleEquipmentBooking}>
                                 <FormControl fullWidth sx={selectControlStyles(isEquipmentBooking)}>
                                     <InputLabel id="equipment-select-label">Оберіть тренажер</InputLabel>
                                     <Select
-                                        labelId="equipment-select-label" value={selectedEquipmentId} label="Оберіть тренажер"
-                                        onChange={(e) => setSelectedEquipmentId(e.target.value)} required MenuProps={menuProps}
+                                        labelId="equipment-select-label" value={selectedEquipmentId}
+                                        label="Оберіть тренажер"
+                                        onChange={(e) => setSelectedEquipmentId(e.target.value)} required
+                                        MenuProps={menuProps}
                                         disabled={isEquipmentBooking}
                                     >
                                         {allEquipment.map((eq) => {
                                             const zone = allZones.find(z => z.id === eq.zoneId);
-                                            return (<MenuItem key={eq.id} value={eq.id}>{eq.name} {zone ? `(${zone.name})` : ''}</MenuItem>);
+                                            return (<MenuItem key={eq.id}
+                                                              value={eq.id}>{eq.name} {zone ? `(${zone.name})` : ''}</MenuItem>);
                                         })}
                                     </Select>
                                 </FormControl>
                                 <DatePicker
                                     label="Дата" value={equipmentDate} onChange={setEquipmentDate} minDate={new Date()}
                                     disabled={isEquipmentBooking}
-                                    slots={{ openPickerIcon: EventNoteIcon }}
+                                    slots={{openPickerIcon: EventNoteIcon}}
                                     slotProps={{
-                                        textField: { sx: formControlBaseStyles(isEquipmentBooking), required: true, fullWidth: true },
-                                        openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
+                                        textField: {
+                                            sx: formControlBaseStyles(isEquipmentBooking),
+                                            required: true,
+                                            fullWidth: true
+                                        },
+                                        openPickerButton: {size: 'medium', edge: 'end', sx: {mr: -0.5}}
                                     }}
                                 />
                                 <Grid container spacing={2.5} alignItems="center">
                                     <Grid item xs={12} sm={7}>
                                         <TimePicker
-                                            label="Час початку" value={equipmentStartTime} onChange={setEquipmentStartTime}
+                                            label="Час початку" value={equipmentStartTime}
+                                            onChange={setEquipmentStartTime}
                                             ampm={false} minutesStep={15}
                                             disabled={isEquipmentBooking}
-                                            slots={{ openPickerIcon: AccessTimeFilledIcon }}
+                                            slots={{openPickerIcon: AccessTimeFilledIcon}}
                                             slotProps={{
-                                                textField: { sx: formControlBaseStyles(isEquipmentBooking), required: true, fullWidth: true },
-                                                openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
+                                                textField: {
+                                                    sx: formControlBaseStyles(isEquipmentBooking),
+                                                    required: true,
+                                                    fullWidth: true
+                                                },
+                                                openPickerButton: {size: 'medium', edge: 'end', sx: {mr: -0.5}}
                                             }}
                                         />
                                     </Grid>
                                     <Grid item xs={12} sm={5}>
                                         <FormControl fullWidth sx={formControlBaseStyles(isEquipmentBooking)}>
                                             <InputLabel id="duration-select-label">Тривалість</InputLabel>
-                                            <Select labelId="duration-select-label" value={equipmentDuration} label="Тривалість"
-                                                    onChange={(e) => setEquipmentDuration(e.target.value)} required MenuProps={menuProps}
+                                            <Select labelId="duration-select-label" value={equipmentDuration}
+                                                    label="Тривалість"
+                                                    onChange={(e) => setEquipmentDuration(e.target.value)} required
+                                                    MenuProps={menuProps}
                                                     disabled={isEquipmentBooking}
-                                                    startAdornment={<ScheduleIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}} />}
+                                                    startAdornment={<ScheduleIcon
+                                                        sx={{mr: 1.2, ml: 0.5, color: iconColor, fontSize: '1.3rem'}}/>}
                                             >
-                                                {durationOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
+                                                {durationOptions.map(opt => <MenuItem key={opt.value}
+                                                                                      value={opt.value}>{opt.label}</MenuItem>)}
                                             </Select>
                                         </FormControl>
                                     </Grid>
@@ -500,12 +522,15 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                     placeholder="+380 XX XXX XX XX"
                                     disabled={isEquipmentBooking}
                                     InputProps={{
-                                        startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}}/>
+                                        startAdornment: <PhoneIphoneIcon
+                                            sx={{mr: 1.2, ml: 0.5, color: iconColor, fontSize: '1.3rem'}}/>
                                     }}
                                 />
-                                <Box sx={{ mt: 2, mb: 5 }}>
-                                    <StyledBookingButton type="submit" fullWidth startIcon={isEquipmentBooking ? null : <CheckCircleOutlineIcon/>} disabled={isEquipmentBooking}>
-                                        {isEquipmentBooking ? <CircularProgress size={24} color="inherit" /> : "Забронювати тренажер"}
+                                <Box sx={{mt: 2, mb: 5}}>
+                                    <StyledBookingButton type="submit" fullWidth startIcon={isEquipmentBooking ? null :
+                                        <CheckCircleOutlineIcon/>} disabled={isEquipmentBooking}>
+                                        {isEquipmentBooking ?
+                                            <CircularProgress size={24} color="inherit"/> : "Забронювати тренажер"}
                                     </StyledBookingButton>
                                 </Box>
                             </Box>
@@ -513,54 +538,62 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                     </BookingFormCard>
 
                     <BookingFormCard>
-                        <CardContent sx={{ p: { xs: 3, sm: 4, md: 4.5 }}}>
+                        <CardContent sx={{p: {xs: 3, sm: 4, md: 4.5}}}>
                             <Box sx={{display: 'flex', alignItems: 'center', color: lightText, mb: 4.5}}>
                                 <Diversity3Icon sx={{fontSize: '3rem', mr: 2, color: iconColor}}/>
-                                <Typography variant="h5" sx={{ fontWeight: '600', color: iconColor }}>Групове Заняття</Typography>
+                                <Typography variant="h5" sx={{fontWeight: '600', color: iconColor}}>Групове
+                                    Заняття</Typography>
                             </Box>
                             <Box component="form" onSubmit={handleClassBooking}>
-                                <FormControl fullWidth sx={selectControlStyles(isClassBooking || (isGroupClassFull && !selectedClassId))}>
+                                <FormControl fullWidth
+                                             sx={selectControlStyles(isClassBooking || (isGroupClassFull && !selectedClassId))}>
                                     <InputLabel id="class-select-label">Оберіть заняття</InputLabel>
                                     <Select
                                         labelId="class-select-label" value={selectedClassId} label="Оберіть заняття"
-                                        onChange={(e) => setSelectedClassId(e.target.value)} required MenuProps={menuProps}
+                                        onChange={(e) => setSelectedClassId(e.target.value)} required
+                                        MenuProps={menuProps}
                                         disabled={isClassBooking || (isGroupClassFull && !selectedClassId)}
                                     >
                                         {allClasses.map((sClass) => (
-                                            <MenuItem key={sClass.id} value={sClass.id} disabled={sClass.bookedUserIds.length >= sClass.maxCapacity}>
+                                            <MenuItem key={sClass.id} value={sClass.id}
+                                                      disabled={sClass.bookedUserIds.length >= sClass.maxCapacity}>
                                                 {sClass.title} ({sClass.date ? format(parse(sClass.date, 'yyyy-MM-dd', new Date()), 'dd MMM', {locale: uk}) : 'Дата не вказана'}, {sClass.startTime})
                                                 {sClass.bookedUserIds.length >= sClass.maxCapacity && " (Немає місць)"}
                                             </MenuItem>
                                         ))}
                                     </Select>
-                                    {isGroupClassFull && selectedClassId && <FormHelperText error sx={{ml:1.5, fontSize:'0.8rem', color: alpha(lightText, 0.9)}}>На це заняття немає вільних місць.</FormHelperText>}
+                                    {isGroupClassFull && selectedClassId && <FormHelperText error sx={{
+                                        ml: 1.5,
+                                        fontSize: '0.8rem',
+                                        color: alpha(lightText, 0.9)
+                                    }}>На це заняття немає вільних місць.</FormHelperText>}
                                 </FormControl>
                                 <DatePicker
                                     label="Дата заняття" value={classDate} readOnly disabled
-                                    slots={{ openPickerIcon: EventNoteIcon }}
+                                    slots={{openPickerIcon: EventNoteIcon}}
                                     slotProps={{
-                                        textField: { sx: formControlBaseStyles(true), fullWidth: true },
-                                        openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
+                                        textField: {sx: formControlBaseStyles(true), fullWidth: true},
+                                        openPickerButton: {size: 'medium', edge: 'end', sx: {mr: -0.5}}
                                     }}
                                 />
                                 <Grid container spacing={2.5}>
                                     <Grid item xs={6}>
                                         <TimePicker
                                             label="Час початку" value={classStartTime} readOnly disabled ampm={false}
-                                            slots={{ openPickerIcon: AccessTimeFilledIcon }}
+                                            slots={{openPickerIcon: AccessTimeFilledIcon}}
                                             slotProps={{
-                                                textField: { sx: formControlBaseStyles(true), fullWidth: true },
-                                                openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
+                                                textField: {sx: formControlBaseStyles(true), fullWidth: true},
+                                                openPickerButton: {size: 'medium', edge: 'end', sx: {mr: -0.5}}
                                             }}
                                         />
                                     </Grid>
                                     <Grid item xs={6}>
                                         <TimePicker
                                             label="Час закінчення" value={classEndTime} readOnly disabled ampm={false}
-                                            slots={{ openPickerIcon: AccessTimeFilledIcon }}
+                                            slots={{openPickerIcon: AccessTimeFilledIcon}}
                                             slotProps={{
-                                                textField: { sx: formControlBaseStyles(true), fullWidth: true },
-                                                openPickerButton: { size: 'medium', edge: 'end', sx:{mr: -0.5}}
+                                                textField: {sx: formControlBaseStyles(true), fullWidth: true},
+                                                openPickerButton: {size: 'medium', edge: 'end', sx: {mr: -0.5}}
                                             }}
                                         />
                                     </Grid>
@@ -578,12 +611,17 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                                     placeholder="+380 XX XXX XX XX"
                                     disabled={isClassBooking}
                                     InputProps={{
-                                        startAdornment: <PhoneIphoneIcon sx={{mr:1.2, ml:0.5, color: iconColor, fontSize:'1.3rem'}}/>
+                                        startAdornment: <PhoneIphoneIcon
+                                            sx={{mr: 1.2, ml: 0.5, color: iconColor, fontSize: '1.3rem'}}/>
                                     }}
                                 />
-                                <Box sx={{ mt: 2, mb: 5 }}>
-                                    <StyledBookingButton type="submit" fullWidth disabled={isClassBooking || isGroupClassFull} startIcon={isClassBooking ? null : (isGroupClassFull ? <EventBusyIcon/> : <CheckCircleOutlineIcon/>)}>
-                                        {isClassBooking ? <CircularProgress size={24} color="inherit" /> : (isGroupClassFull ? "Немає місць" : "Забронювати заняття")}
+                                <Box sx={{mt: 2, mb: 5}}>
+                                    <StyledBookingButton type="submit" fullWidth
+                                                         disabled={isClassBooking || isGroupClassFull}
+                                                         startIcon={isClassBooking ? null : (isGroupClassFull ?
+                                                             <EventBusyIcon/> : <CheckCircleOutlineIcon/>)}>
+                                        {isClassBooking ? <CircularProgress size={24}
+                                                                            color="inherit"/> : (isGroupClassFull ? "Немає місць" : "Забронювати заняття")}
                                     </StyledBookingButton>
                                 </Box>
                             </Box>
@@ -592,9 +630,11 @@ const BookingSection = ({ allEquipment, allClasses, allZones, initialTarget, onB
                 </Box>
             </Box>
             <Snackbar
-                open={snackbarOpen} autoHideDuration={6000} onClose={() => setSnackbarOpen(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                open={snackbarOpen} autoHideDuration={6000} onClose={() => setSnackbarOpen(false)}
+                anchorOrigin={{vertical: 'bottom', horizontal: 'center'}}
             >
-                <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} variant="filled" sx={{ width: '100%', boxShadow: 6, '.MuiAlert-icon': {fontSize: '1.5rem'} }}>
+                <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} variant="filled"
+                       sx={{width: '100%', boxShadow: 6, '.MuiAlert-icon': {fontSize: '1.5rem'}}}>
                     {snackbarMessage}
                 </Alert>
             </Snackbar>

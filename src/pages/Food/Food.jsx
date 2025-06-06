@@ -78,7 +78,7 @@ const commonCardStyles = {
     '&::before': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, #a96cff, #c67eff, #8a2be2)', opacity: 0.6, transition: 'opacity 0.35s ease, height 0.35s ease' }
 };
 
-const StaticCard = styled(Card)(({ theme }) => ({
+const StaticCard = styled(Card)(() => ({
     height: '100%',
     background: 'rgba(35, 28, 50, 0.92)',
     backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
@@ -129,7 +129,7 @@ const FilterSelectControl = styled(FormControl)(({ theme }) => ({
     '& .MuiInputAdornment-root': { color: 'rgba(230, 220, 255, 0.65)', marginRight: theme.spacing(0.5)}
 }));
 
-const FilterTextField = styled(TextField)(({ theme }) => ({
+const FilterTextField = styled(TextField)(() => ({
     ...FilterControlBaseStyles,
     '& .MuiOutlinedInput-root': {
         ...FilterControlBaseStyles['& .MuiOutlinedInput-root'],
@@ -138,7 +138,7 @@ const FilterTextField = styled(TextField)(({ theme }) => ({
     }
 }));
 
-const FilterActionButton = styled(Button)(({theme}) => ({
+const FilterActionButton = styled(Button)(() => ({
     height: '44px', borderRadius: '10px',
     background: 'linear-gradient(45deg, #8e44ad 0%, #6a1b9a 100%)',
     color: 'white', fontWeight: '500', fontSize: '0.85rem', padding: '0 16px',
@@ -182,10 +182,7 @@ function FoodPage(props) {
     const [searchResults, setSearchResults] = React.useState([]);
     const [isLoadingSearch, setIsLoadingSearch] = React.useState(false);
 
-    const handleLogout = () => {
-        setIsAuthenticated(false);
-        setCurrentUser(null);
-    };
+    
 
     const handleFilterChange = (event) => {
         const { name, value } = event.target;

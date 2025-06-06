@@ -1,11 +1,11 @@
 const express = require('express');
-const { MongoClient, ObjectId } = require('mongodb');
+const {MongoClient, ObjectId} = require('mongodb');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const { OAuth2Client } = require('google-auth-library');
+const {OAuth2Client} = require('google-auth-library');
 const path = require('path');
-const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
+const {GoogleGenerativeAI, HarmCategory, HarmBlockThreshold} = require('@google/generative-ai');
 const TextToSpeech = require('@google-cloud/text-to-speech');
 
 
@@ -13,7 +13,7 @@ const admin = require('firebase-admin');
 const multer = require('multer');
 
 
-dotenv.config({ path: './server/config.env' });
+dotenv.config({path: './server/config.env'});
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -39,20 +39,10 @@ try {
 }
 
 
-
-
 const multerUpload = multer({
     storage: multer.memoryStorage(),
     limits: {
         fileSize: 50 * 1024 * 1024,
-    },
-    fileFilter: (req, file, cb) => {
-
-        if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Дозволені тільки файли зображень або відео!'), false);
-        }
     }
 });
 
@@ -86,7 +76,7 @@ app.use(
 );
 
 app.options('*', cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({limit: '10mb'}));
 app.use(express.static(path.join(__dirname, '../dist')));
 app.use('/food-images', express.static(path.join(__dirname, '../src/images')));
 
@@ -117,7 +107,7 @@ const GEMINI_MODEL_NAME = process.env.GEMINI_MODEL_NAME || "gemini-1.5-flash-lat
 
 if (process.env.GOOGLE_GEMINI_API_KEY) {
     genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY);
-    geminiModel = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME });
+    geminiModel = genAI.getGenerativeModel({model: GEMINI_MODEL_NAME});
     console.log(`Google Gemini AI client initialized with model ${GEMINI_MODEL_NAME}.`);
 } else {
     console.warn('WARN: GOOGLE_GEMINI_API_KEY is not defined. Chat assistant functionality will be limited to mock responses.');
@@ -139,14 +129,14 @@ if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
 
 app.post('/signup', async (req, res) => {
     try {
-        const { name, email, password, allowExtraEmails } = req.body;
+        const {name, email, password, allowExtraEmails} = req.body;
         if (!name || !email || !password) {
-            return res.status(400).json({ message: 'Усі поля обов’язкові' });
+            return res.status(400).json({message: 'Усі поля обов’язкові'});
         }
         const usersCollection = db.collection('users');
-        const existingUser = await usersCollection.findOne({ email });
+        const existingUser = await usersCollection.findOne({email});
         if (existingUser) {
-            return res.status(400).json({ message: 'Користувач із такою поштою вже існує' });
+            return res.status(400).json({message: 'Користувач із такою поштою вже існує'});
         }
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -158,17 +148,38 @@ app.post('/signup', async (req, res) => {
                 avatarUrl: null,
                 birthDate: null, height: null, weight: null, goal: "", goalKeywords: [],
                 dietType: "Збалансована", activityLevel: "Помірний", profileUpdatesCount: 0, lastGoalUpdate: new Date(),
-                dailySchedule: { wakeUpTime: "07:00", firstMealTime: "08:00", hydrationReminderTime: "10:00", trainingTime: "18:00", lastMealTime: "20:00", personalTime: "21:00", sleepTime: "23:00" }
+                dailySchedule: {
+                    wakeUpTime: "07:00",
+                    firstMealTime: "08:00",
+                    hydrationReminderTime: "10:00",
+                    trainingTime: "18:00",
+                    lastMealTime: "20:00",
+                    personalTime: "21:00",
+                    sleepTime: "23:00"
+                }
             },
-            gamification: { level: 1, experiencePoints: 0, trainingsCompleted: 0, totalTimeSpentMinutes: 0, consecutiveActivityDays: 0, lastActivityDay: null },
+            gamification: {
+                level: 1,
+                experiencePoints: 0,
+                trainingsCompleted: 0,
+                totalTimeSpentMinutes: 0,
+                consecutiveActivityDays: 0,
+                lastActivityDay: null
+            },
             unlockedAchievementIds: [],
             createdAt: new Date()
         };
         const result = await usersCollection.insertOne(newUser);
-        res.status(201).json({ message: 'Користувач успішно створений', userId: result.insertedId, name: newUser.name, email: newUser.email, avatarUrl: newUser.profile.avatarUrl });
+        res.status(201).json({
+            message: 'Користувач успішно створений',
+            userId: result.insertedId,
+            name: newUser.name,
+            email: newUser.email,
+            avatarUrl: newUser.profile.avatarUrl
+        });
     } catch (error) {
         console.error('Error during signup:', error);
-        res.status(500).json({ message: 'Помилка сервера під час реєстрації' });
+        res.status(500).json({message: 'Помилка сервера під час реєстрації'});
     }
 });
 
@@ -188,7 +199,7 @@ async function uploadImageToFirebase(imageUrl, userIdForPath, fileNamePrefix = '
         const file = bucket.file(imageName);
 
         await file.save(imageBuffer, {
-            metadata: { contentType: response.headers.get('content-type') || `image/${fileExtension}` },
+            metadata: {contentType: response.headers.get('content-type') || `image/${fileExtension}`},
             public: true,
         });
         const publicUrl = `https://storage.googleapis.com/${bucket.name}/${imageName}`;
@@ -210,7 +221,7 @@ async function uploadPostMediaToFirebase(file, userId, postId) {
         const fileUpload = bucket.file(fileName);
 
         await fileUpload.save(file.buffer, {
-            metadata: { contentType: file.mimetype },
+            metadata: {contentType: file.mimetype},
             public: true,
         });
 
@@ -225,16 +236,16 @@ async function uploadPostMediaToFirebase(file, userId, postId) {
 
 app.post('/signup/google', async (req, res) => {
     try {
-        const { name, email, googleId, idToken, avatarUrl: clientAvatarUrl } = req.body;
-        if (!name || !email || !googleId || !idToken) return res.status(400).json({ message: 'Усі поля від Google є обов’язковими' });
-        if (!clientGoogle) return res.status(500).json({ message: 'Серверна помилка конфігурації Google.' });
+        const {name, email, googleId, idToken, avatarUrl: clientAvatarUrl} = req.body;
+        if (!name || !email || !googleId || !idToken) return res.status(400).json({message: 'Усі поля від Google є обов’язковими'});
+        if (!clientGoogle) return res.status(500).json({message: 'Серверна помилка конфігурації Google.'});
 
-        const ticket = await clientGoogle.verifyIdToken({ idToken: idToken, audience: process.env.GOOGLE_CLIENT_ID });
+        const ticket = await clientGoogle.verifyIdToken({idToken: idToken, audience: process.env.GOOGLE_CLIENT_ID});
         const payload = ticket.getPayload();
-        if (payload['sub'] !== googleId) return res.status(401).json({ message: 'Невірний Google ID' });
+        if (payload['sub'] !== googleId) return res.status(401).json({message: 'Невірний Google ID'});
 
         const usersCollection = db.collection('users');
-        let user = await usersCollection.findOne({ email });
+        let user = await usersCollection.findOne({email});
 
         let avatarUrlFromGoogle = payload.picture;
         let finalAvatarUrl = clientAvatarUrl || null;
@@ -248,7 +259,7 @@ app.post('/signup/google', async (req, res) => {
 
 
         if (user) {
-            const updateData = { googleId: googleId, name: user.name || name };
+            const updateData = {googleId: googleId, name: user.name || name};
 
             if (finalAvatarUrl && (!user.profile?.avatarUrl || user.profile?.avatarUrl.startsWith('https://lh3.googleusercontent.com/'))) {
                 updateData['profile.avatarUrl'] = finalAvatarUrl;
@@ -262,50 +273,84 @@ app.post('/signup/google', async (req, res) => {
 
 
             if (!user.googleId || Object.keys(updateData).length > 2) {
-                await usersCollection.updateOne({ email }, { $set: updateData });
+                await usersCollection.updateOne({email}, {$set: updateData});
             }
-            user = await usersCollection.findOne({ email });
-            res.status(200).json({ message: 'Користувач успішно увійшов через Google', userId: user._id, email: user.email, name: user.name, avatarUrl: user.profile?.avatarUrl });
+            user = await usersCollection.findOne({email});
+            res.status(200).json({
+                message: 'Користувач успішно увійшов через Google',
+                userId: user._id,
+                email: user.email,
+                name: user.name,
+                avatarUrl: user.profile?.avatarUrl
+            });
         } else {
             const newUser = {
                 name: name || payload.name || email.split('@')[0],
                 email, googleId, password: null, allowExtraEmails: payload.email_verified || true, joinDate: new Date(),
                 profile: {
                     avatarUrl: finalAvatarUrl,
-                    birthDate: null, height: null, weight: null, goal: "", goalKeywords: [],
-                    dietType: "Збалансована", activityLevel: "Помірний", profileUpdatesCount: 0, lastGoalUpdate: new Date(),
-                    dailySchedule: { wakeUpTime: "07:00", firstMealTime: "08:00", hydrationReminderTime: "10:00", trainingTime: "18:00", lastMealTime: "20:00", personalTime: "21:00", sleepTime: "23:00"}
+                    birthDate: null,
+                    height: null,
+                    weight: null,
+                    goal: "",
+                    goalKeywords: [],
+                    dietType: "Збалансована",
+                    activityLevel: "Помірний",
+                    profileUpdatesCount: 0,
+                    lastGoalUpdate: new Date(),
+                    dailySchedule: {
+                        wakeUpTime: "07:00",
+                        firstMealTime: "08:00",
+                        hydrationReminderTime: "10:00",
+                        trainingTime: "18:00",
+                        lastMealTime: "20:00",
+                        personalTime: "21:00",
+                        sleepTime: "23:00"
+                    }
                 },
-                gamification: { level: 1, experiencePoints: 0, trainingsCompleted: 0, totalTimeSpentMinutes: 0, consecutiveActivityDays: 0, lastActivityDay: null },
+                gamification: {
+                    level: 1,
+                    experiencePoints: 0,
+                    trainingsCompleted: 0,
+                    totalTimeSpentMinutes: 0,
+                    consecutiveActivityDays: 0,
+                    lastActivityDay: null
+                },
                 unlockedAchievementIds: [], createdAt: new Date()
             };
             const result = await usersCollection.insertOne(newUser);
-            const createdUser = await usersCollection.findOne({ _id: result.insertedId });
-            res.status(201).json({ message: 'Користувач успішно створений через Google', userId: result.insertedId, email: createdUser.email, name: createdUser.name, avatarUrl: createdUser.profile?.avatarUrl });
+            const createdUser = await usersCollection.findOne({_id: result.insertedId});
+            res.status(201).json({
+                message: 'Користувач успішно створений через Google',
+                userId: result.insertedId,
+                email: createdUser.email,
+                name: createdUser.name,
+                avatarUrl: createdUser.profile?.avatarUrl
+            });
         }
     } catch (error) {
         console.error('Error during Google signup:', error);
-        res.status(500).json({ message: 'Помилка сервера при реєстрації через Google' });
+        res.status(500).json({message: 'Помилка сервера при реєстрації через Google'});
     }
 });
 
 app.post('/auth/google/fedcm', async (req, res) => {
     try {
-        const { token } = req.body;
-        if (!token) return res.status(400).json({ message: 'Токен не надано' });
-        if (!clientGoogle) return res.status(500).json({ message: 'Серверна помилка конфігурації Google.' });
+        const {token} = req.body;
+        if (!token) return res.status(400).json({message: 'Токен не надано'});
+        if (!clientGoogle) return res.status(500).json({message: 'Серверна помилка конфігурації Google.'});
 
-        const ticket = await clientGoogle.verifyIdToken({ idToken: token, audience: process.env.GOOGLE_CLIENT_ID });
+        const ticket = await clientGoogle.verifyIdToken({idToken: token, audience: process.env.GOOGLE_CLIENT_ID});
         const payload = ticket.getPayload();
         const email = payload.email;
         const name = payload.name;
         const googleId = payload.sub;
         let avatarUrlFromGoogle = payload.picture;
 
-        if (!email) return res.status(400).json({ message: 'Не вдалося отримати email від Google.' });
+        if (!email) return res.status(400).json({message: 'Не вдалося отримати email від Google.'});
 
         const usersCollection = db.collection('users');
-        let user = await usersCollection.findOne({ email });
+        let user = await usersCollection.findOne({email});
 
         let finalAvatarUrl = null;
         if (avatarUrlFromGoogle && avatarUrlFromGoogle.startsWith('https://lh3.googleusercontent.com/')) {
@@ -316,7 +361,7 @@ app.post('/auth/google/fedcm', async (req, res) => {
         }
 
         if (user) {
-            const updateFields = { googleId: googleId, name: user.name || name };
+            const updateFields = {googleId: googleId, name: user.name || name};
             if (finalAvatarUrl && (!user.profile?.avatarUrl || user.profile.avatarUrl.startsWith('https://lh3.googleusercontent.com/'))) {
                 updateFields['profile.avatarUrl'] = finalAvatarUrl;
             } else if (!user.profile?.avatarUrl && finalAvatarUrl) {
@@ -327,89 +372,199 @@ app.post('/auth/google/fedcm', async (req, res) => {
 
 
             if (!user.googleId || Object.keys(updateFields).length > 2) {
-                await usersCollection.updateOne({ email }, { $set: updateFields });
+                await usersCollection.updateOne({email}, {$set: updateFields});
             }
-            user = await usersCollection.findOne({ email });
-            res.status(200).json({ message: 'Користувач успішно увійшов через Google', userId: user._id, email: user.email, name: user.name, avatarUrl: user.profile?.avatarUrl });
+            user = await usersCollection.findOne({email});
+            res.status(200).json({
+                message: 'Користувач успішно увійшов через Google',
+                userId: user._id,
+                email: user.email,
+                name: user.name,
+                avatarUrl: user.profile?.avatarUrl
+            });
         } else {
             const newUser = {
                 name: name || email.split('@')[0],
-                email, googleId, password: null, allowExtraEmails: payload.email_verified || false, joinDate: new Date(),
+                email,
+                googleId,
+                password: null,
+                allowExtraEmails: payload.email_verified || false,
+                joinDate: new Date(),
                 profile: {
                     avatarUrl: finalAvatarUrl || null,
-                    birthDate: null, height: null, weight: null, goal: "", goalKeywords: [],
-                    dietType: "Збалансована", activityLevel: "Помірний", profileUpdatesCount: 0, lastGoalUpdate: new Date(),
-                    dailySchedule: { wakeUpTime: "07:00", firstMealTime: "08:00", hydrationReminderTime: "10:00", trainingTime: "18:00", lastMealTime: "20:00", personalTime: "21:00", sleepTime: "23:00"}
+                    birthDate: null,
+                    height: null,
+                    weight: null,
+                    goal: "",
+                    goalKeywords: [],
+                    dietType: "Збалансована",
+                    activityLevel: "Помірний",
+                    profileUpdatesCount: 0,
+                    lastGoalUpdate: new Date(),
+                    dailySchedule: {
+                        wakeUpTime: "07:00",
+                        firstMealTime: "08:00",
+                        hydrationReminderTime: "10:00",
+                        trainingTime: "18:00",
+                        lastMealTime: "20:00",
+                        personalTime: "21:00",
+                        sleepTime: "23:00"
+                    }
                 },
-                gamification: { level: 1, experiencePoints: 0, trainingsCompleted: 0, totalTimeSpentMinutes: 0, consecutiveActivityDays: 0, lastActivityDay: null },
-                unlockedAchievementIds: [], createdAt: new Date()
+                gamification: {
+                    level: 1,
+                    experiencePoints: 0,
+                    trainingsCompleted: 0,
+                    totalTimeSpentMinutes: 0,
+                    consecutiveActivityDays: 0,
+                    lastActivityDay: null
+                },
+                unlockedAchievementIds: [],
+                createdAt: new Date()
             };
             const result = await usersCollection.insertOne(newUser);
-            const createdUser = await usersCollection.findOne({ _id: result.insertedId });
-            res.status(201).json({ message: 'Користувач успішно створений через Google', userId: result.insertedId, email: createdUser.email, name: createdUser.name, avatarUrl: createdUser.profile?.avatarUrl });
+            const createdUser = await usersCollection.findOne({_id: result.insertedId});
+            res.status(201).json({
+                message: 'Користувач успішно створений через Google',
+                userId: result.insertedId,
+                email: createdUser.email,
+                name: createdUser.name,
+                avatarUrl: createdUser.profile?.avatarUrl
+            });
         }
     } catch (error) {
         console.error('Error during Google FedCM/Sign-In auth:', error);
-        res.status(500).json({ message: 'Помилка сервера при автентифікації через Google' });
+        res.status(500).json({message: 'Помилка сервера при автентифікації через Google'});
     }
 });
 
 app.post('/signin', async (req, res) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) return res.status(400).json({ message: 'Електронна пошта і пароль обов’язкові' });
+        const {email, password} = req.body;
+        if (!email || !password) return res.status(400).json({message: 'Електронна пошта і пароль обов’язкові'});
 
         const usersCollection = db.collection('users');
-        const user = await usersCollection.findOne({ email });
-        if (!user) return res.status(401).json({ message: 'Користувач із такою поштою не існує' });
-        if (!user.password) return res.status(401).json({ message: 'Цей користувач зареєстрований через Google. Використовуйте вхід через Google.' });
+        const user = await usersCollection.findOne({email});
+        if (!user) return res.status(401).json({message: 'Користувач із такою поштою не існує'});
+        if (!user.password) return res.status(401).json({message: 'Цей користувач зареєстрований через Google. Використовуйте вхід через Google.'});
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) return res.status(401).json({ message: 'Неправильний пароль' });
+        if (!isPasswordValid) return res.status(401).json({message: 'Неправильний пароль'});
 
-        res.status(200).json({ message: 'Успішний вхід', userId: user._id, name: user.name, email: user.email, avatarUrl: user.profile?.avatarUrl });
+        res.status(200).json({
+            message: 'Успішний вхід',
+            userId: user._id,
+            name: user.name,
+            email: user.email,
+            avatarUrl: user.profile?.avatarUrl
+        });
     } catch (error) {
         console.error('Error during signin:', error);
-        res.status(500).json({ message: 'Помилка сервера під час входу' });
+        res.status(500).json({message: 'Помилка сервера під час входу'});
     }
 });
 
 
-
 const ALL_ACHIEVEMENTS_DEFINITIONS = [
-    { id: "ach01", name: "Перший Рубіж", description: "Завершено перше тренування.", iconName: "FitnessCenter", color: '#a5d6a7' },
-    { id: "ach02", name: "Залізна Воля", description: "30 днів тренувань поспіль.", iconName: "EventNote", color: '#ffcc80' },
-    { id: "ach03", name: "Світанок Воїна", description: "20 тренувань до 7 ранку.", iconName: "WbSunny", color: '#ffd54f' },
-    { id: "ach04", name: "Майстер Витривалості", description: "100 тренувань загалом.", iconName: "EmojiEvents", color: '#81d4fa' },
-    { id: "ach05", name: "Зональний Турист", description: "Відвідано всі зони спортзалу.", iconName: "Explore", color: '#cf9fff' },
-    { id: "ach06", name: "Груповий Боєць", description: "Заброньовано 5 групових занять.", iconName: "Group", color: '#f48fb1' },
-    { id: "ach07", name: "Нічна Зміна", description: "10 тренувань після 22:00.", iconName: "NightsStay", color: '#90a4ae' },
-    { id: "ach08", name: "Профіль Завершено", description: "Заповнено усі основні поля профілю, включаючи аватарку.", iconName: "CheckCircleOutline", color: '#80cbc4' },
-    { id: "ach09", name: "Планувальник PRO", description: "Заплановано 7 тренувань наперед.", iconName: "EventAvailable", color: '#ffab91' },
-    { id: "ach10", name: "Ранній Старт", description: "Перше тренування протягом 3 днів після реєстрації.", iconName: "StarBorder", color: '#fff59d' },
-    { id: "ach11", name: "Відданий Grind'ер", description: "30 днів активності поспіль.", iconName: "Loyalty", color: '#ef9a9a' },
+    {
+        id: "ach01",
+        name: "Перший Рубіж",
+        description: "Завершено перше тренування.",
+        iconName: "FitnessCenter",
+        color: '#a5d6a7'
+    },
+    {
+        id: "ach02",
+        name: "Залізна Воля",
+        description: "30 днів тренувань поспіль.",
+        iconName: "EventNote",
+        color: '#ffcc80'
+    },
+    {
+        id: "ach03",
+        name: "Світанок Воїна",
+        description: "20 тренувань до 7 ранку.",
+        iconName: "WbSunny",
+        color: '#ffd54f'
+    },
+    {
+        id: "ach04",
+        name: "Майстер Витривалості",
+        description: "100 тренувань загалом.",
+        iconName: "EmojiEvents",
+        color: '#81d4fa'
+    },
+    {
+        id: "ach05",
+        name: "Зональний Турист",
+        description: "Відвідано всі зони спортзалу.",
+        iconName: "Explore",
+        color: '#cf9fff'
+    },
+    {
+        id: "ach06",
+        name: "Груповий Боєць",
+        description: "Заброньовано 5 групових занять.",
+        iconName: "Group",
+        color: '#f48fb1'
+    },
+    {
+        id: "ach07",
+        name: "Нічна Зміна",
+        description: "10 тренувань після 22:00.",
+        iconName: "NightsStay",
+        color: '#90a4ae'
+    },
+    {
+        id: "ach08",
+        name: "Профіль Завершено",
+        description: "Заповнено усі основні поля профілю, включаючи аватарку.",
+        iconName: "CheckCircleOutline",
+        color: '#80cbc4'
+    },
+    {
+        id: "ach09",
+        name: "Планувальник PRO",
+        description: "Заплановано 7 тренувань наперед.",
+        iconName: "EventAvailable",
+        color: '#ffab91'
+    },
+    {
+        id: "ach10",
+        name: "Ранній Старт",
+        description: "Перше тренування протягом 3 днів після реєстрації.",
+        iconName: "StarBorder",
+        color: '#fff59d'
+    },
+    {
+        id: "ach11",
+        name: "Відданий Grind'ер",
+        description: "30 днів активності поспіль.",
+        iconName: "Loyalty",
+        color: '#ef9a9a'
+    },
 ];
 
 
 app.post('/api/profile/:userId/avatar', multerUpload.single('avatarFile'), async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
-        if (!bucket) return res.status(503).json({ message: 'Firebase Storage недоступний. Перевірте конфігурацію сервера.'});
+        if (!db) return res.status(503).json({message: 'База даних недоступна.'});
+        if (!bucket) return res.status(503).json({message: 'Firebase Storage недоступний. Перевірте конфігурацію сервера.'});
 
-        const { userId } = req.params;
+        const {userId} = req.params;
 
         if (!ObjectId.isValid(userId)) {
-            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+            return res.status(400).json({message: 'Невірний формат ID користувача.'});
         }
 
         if (!req.file) {
-            return res.status(400).json({ message: 'Файл аватарки не надано.' });
+            return res.status(400).json({message: 'Файл аватарки не надано.'});
         }
 
         const usersCollection = db.collection('users');
-        const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        const user = await usersCollection.findOne({_id: new ObjectId(userId)});
         if (!user) {
-            return res.status(404).json({ message: 'Користувача не знайдено.' });
+            return res.status(404).json({message: 'Користувача не знайдено.'});
         }
 
 
@@ -448,26 +603,26 @@ app.post('/api/profile/:userId/avatar', multerUpload.single('avatarFile'), async
 
         blobStream.on('error', (error) => {
             console.error('Error uploading to Firebase Storage:', error);
-            res.status(500).json({ message: 'Помилка завантаження файлу на сервер.' });
+            res.status(500).json({message: 'Помилка завантаження файлу на сервер.'});
         });
 
         blobStream.on('finish', async () => {
             const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
 
             const result = await usersCollection.updateOne(
-                { _id: new ObjectId(userId) },
+                {_id: new ObjectId(userId)},
                 {
-                    $set: { 'profile.avatarUrl': publicUrl, 'profile.lastGoalUpdate': new Date() },
-                    $inc: { 'profile.profileUpdatesCount': 1 }
+                    $set: {'profile.avatarUrl': publicUrl, 'profile.lastGoalUpdate': new Date()},
+                    $inc: {'profile.profileUpdatesCount': 1}
                 }
             );
 
             if (result.matchedCount === 0) {
-                return res.status(404).json({ message: 'Користувача не знайдено для оновлення аватарки.' });
+                return res.status(404).json({message: 'Користувача не знайдено для оновлення аватарки.'});
             }
 
 
-            const updatedUser = await usersCollection.findOne({ _id: new ObjectId(userId) });
+            const updatedUser = await usersCollection.findOne({_id: new ObjectId(userId)});
             const profileForCompletionCheck = updatedUser.profile || {};
             let finalUnlockedIds = new Set(updatedUser.unlockedAchievementIds || []);
             let achievementsModifiedAfterSave = false;
@@ -479,8 +634,8 @@ app.post('/api/profile/:userId/avatar', multerUpload.single('avatarFile'), async
             }
             if (achievementsModifiedAfterSave) {
                 await usersCollection.updateOne(
-                    { _id: updatedUser._id },
-                    { $set: { unlockedAchievementIds: Array.from(finalUnlockedIds) } }
+                    {_id: updatedUser._id},
+                    {$set: {unlockedAchievementIds: Array.from(finalUnlockedIds)}}
                 );
             }
 
@@ -496,26 +651,26 @@ app.post('/api/profile/:userId/avatar', multerUpload.single('avatarFile'), async
     } catch (error) {
         console.error('Error uploading avatar:', error);
         if (error.message === 'Дозволені тільки файли зображень!') {
-            return res.status(400).json({ message: error.message });
+            return res.status(400).json({message: error.message});
         }
-        res.status(500).json({ message: 'Помилка сервера при завантаженні аватарки.' });
+        res.status(500).json({message: 'Помилка сервера при завантаженні аватарки.'});
     }
 });
 
 
 app.get('/api/profile/:userId', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
-        const { userId } = req.params;
+        if (!db) return res.status(503).json({message: 'База даних недоступна.'});
+        const {userId} = req.params;
         if (!ObjectId.isValid(userId)) {
-            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+            return res.status(400).json({message: 'Невірний формат ID користувача.'});
         }
 
         const usersCollection = db.collection('users');
-        let user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        let user = await usersCollection.findOne({_id: new ObjectId(userId)});
 
         if (!user) {
-            return res.status(404).json({ message: 'Користувача не знайдено.' });
+            return res.status(404).json({message: 'Користувача не знайдено.'});
         }
 
         const today = new Date(new Date().setUTCHours(0, 0, 0, 0));
@@ -523,7 +678,7 @@ app.get('/api/profile/:userId', async (req, res) => {
         const lastActivityRaw = user.gamification?.lastActivityDay;
         let lastActivityDate = null;
         if (lastActivityRaw) {
-            lastActivityDate = new Date(new Date(lastActivityRaw).setUTCHours(0,0,0,0));
+            lastActivityDate = new Date(new Date(lastActivityRaw).setUTCHours(0, 0, 0, 0));
         }
 
         let needsActivityStreakUpdate = false;
@@ -544,19 +699,21 @@ app.get('/api/profile/:userId', async (req, res) => {
         }
         if (needsActivityStreakUpdate) {
             await usersCollection.updateOne(
-                { _id: user._id },
-                { $set: {
+                {_id: user._id},
+                {
+                    $set: {
                         'gamification.consecutiveActivityDays': consecutiveDays,
                         'gamification.lastActivityDay': today
-                    }}
+                    }
+                }
             );
-            if(!user.gamification) user.gamification = {};
+            if (!user.gamification) user.gamification = {};
             user.gamification.consecutiveActivityDays = consecutiveDays;
             user.gamification.lastActivityDay = today;
         }
 
         const bookingsCollection = db.collection('bookings');
-        const completedUserBookings = await bookingsCollection.find({ userId: user._id, status: 'completed' }).toArray();
+        const completedUserBookings = await bookingsCollection.find({userId: user._id, status: 'completed'}).toArray();
 
         let newAchievementsUnlockedThisSession = false;
         const currentUnlockedIds = new Set(user.unlockedAchievementIds || []);
@@ -571,7 +728,7 @@ app.get('/api/profile/:userId', async (req, res) => {
         if (completedUserBookings.length > 0) unlockAchievement("ach01");
         if (completedUserBookings.length >= 100) unlockAchievement("ach04");
 
-        const allUserBookingsForClasses = await bookingsCollection.find({ userId: user._id, type: 'class' }).toArray();
+        const allUserBookingsForClasses = await bookingsCollection.find({userId: user._id, type: 'class'}).toArray();
         if (allUserBookingsForClasses.length >= 5) unlockAchievement("ach06");
 
         if (completedUserBookings.filter(b => b.startTime && parseInt(b.startTime.split(':')[0], 10) < 7).length >= 20) unlockAchievement("ach03");
@@ -581,7 +738,7 @@ app.get('/api/profile/:userId', async (req, res) => {
         let allGymZoneIds = [];
         const zonesCollection = db.collection('zones');
         if (zonesCollection) {
-            allGymZoneIds = (await zonesCollection.find({}, { projection: { id: 1, _id: 0 } }).toArray()).map(z => z.id);
+            allGymZoneIds = (await zonesCollection.find({}, {projection: {id: 1, _id: 0}}).toArray()).map(z => z.id);
         }
         if (allGymZoneIds.length > 0 && allGymZoneIds.every(zoneId => visitedZoneIds.has(zoneId))) unlockAchievement("ach05");
 
@@ -600,7 +757,7 @@ app.get('/api/profile/:userId', async (req, res) => {
 
         const futureConfirmedBookingsCount = await bookingsCollection.countDocuments({
             userId: user._id, status: 'confirmed',
-            bookingDate: { $gte: new Date(new Date().setUTCHours(0,0,0,0)) }
+            bookingDate: {$gte: new Date(new Date().setUTCHours(0, 0, 0, 0))}
         });
         if (futureConfirmedBookingsCount >= 7) unlockAchievement("ach09");
 
@@ -612,8 +769,8 @@ app.get('/api/profile/:userId', async (req, res) => {
 
         if (newAchievementsUnlockedThisSession) {
             await usersCollection.updateOne(
-                { _id: user._id },
-                { $set: { unlockedAchievementIds: Array.from(currentUnlockedIds) } }
+                {_id: user._id},
+                {$set: {unlockedAchievementIds: Array.from(currentUnlockedIds)}}
             );
             user.unlockedAchievementIds = Array.from(currentUnlockedIds);
         }
@@ -660,18 +817,18 @@ app.get('/api/profile/:userId', async (req, res) => {
 
     } catch (error) {
         console.error('Error fetching user profile:', error);
-        res.status(500).json({ message: 'Помилка сервера при отриманні профілю.' });
+        res.status(500).json({message: 'Помилка сервера при отриманні профілю.'});
     }
 });
 
 app.put('/api/profile/:userId', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
-        const { userId } = req.params;
+        if (!db) return res.status(503).json({message: 'База даних недоступна.'});
+        const {userId} = req.params;
         const updates = req.body;
 
         if (!ObjectId.isValid(userId)) {
-            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+            return res.status(400).json({message: 'Невірний формат ID користувача.'});
         }
 
         const usersCollection = db.collection('users');
@@ -693,18 +850,18 @@ app.put('/api/profile/:userId', async (req, res) => {
             }
         });
 
-        const updateOperation = { $inc: { 'profile.profileUpdatesCount': 1 } };
+        const updateOperation = {$inc: {'profile.profileUpdatesCount': 1}};
         if (Object.keys(fieldsToSet).length > 0) {
             fieldsToSet['profile.lastGoalUpdate'] = new Date();
             updateOperation.$set = fieldsToSet;
         } else {
-            updateOperation.$set = {'profile.lastGoalUpdate': new Date() };
+            updateOperation.$set = {'profile.lastGoalUpdate': new Date()};
         }
 
-        const result = await usersCollection.updateOne( { _id: new ObjectId(userId) }, updateOperation );
-        if (result.matchedCount === 0) return res.status(404).json({ message: 'Користувача не знайдено.' });
+        const result = await usersCollection.updateOne({_id: new ObjectId(userId)}, updateOperation);
+        if (result.matchedCount === 0) return res.status(404).json({message: 'Користувача не знайдено.'});
 
-        let userAfterUpdate = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        let userAfterUpdate = await usersCollection.findOne({_id: new ObjectId(userId)});
 
         let finalUnlockedIds = new Set(userAfterUpdate.unlockedAchievementIds || []);
         let achievementsModifiedAfterSave = false;
@@ -718,8 +875,8 @@ app.put('/api/profile/:userId', async (req, res) => {
         }
         if (achievementsModifiedAfterSave) {
             await usersCollection.updateOne(
-                { _id: userAfterUpdate._id },
-                { $set: { unlockedAchievementIds: Array.from(finalUnlockedIds) } }
+                {_id: userAfterUpdate._id},
+                {$set: {unlockedAchievementIds: Array.from(finalUnlockedIds)}}
             );
             userAfterUpdate.unlockedAchievementIds = Array.from(finalUnlockedIds);
         }
@@ -760,31 +917,30 @@ app.put('/api/profile/:userId', async (req, res) => {
                 unlocked: userAfterUpdate.unlockedAchievementIds ? userAfterUpdate.unlockedAchievementIds.includes(def.id) : false
             }))
         };
-        res.status(200).json({ message: 'Профіль успішно оновлено.', user: finalUserProfileData });
+        res.status(200).json({message: 'Профіль успішно оновлено.', user: finalUserProfileData});
 
     } catch (error) {
         console.error('Error updating user profile:', error);
-        res.status(500).json({ message: 'Помилка сервера при оновленні профілю.' });
+        res.status(500).json({message: 'Помилка сервера при оновленні профілю.'});
     }
 });
 
 
-
 app.get('/api/zones', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
+        if (!db) return res.status(503).json({message: 'База даних недоступна, спробуйте пізніше.'});
         const zonesCollection = db.collection('zones');
         const zones = await zonesCollection.find({}).toArray();
         res.json(zones);
     } catch (error) {
         console.error('Error fetching zones:', error);
-        res.status(500).json({ message: 'Помилка сервера при отриманні зон' });
+        res.status(500).json({message: 'Помилка сервера при отриманні зон'});
     }
 });
 
 app.get('/api/equipment', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
+        if (!db) return res.status(503).json({message: 'База даних недоступна, спробуйте пізніше.'});
         const equipmentCollection = db.collection('equipment');
         const query = {};
         if (req.query.zoneId) {
@@ -794,18 +950,18 @@ app.get('/api/equipment', async (req, res) => {
         res.json(equipment);
     } catch (error) {
         console.error('Error fetching equipment:', error);
-        res.status(500).json({ message: 'Помилка сервера при отриманні обладнання' });
+        res.status(500).json({message: 'Помилка сервера при отриманні обладнання'});
     }
 });
 
 app.get('/api/group-classes', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
+        if (!db) return res.status(503).json({message: 'База даних недоступна, спробуйте пізніше.'});
         const groupClassesCollection = db.collection('group_classes');
         const currentDate = new Date().toISOString().split('T')[0];
 
         const query = {
-            date: { $gte: currentDate }
+            date: {$gte: currentDate}
         };
         if (req.query.date) {
             query.date = req.query.date;
@@ -813,12 +969,12 @@ app.get('/api/group-classes', async (req, res) => {
 
         const groupClasses = await groupClassesCollection
             .find(query)
-            .sort({ date: 1, startTime: 1 })
+            .sort({date: 1, startTime: 1})
             .toArray();
         res.json(groupClasses);
     } catch (error) {
         console.error('Error fetching group classes:', error);
-        res.status(500).json({ message: 'Помилка сервера при отриманні групових занять' });
+        res.status(500).json({message: 'Помилка сервера при отриманні групових занять'});
     }
 });
 
@@ -829,7 +985,7 @@ const XP_PER_MINUTE_OF_TRAINING = 10 / 6;
 async function awardExperienceAndLevelUp(userId, bookingType, durationMinutes) {
     if (!db) return;
     const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    const user = await usersCollection.findOne({_id: new ObjectId(userId)});
     if (!user) return;
 
     let gainedXp = XP_PER_TRAINING_EVENT;
@@ -846,7 +1002,7 @@ async function awardExperienceAndLevelUp(userId, bookingType, durationMinutes) {
     }
 
     await usersCollection.updateOne(
-        { _id: new ObjectId(userId) },
+        {_id: new ObjectId(userId)},
         {
             $inc: {
                 'gamification.trainingsCompleted': 1,
@@ -867,7 +1023,7 @@ async function awardExperienceAndLevelUp(userId, bookingType, durationMinutes) {
 
 app.post('/api/bookings', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
+        if (!db) return res.status(503).json({message: 'База даних недоступна, спробуйте пізніше.'});
 
         const bookingsCollection = db.collection('bookings');
         const {
@@ -875,37 +1031,40 @@ app.post('/api/bookings', async (req, res) => {
             bookingDate, startTime, endTime, duration, bookerPhone
         } = req.body;
 
-        if (!userId) return res.status(401).json({ message: 'Користувач не авторизований.' });
+        if (!userId) return res.status(401).json({message: 'Користувач не авторизований.'});
         if (!type || !itemId || !itemName || !bookingDate || !startTime || !endTime || !bookerPhone || !zoneId) {
-            return res.status(400).json({ message: 'Не всі обов\'язкові поля для бронювання надані.' });
+            return res.status(400).json({message: 'Не всі обов\'язкові поля для бронювання надані.'});
         }
 
         let parsedUserId;
-        try { parsedUserId = new ObjectId(userId); }
-        catch (e) { return res.status(400).json({ message: 'Невірний формат ID користувача.' }); }
+        try {
+            parsedUserId = new ObjectId(userId);
+        } catch (e) {
+            return res.status(400).json({message: 'Невірний формат ID користувача.'});
+        }
 
         let durationMinutes;
         if (type === 'equipment') {
             durationMinutes = parseInt(duration, 10);
-            if (isNaN(durationMinutes) || durationMinutes <= 0) return res.status(400).json({ message: 'Невірна тривалість для тренажера.' });
+            if (isNaN(durationMinutes) || durationMinutes <= 0) return res.status(400).json({message: 'Невірна тривалість для тренажера.'});
         } else if (type === 'class') {
-            const classDetails = await db.collection('group_classes').findOne({ id: itemId });
-            if (!classDetails) return res.status(404).json({ message: 'Групове заняття не знайдено для визначення тривалості.' });
+            const classDetails = await db.collection('group_classes').findOne({id: itemId});
+            if (!classDetails) return res.status(404).json({message: 'Групове заняття не знайдено для визначення тривалості.'});
             durationMinutes = classDetails.durationMinutes;
         } else {
-            return res.status(400).json({ message: 'Невірний тип бронювання.' });
+            return res.status(400).json({message: 'Невірний тип бронювання.'});
         }
 
-        const targetBookingDate = new Date(new Date(bookingDate).setUTCHours(0,0,0,0));
+        const targetBookingDate = new Date(new Date(bookingDate).setUTCHours(0, 0, 0, 0));
 
         if (type === 'class') {
-            const groupClass = await db.collection('group_classes').findOne({ id: itemId });
-            if (!groupClass) return res.status(404).json({ message: 'Групове заняття не знайдено.' });
+            const groupClass = await db.collection('group_classes').findOne({id: itemId});
+            if (!groupClass) return res.status(404).json({message: 'Групове заняття не знайдено.'});
             if (groupClass.bookedUserIds && groupClass.bookedUserIds.length >= groupClass.maxCapacity) {
-                return res.status(409).json({ message: 'На жаль, на це заняття вже немає вільних місць.' });
+                return res.status(409).json({message: 'На жаль, на це заняття вже немає вільних місць.'});
             }
             if (groupClass.bookedUserIds && groupClass.bookedUserIds.includes(parsedUserId.toString())) {
-                return res.status(409).json({ message: 'Ви вже записані на це заняття.' });
+                return res.status(409).json({message: 'Ви вже записані на це заняття.'});
             }
         } else if (type === 'equipment') {
             const conflictingBooking = await bookingsCollection.findOne({
@@ -913,10 +1072,10 @@ app.post('/api/bookings', async (req, res) => {
                 bookingDate: targetBookingDate,
                 status: "confirmed",
                 $or: [
-                    { startTime: { $lt: endTime }, endTime: { $gt: startTime } }
+                    {startTime: {$lt: endTime}, endTime: {$gt: startTime}}
                 ]
             });
-            if (conflictingBooking) return res.status(409).json({ message: `Тренажер "${itemName}" вже заброньований з ${conflictingBooking.startTime} до ${conflictingBooking.endTime} на цю дату.` });
+            if (conflictingBooking) return res.status(409).json({message: `Тренажер "${itemName}" вже заброньований з ${conflictingBooking.startTime} до ${conflictingBooking.endTime} на цю дату.`});
         }
 
         const newBooking = {
@@ -928,43 +1087,44 @@ app.post('/api/bookings', async (req, res) => {
 
         if (type === 'class' && result.insertedId) {
             await db.collection('group_classes').updateOne(
-                { id: itemId }, { $addToSet: { bookedUserIds: parsedUserId.toString() } }
+                {id: itemId}, {$addToSet: {bookedUserIds: parsedUserId.toString()}}
             );
         }
-
 
 
         if (result.insertedId) {
             await awardExperienceAndLevelUp(userId, type, durationMinutes);
         }
 
-        res.status(201).json({ message: 'Бронювання успішно створено!', bookingId: result.insertedId, bookingDetails: newBooking });
+        res.status(201).json({
+            message: 'Бронювання успішно створено!',
+            bookingId: result.insertedId,
+            bookingDetails: newBooking
+        });
 
     } catch (error) {
         console.error('Error creating booking:', error);
-        if (error.code === 11000) return res.status(409).json({ message: 'Помилка: спроба створити дублікат запису.' });
-        res.status(500).json({ message: 'Помилка сервера при створенні бронювання.' });
+        if (error.code === 11000) return res.status(409).json({message: 'Помилка: спроба створити дублікат запису.'});
+        res.status(500).json({message: 'Помилка сервера при створенні бронювання.'});
     }
 });
-
-
 
 
 app.get('/api/food', async (req, res) => {
     try {
         if (!db) {
-            return res.status(503).json({ message: 'База даних недоступна, спробуйте пізніше.' });
+            return res.status(503).json({message: 'База даних недоступна, спробуйте пізніше.'});
         }
         const foodsCollection = db.collection('food');
-        const { name, type, goal, diet, difficulty, isRecommended, diet_special } = req.query;
+        const {name, type, goal, diet, difficulty, isRecommended, diet_special} = req.query;
         const query = {};
 
-        if (name) query.name = { $regex: name, $options: 'i' };
+        if (name) query.name = {$regex: name, $options: 'i'};
         if (type) query.type = type;
         if (goal) query.goal = goal;
 
         if (diet_special === 'vegan_or_veganska') {
-            query.diet = { $in: ['Веган', 'Веганська'] };
+            query.diet = {$in: ['Веган', 'Веганська']};
         } else if (diet) {
             query.diet = diet;
         }
@@ -976,25 +1136,25 @@ app.get('/api/food', async (req, res) => {
         res.json(foodItems);
     } catch (error) {
         console.error('Error fetching food data:', error);
-        res.status(500).json({ message: 'Помилка сервера при отриманні даних про їжу' });
+        res.status(500).json({message: 'Помилка сервера при отриманні даних про їжу'});
     }
 });
 
 app.post('/api/chat', async (req, res) => {
     console.log(`[${new Date().toISOString()}] POST /api/chat request received`);
     try {
-        const { userMessage, chatHistory: originalChatHistory, siteContext } = req.body;
+        const {userMessage, chatHistory: originalChatHistory, siteContext} = req.body;
         console.log(`[${new Date().toISOString()}] User Message: ${userMessage}`);
 
         if (!userMessage || !siteContext) {
             console.error(`[${new Date().toISOString()}] Missing userMessage or siteContext`);
-            return res.status(400).json({ error: "Відсутнє повідомлення користувача або контекст сайту." });
+            return res.status(400).json({error: "Відсутнє повідомлення користувача або контекст сайту."});
         }
 
         if (!geminiModel) {
             console.log(`[${new Date().toISOString()}] Gemini AI client not initialized. Returning mock response for chat.`);
             const mockBotReply = `Мок-відповідь: отримано "${userMessage}". Налаштуйте Google Gemini API ключ для реальних відповідей.`;
-            return res.json({ text: mockBotReply, audioData: null });
+            return res.json({text: mockBotReply, audioData: null});
         }
 
         const geminiHistory = [];
@@ -1006,7 +1166,7 @@ app.post('/api/chat', async (req, res) => {
                     firstUserMessageFound = true;
                 }
                 if (firstUserMessageFound) {
-                    geminiHistory.push({ role, parts: [{ text: msg.text }] });
+                    geminiHistory.push({role, parts: [{text: msg.text}]});
                 }
             }
             if (geminiHistory.length > 0 && geminiHistory[0].role === 'model') {
@@ -1018,12 +1178,21 @@ app.post('/api/chat', async (req, res) => {
 
         const chat = geminiModel.startChat({
             history: geminiHistory,
-            generationConfig: { maxOutputTokens: 800, temperature: 1.0, },
+            generationConfig: {maxOutputTokens: 800, temperature: 1.0,},
             safetySettings: [
-                { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-                { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-                { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-                { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+                {category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE},
+                {
+                    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
+                },
             ],
         });
 
@@ -1045,11 +1214,9 @@ app.post('/api/chat', async (req, res) => {
             textForSpeech = textForSpeech.replace(/[-,;:!?()"]/g, ' ');
             textForSpeech = textForSpeech.replace(/\.{2,}/g, '.');
             textForSpeech = textForSpeech.replace(/\s+/g, ' ').trim();
-            console.log(`[${new Date().toISOString()}] Text prepared for TTS: ${textForSpeech.substring(0,150)}...`);
+            console.log(`[${new Date().toISOString()}] Text prepared for TTS: ${textForSpeech.substring(0, 150)}...`);
 
             const languageCode = 'uk-UA';
-
-
 
 
             const voiceName = 'uk-UA-Wavenet-A';
@@ -1058,7 +1225,7 @@ app.post('/api/chat', async (req, res) => {
             console.log(`[${new Date().toISOString()}] Attempting to generate audio with Google Cloud TTS (Voice: ${voiceName}, Lang: ${languageCode}, Rate: ${speakingRate}.`);
 
             const ttsRequest = {
-                input: { text: textForSpeech },
+                input: {text: textForSpeech},
                 voice: {
                     languageCode: languageCode,
                     name: voiceName
@@ -1093,12 +1260,11 @@ app.post('/api/chat', async (req, res) => {
         console.error(`[${new Date().toISOString()}] Помилка в /api/chat:`, error);
         if (error.message && error.message.includes('[GoogleGenerativeAI Error]')) {
             console.error(`[${new Date().toISOString()}] Google Gemini API Error: ${error.message}`);
-            return res.status(500).json({ error: `Помилка при зверненні до Gemini AI: ${error.message}` });
+            return res.status(500).json({error: `Помилка при зверненні до Gemini AI: ${error.message}`});
         }
-        res.status(500).json({ error: "Внутрішня помилка сервера при обробці чат-запиту." });
+        res.status(500).json({error: "Внутрішня помилка сервера при обробці чат-запиту."});
     }
 });
-
 
 
 const POST_TYPES = ['text', 'question', 'article', 'achievement'];
@@ -1106,29 +1272,29 @@ const POST_TYPES = ['text', 'question', 'article', 'achievement'];
 
 app.post('/api/posts', multerUpload.single('media'), async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+        if (!db) return res.status(503).json({message: 'База даних недоступна.'});
 
-        const { userId, text, type } = req.body;
+        const {userId, text, type} = req.body;
         const mediaFile = req.file;
 
         if (!userId) {
-            return res.status(401).json({ message: 'Потрібен userId.' });
+            return res.status(401).json({message: 'Потрібен userId.'});
         }
         if (!text && !mediaFile) {
-            return res.status(400).json({ message: 'Текст або медіафайл обов’язкові.' });
+            return res.status(400).json({message: 'Текст або медіафайл обов’язкові.'});
         }
         if (type && !POST_TYPES.includes(type)) {
-            return res.status(400).json({ message: 'Невірний тип поста.' });
+            return res.status(400).json({message: 'Невірний тип поста.'});
         }
 
         if (!ObjectId.isValid(userId)) {
-            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+            return res.status(400).json({message: 'Невірний формат ID користувача.'});
         }
         const parsedUserId = new ObjectId(userId);
         const usersCollection = db.collection('users');
-        const user = await usersCollection.findOne({ _id: parsedUserId });
+        const user = await usersCollection.findOne({_id: parsedUserId});
         if (!user) {
-            return res.status(404).json({ message: 'Користувача не знайдено.' });
+            return res.status(404).json({message: 'Користувача не знайдено.'});
         }
         const author = {
             id: user._id.toString(),
@@ -1180,26 +1346,26 @@ app.post('/api/posts', multerUpload.single('media'), async (req, res) => {
     } catch (error) {
         console.error('Error creating post:', error);
         if (error.message === 'Дозволені тільки файли зображень або відео!') {
-            return res.status(400).json({ message: error.message });
+            return res.status(400).json({message: error.message});
         }
-        res.status(500).json({ message: 'Помилка сервера при створенні поста.' });
+        res.status(500).json({message: 'Помилка сервера при створенні поста.'});
     }
 });
 
 
 app.get('/api/posts', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+        if (!db) return res.status(503).json({message: 'База даних недоступна.'});
 
-        const { searchTerm, page = 1, limit = 10 } = req.query;
+        const {searchTerm, page = 1, limit = 10} = req.query;
         const postsCollection = db.collection('posts');
         const query = {};
 
         if (searchTerm) {
             query.$or = [
-                { text: { $regex: searchTerm, $options: 'i' } },
-                { tags: { $regex: searchTerm, $options: 'i' } },
-                { 'author.name': { $regex: searchTerm, $options: 'i' } }
+                {text: {$regex: searchTerm, $options: 'i'}},
+                {tags: {$regex: searchTerm, $options: 'i'}},
+                {'author.name': {$regex: searchTerm, $options: 'i'}}
             ];
         }
 
@@ -1210,7 +1376,7 @@ app.get('/api/posts', async (req, res) => {
         const totalPosts = await postsCollection.countDocuments(query);
         const posts = await postsCollection
             .find(query)
-            .sort({ createdAt: -1 })
+            .sort({createdAt: -1})
             .skip(skip)
             .limit(limitNum)
             .toArray();
@@ -1236,34 +1402,34 @@ app.get('/api/posts', async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching posts:', error);
-        res.status(500).json({ message: 'Помилка сервера при отриманні постів.' });
+        res.status(500).json({message: 'Помилка сервера при отриманні постів.'});
     }
 });
 
 
 app.delete('/api/posts/:postId', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+        if (!db) return res.status(503).json({message: 'База даних недоступна.'});
 
-        const { postId } = req.params;
-        const { userId } = req.body;
+        const {postId} = req.params;
+        const {userId} = req.body;
 
         if (!ObjectId.isValid(postId)) {
-            return res.status(400).json({ message: 'Невірний формат ID поста.' });
+            return res.status(400).json({message: 'Невірний формат ID поста.'});
         }
         if (!userId) {
-            return res.status(401).json({ message: 'Потрібен ID користувача.' });
+            return res.status(401).json({message: 'Потрібен ID користувача.'});
         }
 
         const postsCollection = db.collection('posts');
-        const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+        const post = await postsCollection.findOne({_id: new ObjectId(postId)});
 
         if (!post) {
-            return res.status(404).json({ message: 'Пост не знайдено.' });
+            return res.status(404).json({message: 'Пост не знайдено.'});
         }
 
         if (!post.isAnonymous && post.author?.id !== userId) {
-            return res.status(403).json({ message: 'Ви не можете видалити цей пост.' });
+            return res.status(403).json({message: 'Ви не можете видалити цей пост.'});
         }
 
 
@@ -1277,36 +1443,36 @@ app.delete('/api/posts/:postId', async (req, res) => {
             }
         }
 
-        await postsCollection.deleteOne({ _id: new ObjectId(postId) });
-        await db.collection('comments').deleteMany({ postId: new ObjectId(postId) });
+        await postsCollection.deleteOne({_id: new ObjectId(postId)});
+        await db.collection('comments').deleteMany({postId: new ObjectId(postId)});
 
-        res.status(200).json({ message: 'Пост успішно видалено.' });
+        res.status(200).json({message: 'Пост успішно видалено.'});
     } catch (error) {
         console.error('Error deleting post:', error);
-        res.status(500).json({ message: 'Помилка сервера при видаленні поста.' });
+        res.status(500).json({message: 'Помилка сервера при видаленні поста.'});
     }
 });
 
 
 app.post('/api/posts/:postId/like', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+        if (!db) return res.status(503).json({message: 'База даних недоступна.'});
 
-        const { postId } = req.params;
-        const { userId } = req.body;
+        const {postId} = req.params;
+        const {userId} = req.body;
 
         if (!ObjectId.isValid(postId)) {
-            return res.status(400).json({ message: 'Невірний формат ID поста.' });
+            return res.status(400).json({message: 'Невірний формат ID поста.'});
         }
         if (!userId || !ObjectId.isValid(userId)) {
-            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+            return res.status(400).json({message: 'Невірний формат ID користувача.'});
         }
 
         const postsCollection = db.collection('posts');
-        const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+        const post = await postsCollection.findOne({_id: new ObjectId(postId)});
 
         if (!post) {
-            return res.status(404).json({ message: 'Пост не знайдено.' });
+            return res.status(404).json({message: 'Пост не знайдено.'});
         }
 
         const likedBy = post.likedBy || [];
@@ -1314,23 +1480,23 @@ app.post('/api/posts/:postId/like', async (req, res) => {
 
         if (hasLiked) {
             await postsCollection.updateOne(
-                { _id: new ObjectId(postId) },
+                {_id: new ObjectId(postId)},
                 {
-                    $pull: { likedBy: userId },
-                    $inc: { likes: -1 }
+                    $pull: {likedBy: userId},
+                    $inc: {likes: -1}
                 }
             );
         } else {
             await postsCollection.updateOne(
-                { _id: new ObjectId(postId) },
+                {_id: new ObjectId(postId)},
                 {
-                    $addToSet: { likedBy: userId },
-                    $inc: { likes: 1 }
+                    $addToSet: {likedBy: userId},
+                    $inc: {likes: 1}
                 }
             );
         }
 
-        const updatedPost = await postsCollection.findOne({ _id: new ObjectId(postId) });
+        const updatedPost = await postsCollection.findOne({_id: new ObjectId(postId)});
         res.status(200).json({
             message: hasLiked ? 'Лайк знято.' : 'Лайк додано.',
             likes: updatedPost.likes,
@@ -1338,30 +1504,30 @@ app.post('/api/posts/:postId/like', async (req, res) => {
         });
     } catch (error) {
         console.error('Error liking/unliking post:', error);
-        res.status(500).json({ message: 'Помилка сервера при обробці лайка.' });
+        res.status(500).json({message: 'Помилка сервера при обробці лайка.'});
     }
 });
 
 
 app.post('/api/posts/:postId/report', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+        if (!db) return res.status(503).json({message: 'База даних недоступна.'});
 
-        const { postId } = req.params;
-        const { userId } = req.body;
+        const {postId} = req.params;
+        const {userId} = req.body;
 
         if (!ObjectId.isValid(postId)) {
-            return res.status(400).json({ message: 'Невірний формат ID поста.' });
+            return res.status(400).json({message: 'Невірний формат ID поста.'});
         }
         if (!userId || !ObjectId.isValid(userId)) {
-            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+            return res.status(400).json({message: 'Невірний формат ID користувача.'});
         }
 
         const reportsCollection = db.collection('reports');
-        const existingReport = await reportsCollection.findOne({ postId: new ObjectId(postId), userId });
+        const existingReport = await reportsCollection.findOne({postId: new ObjectId(postId), userId});
 
         if (existingReport) {
-            return res.status(409).json({ message: 'Ви вже поскаржились на цей пост.' });
+            return res.status(409).json({message: 'Ви вже поскаржились на цей пост.'});
         }
 
         await reportsCollection.insertOne({
@@ -1370,35 +1536,35 @@ app.post('/api/posts/:postId/report', async (req, res) => {
             createdAt: new Date()
         });
 
-        res.status(200).json({ message: 'Скарга на пост успішно надіслана.' });
+        res.status(200).json({message: 'Скарга на пост успішно надіслана.'});
     } catch (error) {
         console.error('Error reporting post:', error);
-        res.status(500).json({ message: 'Помилка сервера при надсиланні скарги.' });
+        res.status(500).json({message: 'Помилка сервера при надсиланні скарги.'});
     }
 });
 
 
 app.post('/api/posts/:postId/comments', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+        if (!db) return res.status(503).json({message: 'База даних недоступна.'});
 
-        const { postId } = req.params;
-        const { userId, text } = req.body;
+        const {postId} = req.params;
+        const {userId, text} = req.body;
 
         if (!ObjectId.isValid(postId)) {
-            return res.status(400).json({ message: 'Невірний формат ID поста.' });
+            return res.status(400).json({message: 'Невірний формат ID поста.'});
         }
         if (!userId || !ObjectId.isValid(userId)) {
-            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+            return res.status(400).json({message: 'Невірний формат ID користувача.'});
         }
         if (!text) {
-            return res.status(400).json({ message: 'Текст коментаря обов’язковий.' });
+            return res.status(400).json({message: 'Текст коментаря обов’язковий.'});
         }
 
         const usersCollection = db.collection('users');
-        const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        const user = await usersCollection.findOne({_id: new ObjectId(userId)});
         if (!user) {
-            return res.status(404).json({ message: 'Користувача не знайдено.' });
+            return res.status(404).json({message: 'Користувача не знайдено.'});
         }
         const author = {
             id: user._id.toString(),
@@ -1417,8 +1583,8 @@ app.post('/api/posts/:postId/comments', async (req, res) => {
         const result = await commentsCollection.insertOne(newComment);
 
         await db.collection('posts').updateOne(
-            { _id: new ObjectId(postId) },
-            { $inc: { commentsCount: 1 } }
+            {_id: new ObjectId(postId)},
+            {$inc: {commentsCount: 1}}
         );
 
         res.status(201).json({
@@ -1434,25 +1600,25 @@ app.post('/api/posts/:postId/comments', async (req, res) => {
         });
     } catch (error) {
         console.error('Error creating comment:', error);
-        res.status(500).json({ message: 'Помилка сервера при створенні коментаря.' });
+        res.status(500).json({message: 'Помилка сервера при створенні коментаря.'});
     }
 });
 
 
 app.get('/api/posts/:postId/comments', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+        if (!db) return res.status(503).json({message: 'База даних недоступна.'});
 
-        const { postId } = req.params;
+        const {postId} = req.params;
 
         if (!ObjectId.isValid(postId)) {
-            return res.status(400).json({ message: 'Невірний формат ID поста.' });
+            return res.status(400).json({message: 'Невірний формат ID поста.'});
         }
 
         const commentsCollection = db.collection('comments');
         const comments = await commentsCollection
-            .find({ postId: new ObjectId(postId) })
-            .sort({ createdAt: -1 })
+            .find({postId: new ObjectId(postId)})
+            .sort({createdAt: -1})
             .toArray();
 
         const formattedComments = comments.map(comment => ({
@@ -1467,49 +1633,48 @@ app.get('/api/posts/:postId/comments', async (req, res) => {
         res.json(formattedComments);
     } catch (error) {
         console.error('Error fetching comments:', error);
-        res.status(500).json({ message: 'Помилка сервера при отриманні коментарів.' });
+        res.status(500).json({message: 'Помилка сервера при отриманні коментарів.'});
     }
 });
 
 
 app.delete('/api/posts/:postId/comments/:commentId', async (req, res) => {
     try {
-        if (!db) return res.status(503).json({ message: 'База даних недоступна.' });
+        if (!db) return res.status(503).json({message: 'База даних недоступна.'});
 
-        const { postId, commentId } = req.params;
-        const { userId } = req.body;
+        const {postId, commentId} = req.params;
+        const {userId} = req.body;
 
         if (!ObjectId.isValid(postId) || !ObjectId.isValid(commentId)) {
-            return res.status(400).json({ message: 'Невірний формат ID поста або коментаря.' });
+            return res.status(400).json({message: 'Невірний формат ID поста або коментаря.'});
         }
         if (!userId || !ObjectId.isValid(userId)) {
-            return res.status(400).json({ message: 'Невірний формат ID користувача.' });
+            return res.status(400).json({message: 'Невірний формат ID користувача.'});
         }
 
         const commentsCollection = db.collection('comments');
-        const comment = await commentsCollection.findOne({ _id: new ObjectId(commentId), postId: new ObjectId(postId) });
+        const comment = await commentsCollection.findOne({_id: new ObjectId(commentId), postId: new ObjectId(postId)});
 
         if (!comment) {
-            return res.status(404).json({ message: 'Коментар не знайдено.' });
+            return res.status(404).json({message: 'Коментар не знайдено.'});
         }
 
         if (!comment.isAnonymous && comment.author?.id !== userId) {
-            return res.status(403).json({ message: 'Ви не можете видалити цей коментар.' });
+            return res.status(403).json({message: 'Ви не можете видалити цей коментар.'});
         }
 
-        await commentsCollection.deleteOne({ _id: new ObjectId(commentId) });
+        await commentsCollection.deleteOne({_id: new ObjectId(commentId)});
         await db.collection('posts').updateOne(
-            { _id: new ObjectId(postId) },
-            { $inc: { commentsCount: -1 } }
+            {_id: new ObjectId(postId)},
+            {$inc: {commentsCount: -1}}
         );
 
-        res.status(200).json({ message: 'Коментар успішно видалено.' });
+        res.status(200).json({message: 'Коментар успішно видалено.'});
     } catch (error) {
         console.error('Error deleting comment:', error);
-        res.status(500).json({ message: 'Помилка сервера при видаленні коментаря.' });
+        res.status(500).json({message: 'Помилка сервера при видаленні коментаря.'});
     }
 });
-
 
 
 app.get('*', (req, res) => {

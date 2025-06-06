@@ -1,11 +1,10 @@
-
 import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Grid from '@mui/material/Grid';
-import { keyframes } from '@emotion/react';
+import {keyframes} from '@emotion/react';
 
 import CheckroomIcon from '@mui/icons-material/Checkroom';
 import RuleFolderIcon from '@mui/icons-material/RuleFolder';
@@ -13,33 +12,33 @@ import DevicesIcon from '@mui/icons-material/Devices';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 const iconMap = {
-    Checkroom: <CheckroomIcon sx={{ fontSize: '3rem', color: '#c67eff' }} />,
-    RuleFolder: <RuleFolderIcon sx={{ fontSize: '3rem', color: '#c67eff' }} />,
-    Devices: <DevicesIcon sx={{ fontSize: '3rem', color: '#c67eff' }} />,
-    Default: <HelpOutlineIcon sx={{ fontSize: '3rem', color: '#c67eff' }} />
+    Checkroom: <CheckroomIcon sx={{fontSize: '3rem', color: '#c67eff'}}/>,
+    RuleFolder: <RuleFolderIcon sx={{fontSize: '3rem', color: '#c67eff'}}/>,
+    Devices: <DevicesIcon sx={{fontSize: '3rem', color: '#c67eff'}}/>,
+    Default: <HelpOutlineIcon sx={{fontSize: '3rem', color: '#c67eff'}}/>
 };
 
 const cardPop = keyframes`
-  from {
-    opacity: 0.7;
-    transform: scale(0.98) translateY(5px) translateZ(0);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0) translateZ(0);
-  }
+    from {
+        opacity: 0.7;
+        transform: scale(0.98) translateY(5px) translateZ(0);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0) translateZ(0);
+    }
 `;
 
-const InfoCardsSection = ({ infoCards }) => {
+const InfoCardsSection = ({infoCards}) => {
     if (!infoCards || infoCards.length === 0) return null;
 
     return (
-        <Box component="section" sx={{ py: { xs: 4, md: 6 } }}>
+        <Box component="section" sx={{py: {xs: 4, md: 6}}}>
             <Typography variant="h2" component="h2" sx={{
                 textAlign: 'center', fontWeight: 'bold', color: 'white',
-                mb: { xs: 4, md: 6 },
+                mb: {xs: 4, md: 6},
                 textShadow: '0 0 20px rgba(198, 126, 255, 0.4)',
-                fontSize: { xs: '2.2rem', sm: '2.8rem', md: '3.2rem' },
+                fontSize: {xs: '2.2rem', sm: '2.8rem', md: '3.2rem'},
                 background: 'linear-gradient(120deg, #e6ceff 0%, #c67eff 60%, #a96cff 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
@@ -72,10 +71,12 @@ const InfoCardsSection = ({ infoCards }) => {
                                 opacity: 0.75,
                             }
                         }}>
-                            <CardContent sx={{ p: {xs: 2.5, sm:3.5}, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2.5 }}>
-                                    {iconMap[info.iconName] || iconMap.Default }
-                                    <Typography variant="h5" component="div" sx={{ fontWeight: '600', color: 'white', ml: 2.5, fontSize:'1.4rem' }}>
+                            <CardContent
+                                sx={{p: {xs: 2.5, sm: 3.5}, flexGrow: 1, display: 'flex', flexDirection: 'column'}}>
+                                <Box sx={{display: 'flex', alignItems: 'center', mb: 2.5}}>
+                                    {iconMap[info.iconName] || iconMap.Default}
+                                    <Typography variant="h5" component="div"
+                                                sx={{fontWeight: '600', color: 'white', ml: 2.5, fontSize: '1.4rem'}}>
                                         {info.title}
                                     </Typography>
                                 </Box>
@@ -83,11 +84,11 @@ const InfoCardsSection = ({ infoCards }) => {
                                     color="rgba(230, 220, 255, 0.88)"
                                     sx={{
                                         fontSize: '0.95rem', lineHeight: 1.8, flexGrow: 1,
-                                        '& ul': { paddingLeft: '25px', margin: '0 0 12px 0', listStyleType: "'✧ '"},
-                                        '& li': { marginBottom: '10px', paddingLeft: '8px' },
-                                        '& p': { margin: '0 0 15px 0' }
+                                        '& ul': {paddingLeft: '25px', margin: '0 0 12px 0', listStyleType: "'✧ '"},
+                                        '& li': {marginBottom: '10px', paddingLeft: '8px'},
+                                        '& p': {margin: '0 0 15px 0'}
                                     }}
-                                    dangerouslySetInnerHTML={{ __html: info.content }}
+                                    dangerouslySetInnerHTML={{__html: info.content}}
                                 />
                             </CardContent>
                         </Card>

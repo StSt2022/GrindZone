@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
+import {useLocation} from 'react-router-dom';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -22,9 +22,9 @@ import Chip from '@mui/material/Chip';
 import Select from '@mui/material/Select';
 import FormControl from '@mui/material/FormControl';
 import Pagination from '@mui/material/Pagination';
-import { styled, alpha, useTheme } from '@mui/material/styles';
+import {styled, alpha, useTheme} from '@mui/material/styles';
 import AppTheme from '../../shared-theme/AppTheme.jsx';
-import { keyframes } from '@emotion/react';
+import {keyframes} from '@emotion/react';
 import Footer from "../../components/Footer.jsx";
 
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
@@ -44,18 +44,44 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 
-import { useAuth } from '../../context/AuthContext';
+import {useAuth} from '../../context/AuthContext';
 
-const gridLineGlow = keyframes`0% { opacity: 0.05; } 50% { opacity: 0.1; } 100% { opacity: 0.05; }`;
+const gridLineGlow = keyframes`0% {
+                                   opacity: 0.05;
+                               }
+                                   50% {
+                                       opacity: 0.1;
+                                   }
+                                   100% {
+                                       opacity: 0.05;
+                                   }`;
 
 const gridBackgroundStyles = {
     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: -1, backgroundSize: '60px 60px',
     backgroundImage: `linear-gradient(to right, rgba(138, 43, 226, 0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(138, 43, 226, 0.04) 1px, transparent 1px)`,
-    '&::before': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 50% 30%, rgba(138, 43, 226, 0.08), transparent 60%)', animation: `${gridLineGlow} 5s infinite ease-in-out`},
-    '&::after': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(180deg, rgba(18, 9, 29, 0.98) 0%, rgba(10, 5, 18, 1) 100%)', zIndex: -2},
+    '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(circle at 50% 30%, rgba(138, 43, 226, 0.08), transparent 60%)',
+        animation: `${gridLineGlow} 5s infinite ease-in-out`
+    },
+    '&::after': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'linear-gradient(180deg, rgba(18, 9, 29, 0.98) 0%, rgba(10, 5, 18, 1) 100%)',
+        zIndex: -2
+    },
 };
 
-const StyledTextField = styled(TextField)(({ theme, ownerState }) => ({
+const StyledTextField = styled(TextField)(({theme, ownerState}) => ({
     width: '100%',
     '& .MuiInputLabel-root': {
         color: 'rgba(255, 255, 255, 0.6)',
@@ -105,7 +131,7 @@ const StyledTextField = styled(TextField)(({ theme, ownerState }) => ({
     },
 }));
 
-const PostCardStyled = styled(Card)(({ theme }) => ({
+const PostCardStyled = styled(Card)(() => ({
     width: '100%',
     backgroundColor: 'hsl(220, 30%, 6%)',
     backdropFilter: 'blur(12px)',
@@ -120,7 +146,7 @@ const PostCardStyled = styled(Card)(({ theme }) => ({
     },
 }));
 
-const ModalContentBox = styled(Box)(({ theme }) => ({
+const ModalContentBox = styled(Box)(() => ({
     position: 'absolute',
     top: '50%',
     left: '50%',
@@ -139,25 +165,28 @@ const ModalContentBox = styled(Box)(({ theme }) => ({
     flexDirection: 'column',
 }));
 
-const StyledFormControl = styled(FormControl)(({ theme }) => ({
+const StyledFormControl = styled(FormControl)(({theme}) => ({
     minWidth: 130,
     '& .MuiOutlinedInput-root': {
         color: 'rgba(255, 255, 255, 0.9)',
         borderRadius: '10px',
-        '& fieldset': { borderColor: 'rgba(138, 43, 226, 0.4)' },
-        '&:hover fieldset': { borderColor: 'rgba(198, 126, 255, 0.8)', backgroundColor: alpha(theme.palette.info.light, 0.1) },
-        '&.Mui-focused fieldset': { borderColor: '#c67eff' },
-        '& .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.7)' }
+        '& fieldset': {borderColor: 'rgba(138, 43, 226, 0.4)'},
+        '&:hover fieldset': {
+            borderColor: 'rgba(198, 126, 255, 0.8)',
+            backgroundColor: alpha(theme.palette.info.light, 0.1)
+        },
+        '&.Mui-focused fieldset': {borderColor: '#c67eff'},
+        '& .MuiSvgIcon-root': {color: 'rgba(255, 255, 255, 0.7)'}
     },
-    '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.6)'},
-    '& .MuiInputLabel-root.Mui-focused': { color: '#c67eff'}
+    '& .MuiInputLabel-root': {color: 'rgba(255, 255, 255, 0.6)'},
+    '& .MuiInputLabel-root.Mui-focused': {color: '#c67eff'}
 }));
 
 const POST_TYPES = [
-    { value: 'text', label: 'Текст/Думка', IconComponent: LightbulbOutlinedIcon },
-    { value: 'question', label: 'Питання', IconComponent: HelpOutlineIcon },
-    { value: 'article', label: 'Стаття/Новина', IconComponent: ArticleIcon },
-    { value: 'achievement', label: 'Досягнення', IconComponent: EmojiEventsIcon },
+    {value: 'text', label: 'Текст/Думка', IconComponent: LightbulbOutlinedIcon},
+    {value: 'question', label: 'Питання', IconComponent: HelpOutlineIcon},
+    {value: 'article', label: 'Стаття/Новина', IconComponent: ArticleIcon},
+    {value: 'achievement', label: 'Досягнення', IconComponent: EmojiEventsIcon},
 ];
 
 const MAX_POST_LENGTH = 1500;
@@ -193,16 +222,20 @@ const formatTimestamp = (isoString) => {
 
     const diffDays = Math.floor(diffHours / 24);
     if (diffDays === 1) {
-        return `Вчора, ${date.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
+        return `Вчора, ${date.toLocaleTimeString('uk-UA', {hour: '2-digit', minute: '2-digit'})}`;
     }
 
-    return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' }) + ` о ${date.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
+    return date.toLocaleDateString('uk-UA', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+    }) + ` о ${date.toLocaleTimeString('uk-UA', {hour: '2-digit', minute: '2-digit'})}`;
 };
 
 function CommunityPage(props) {
     const theme = useTheme();
     const location = useLocation();
-    const { currentUser, isAuthenticated, isLoadingAuth } = useAuth();
+    const {currentUser, isAuthenticated, isLoadingAuth} = useAuth();
 
     const [anchorElPostMenu, setAnchorElPostMenu] = React.useState(null);
     const [selectedPostForMenu, setSelectedPostForMenu] = React.useState(null);
@@ -222,8 +255,14 @@ function CommunityPage(props) {
     const [loading, setLoading] = React.useState(false);
 
 
-    const handleOpenPostMenu = (event, post) => { setAnchorElPostMenu(event.currentTarget); setSelectedPostForMenu(post); };
-    const handleClosePostMenu = () => { setAnchorElPostMenu(null); setSelectedPostForMenu(null); };
+    const handleOpenPostMenu = (event, post) => {
+        setAnchorElPostMenu(event.currentTarget);
+        setSelectedPostForMenu(post);
+    };
+    const handleClosePostMenu = () => {
+        setAnchorElPostMenu(null);
+        setSelectedPostForMenu(null);
+    };
 
     const clearPreviewMedia = () => {
         if (previewMediaUrl && previewMediaUrl.startsWith('blob:')) {
@@ -279,10 +318,10 @@ function CommunityPage(props) {
                 throw new Error(errorData.message || 'Помилка завантаження коментарів');
             }
             const data = await response.json();
-            setComments(prev => ({ ...prev, [postId]: data }));
+            setComments(prev => ({...prev, [postId]: data}));
         } catch (error) {
             console.error('Error fetching comments:', error);
-            setComments(prev => ({ ...prev, [postId]: [] }));
+            setComments(prev => ({...prev, [postId]: []}));
         }
     };
 
@@ -332,13 +371,13 @@ function CommunityPage(props) {
         try {
             const response = await fetch(`/api/posts/${postId}`, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.userId })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({userId: currentUser.userId})
             });
             if (!response.ok) throw new Error('Помилка видалення поста');
             setPosts(prev => prev.filter(post => post.id !== postId));
             setComments(prev => {
-                const newComments = { ...prev };
+                const newComments = {...prev};
                 delete newComments[postId];
                 return newComments;
             });
@@ -354,8 +393,8 @@ function CommunityPage(props) {
         try {
             const response = await fetch(`/api/posts/${postId}/report`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.userId })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({userId: currentUser.userId})
             });
             if (!response.ok) {
                 const errorData = await response.json();
@@ -374,15 +413,15 @@ function CommunityPage(props) {
         try {
             const response = await fetch(`/api/posts/${postId}/like`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.userId })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({userId: currentUser.userId})
             });
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Помилка обробки лайка');
             }
-            const { likes, likedByUser } = await response.json();
-            setPosts(prev => prev.map(post => post.id === postId ? { ...post, likes, likedByUser } : post));
+            const {likes, likedByUser} = await response.json();
+            setPosts(prev => prev.map(post => post.id === postId ? {...post, likes, likedByUser} : post));
         } catch (error) {
             console.error('Error liking post:', error);
             alert(`Не вдалося обробити лайк: ${error.message}`);
@@ -407,19 +446,22 @@ function CommunityPage(props) {
         try {
             const response = await fetch(`/api/posts/${selectedPostForComment.id}/comments`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     userId: currentUser.userId,
                     text: newCommentText
                 })
             });
             if (!response.ok) throw new Error('Помилка створення коментаря');
-            const { comment } = await response.json();
+            const {comment} = await response.json();
             setComments(prev => ({
                 ...prev,
                 [selectedPostForComment.id]: [...(prev[selectedPostForComment.id] || []), comment]
             }));
-            setPosts(prev => prev.map(p => p.id === selectedPostForComment.id ? { ...p, commentsCount: (p.commentsCount || 0) + 1 } : p));
+            setPosts(prev => prev.map(p => p.id === selectedPostForComment.id ? {
+                ...p,
+                commentsCount: (p.commentsCount || 0) + 1
+            } : p));
             setNewCommentText("");
         } catch (error) {
             console.error('Error posting comment:', error);
@@ -432,15 +474,18 @@ function CommunityPage(props) {
         try {
             const response = await fetch(`/api/posts/${postId}/comments/${commentId}`, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.userId })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({userId: currentUser.userId})
             });
             if (!response.ok) throw new Error('Помилка видалення коментаря');
             setComments(prev => ({
                 ...prev,
                 [postId]: prev[postId].filter(c => c.id !== commentId)
             }));
-            setPosts(prev => prev.map(p => p.id === postId ? { ...p, commentsCount: Math.max(0, (p.commentsCount || 0) - 1) } : p));
+            setPosts(prev => prev.map(p => p.id === postId ? {
+                ...p,
+                commentsCount: Math.max(0, (p.commentsCount || 0) - 1)
+            } : p));
         } catch (error) {
             console.error('Error deleting comment:', error);
             alert('Не вдалося видалити коментар.');
@@ -458,7 +503,7 @@ function CommunityPage(props) {
         const typeInfo = POST_TYPES.find(pt => pt.value === type);
         if (typeInfo && typeInfo.IconComponent) {
             const Icon = typeInfo.IconComponent;
-            return <Icon sx={{ color: alpha(theme.palette.primary.light, 0.7), mr: 1, fontSize: '1.3rem' }} />;
+            return <Icon sx={{color: alpha(theme.palette.primary.light, 0.7), mr: 1, fontSize: '1.3rem'}}/>;
         }
         return null;
     };
@@ -490,7 +535,7 @@ function CommunityPage(props) {
             if (!loading && posts.some(p => p.id === targetPostId)) {
                 const element = document.getElementById(`post-${targetPostId}`);
                 if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    element.scrollIntoView({behavior: 'smooth', block: 'center'});
                 }
             }
         }
@@ -516,13 +561,20 @@ function CommunityPage(props) {
     if (isLoadingAuth) {
         return (
             <AppTheme {...props}>
-                <CssBaseline enableColorScheme />
-                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
-                    <Box sx={gridBackgroundStyles} />
-                    <Container maxWidth="md" sx={{ py: { xs: 3, md: 5 }, position: 'relative', zIndex: 5, flexGrow: 1, textAlign: 'center' }}>
-                        <Typography variant="h4" sx={{color: 'rgba(255,255,255,0.7)'}}>Перевірка автентифікації...</Typography>
+                <CssBaseline enableColorScheme/>
+                <Box sx={{display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative'}}>
+                    <Box sx={gridBackgroundStyles}/>
+                    <Container maxWidth="md" sx={{
+                        py: {xs: 3, md: 5},
+                        position: 'relative',
+                        zIndex: 5,
+                        flexGrow: 1,
+                        textAlign: 'center'
+                    }}>
+                        <Typography variant="h4" sx={{color: 'rgba(255,255,255,0.7)'}}>Перевірка
+                            автентифікації...</Typography>
                     </Container>
-                    <Footer />
+                    <Footer/>
                 </Box>
             </AppTheme>
         );
@@ -538,19 +590,45 @@ function CommunityPage(props) {
 
     return (
         <AppTheme {...props}>
-            <CssBaseline enableColorScheme />
-            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
-                <Box sx={gridBackgroundStyles} />
-                <Container maxWidth="md" sx={{ py: { xs: 3, md: 5 }, position: 'relative', zIndex: 5, flexGrow: 1 }}>
-                    <Typography variant="h1" component="h1" sx={{ textAlign: 'center', mb: 1, fontWeight: 'bold', fontSize: { xs: '3rem', sm: '3.8rem', md: '4.5rem' }, color: 'white', textShadow: '0 0 15px rgba(198, 126, 255, 0.4)' }}>Стрічка Спільноти</Typography>
-                    <Typography variant="h3" component="p" sx={{ textAlign: 'center', mb: {xs:3, md:4, lg:7}, color: 'rgba(230, 220, 255, 0.85)', fontSize: { xs: '1.15rem', sm: '1.3rem', md: '1.45rem' }, fontWeight: '600' }}>Діліться думками, знаннями та досягненнями!</Typography>
+            <CssBaseline enableColorScheme/>
+            <Box sx={{display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative'}}>
+                <Box sx={gridBackgroundStyles}/>
+                <Container maxWidth="md" sx={{py: {xs: 3, md: 5}, position: 'relative', zIndex: 5, flexGrow: 1}}>
+                    <Typography variant="h1" component="h1" sx={{
+                        textAlign: 'center',
+                        mb: 1,
+                        fontWeight: 'bold',
+                        fontSize: {xs: '3rem', sm: '3.8rem', md: '4.5rem'},
+                        color: 'white',
+                        textShadow: '0 0 15px rgba(198, 126, 255, 0.4)'
+                    }}>Стрічка Спільноти</Typography>
+                    <Typography variant="h3" component="p" sx={{
+                        textAlign: 'center',
+                        mb: {xs: 3, md: 4, lg: 7},
+                        color: 'rgba(230, 220, 255, 0.85)',
+                        fontSize: {xs: '1.15rem', sm: '1.3rem', md: '1.45rem'},
+                        fontWeight: '600'
+                    }}>Діліться думками, знаннями та досягненнями!</Typography>
 
                     {isAuthenticated && (
-                        <Paper sx={{ p: {xs: 2, sm: 2.5}, mb: {xs:3, md:4}, backgroundColor: 'hsl(220, 30%, 6%)', backdropFilter: 'blur(10px)', borderRadius: '16px', border: '1px solid rgba(138, 43, 226, 0.25)', boxShadow: '0 10px 35px rgba(0, 0, 0, 0.25)', }}>
-                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1.5 }}>
+                        <Paper sx={{
+                            p: {xs: 2, sm: 2.5},
+                            mb: {xs: 3, md: 4},
+                            backgroundColor: 'hsl(220, 30%, 6%)',
+                            backdropFilter: 'blur(10px)',
+                            borderRadius: '16px',
+                            border: '1px solid rgba(138, 43, 226, 0.25)',
+                            boxShadow: '0 10px 35px rgba(0, 0, 0, 0.25)',
+                        }}>
+                            <Box sx={{display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1.5}}>
                                 <Avatar
                                     src={currentUser?.avatarUrl || "/static/images/avatar/default.jpg"}
-                                    sx={{ width: 48, height: 48, mt: theme.spacing(1), border: '2px solid rgba(198, 126, 255, 0.5)' }}
+                                    sx={{
+                                        width: 48,
+                                        height: 48,
+                                        mt: theme.spacing(1),
+                                        border: '2px solid rgba(198, 126, 255, 0.5)'
+                                    }}
                                 />
                                 <StyledTextField
                                     multiline
@@ -560,25 +638,32 @@ function CommunityPage(props) {
                                     value={newPostText}
                                     onChange={(e) => setNewPostText(e.target.value.slice(0, MAX_POST_LENGTH))}
                                     helperText={`${newPostText.length}/${MAX_POST_LENGTH}`}
-                                    FormHelperTextProps={{sx: {textAlign:'right', color:'rgba(255,255,255,0.5)'}}}
-                                    ownerState={{ textValue: newPostText, multiline: true }}
+                                    FormHelperTextProps={{sx: {textAlign: 'right', color: 'rgba(255,255,255,0.5)'}}}
+                                    ownerState={{textValue: newPostText, multiline: true}}
                                     sx={textFieldSx(true, false, newPostText)}
                                     disabled={!isAuthenticated}
                                 />
                             </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt:1 }}>
-                                <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                            <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1}}>
+                                <Box sx={{display: 'flex', gap: 0.5, alignItems: 'center'}}>
                                     {previewMediaUrl && (
                                         <Tooltip title="Видалити медіа">
-                                            <IconButton onClick={clearPreviewMedia} size="small" sx={{color: alpha(theme.palette.error.light,0.7), '&:hover': {backgroundColor: alpha(theme.palette.error.dark,0.15)}}}>
+                                            <IconButton onClick={clearPreviewMedia} size="small" sx={{
+                                                color: alpha(theme.palette.error.light, 0.7),
+                                                '&:hover': {backgroundColor: alpha(theme.palette.error.dark, 0.15)}
+                                            }}>
                                                 <ClearIcon fontSize="small"/>
                                             </IconButton>
                                         </Tooltip>
                                     )}
                                     <Tooltip title="Додати зображення/відео">
-                                        <IconButton component="label" size="small" sx={{color: alpha(theme.palette.info.light,0.8), '&:hover': {backgroundColor: alpha(theme.palette.info.light,0.1)}}}>
-                                            <AddPhotoAlternateIcon />
-                                            <input id="file-input-for-post" type="file" hidden accept="image/*,video/*" onChange={handleFileChange} />
+                                        <IconButton component="label" size="small" sx={{
+                                            color: alpha(theme.palette.info.light, 0.8),
+                                            '&:hover': {backgroundColor: alpha(theme.palette.info.light, 0.1)}
+                                        }}>
+                                            <AddPhotoAlternateIcon/>
+                                            <input id="file-input-for-post" type="file" hidden accept="image/*,video/*"
+                                                   onChange={handleFileChange}/>
                                         </IconButton>
                                     </Tooltip>
                                     <StyledFormControl size="small" variant="outlined" sx={{minWidth: 150}}>
@@ -589,17 +674,40 @@ function CommunityPage(props) {
                                                 const typeInfo = POST_TYPES.find(pt => pt.value === selectedValue);
                                                 if (!typeInfo) return selectedValue;
                                                 const Icon = typeInfo.IconComponent;
-                                                return ( <Box sx={{ display: 'flex', alignItems: 'center' }}> <Icon sx={{ mr: 0.8, fontSize: '1.2rem', verticalAlign: 'middle', color: alpha(theme.palette.primary.light, 0.7) }} /> {typeInfo.label} </Box> );
+                                                return (<Box sx={{display: 'flex', alignItems: 'center'}}> <Icon sx={{
+                                                    mr: 0.8,
+                                                    fontSize: '1.2rem',
+                                                    verticalAlign: 'middle',
+                                                    color: alpha(theme.palette.primary.light, 0.7)
+                                                }}/> {typeInfo.label} </Box>);
                                             }}
-                                            MenuProps={{ PaperProps: { sx: {backgroundColor: 'rgba(40,32,60,0.95)', backdropFilter: 'blur(10px)', color:'white', '& .MuiMenuItem-root:hover':{backgroundColor: alpha(theme.palette.secondary.main,0.15)}, '& .Mui-selected': {backgroundColor: `${alpha(theme.palette.secondary.main,0.25)}!important`} }} }}
+                                            MenuProps={{
+                                                PaperProps: {
+                                                    sx: {
+                                                        backgroundColor: 'rgba(40,32,60,0.95)',
+                                                        backdropFilter: 'blur(10px)',
+                                                        color: 'white',
+                                                        '& .MuiMenuItem-root:hover': {backgroundColor: alpha(theme.palette.secondary.main, 0.15)},
+                                                        '& .Mui-selected': {backgroundColor: `${alpha(theme.palette.secondary.main, 0.25)}!important`}
+                                                    }
+                                                }
+                                            }}
                                         >
-                                            {POST_TYPES.map(pt => { const Icon = pt.IconComponent; return ( <MenuItem key={pt.value} value={pt.value}> <Icon sx={{ mr: 1, fontSize: '1.1rem', verticalAlign: 'middle', color: alpha(theme.palette.primary.light, 0.7) }} /> {pt.label} </MenuItem> ); })}
+                                            {POST_TYPES.map(pt => {
+                                                const Icon = pt.IconComponent;
+                                                return (<MenuItem key={pt.value} value={pt.value}> <Icon sx={{
+                                                    mr: 1,
+                                                    fontSize: '1.1rem',
+                                                    verticalAlign: 'middle',
+                                                    color: alpha(theme.palette.primary.light, 0.7)
+                                                }}/> {pt.label} </MenuItem>);
+                                            })}
                                         </Select>
                                     </StyledFormControl>
                                 </Box>
                                 <Button
                                     variant="contained"
-                                    endIcon={<SendIcon />}
+                                    endIcon={<SendIcon/>}
                                     onClick={handleCreatePost}
                                     disabled={(!newPostText.trim() && !selectedFile) || !isAuthenticated || !currentUser?.userId}
                                     sx={{
@@ -607,70 +715,188 @@ function CommunityPage(props) {
                                         fontWeight: 'bold', fontSize: '0.9rem', borderRadius: 'none !important',
                                         boxShadow: 'none !important',
                                         border: 'none !important',
-                                        '&:hover': {  background: 'linear-gradient(45deg, #7A1FB8 0%, #3A00B0 100%) !important', boxShadow: '0 7px 18px rgba(142, 45, 226, 0.5)', color: 'white !important'},
-                                        '&.Mui-disabled': { background: 'rgba(255,255,255,0.1) !important', color: 'rgba(255,255,255,0.5) !important', boxShadow: 'none !important' },
+                                        '&:hover': {
+                                            background: 'linear-gradient(45deg, #7A1FB8 0%, #3A00B0 100%) !important',
+                                            boxShadow: '0 7px 18px rgba(142, 45, 226, 0.5)',
+                                            color: 'white !important'
+                                        },
+                                        '&.Mui-disabled': {
+                                            background: 'rgba(255,255,255,0.1) !important',
+                                            color: 'rgba(255,255,255,0.5) !important',
+                                            boxShadow: 'none !important'
+                                        },
                                     }}
                                 >Опублікувати</Button>
                             </Box>
-                            {previewMediaUrl && previewMediaType?.startsWith('image/') && <Box component="img" src={previewMediaUrl} alt="Preview" sx={{width: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: '8px', mt:1.5, border: '1px solid rgba(255,255,255,0.2)'}} />}
-                            {previewMediaUrl && previewMediaType?.startsWith('video/') && <video src={previewMediaUrl} controls style={{width: '100%', maxHeight: 300, borderRadius: '8px', marginTop:'12px', border: '1px solid rgba(255,255,255,0.2)'}} />}
+                            {previewMediaUrl && previewMediaType?.startsWith('image/') &&
+                                <Box component="img" src={previewMediaUrl} alt="Preview" sx={{
+                                    width: '100%',
+                                    maxHeight: 300,
+                                    objectFit: 'contain',
+                                    borderRadius: '8px',
+                                    mt: 1.5,
+                                    border: '1px solid rgba(255,255,255,0.2)'
+                                }}/>}
+                            {previewMediaUrl && previewMediaType?.startsWith('video/') &&
+                                <video src={previewMediaUrl} controls style={{
+                                    width: '100%',
+                                    maxHeight: 300,
+                                    borderRadius: '8px',
+                                    marginTop: '12px',
+                                    border: '1px solid rgba(255,255,255,0.2)'
+                                }}/>}
                         </Paper>
                     )}
 
                     <StyledTextField
                         placeholder="Пошук постів за текстом, тегом або автором..."
                         value={searchTerm}
-                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1);}}
-                        InputProps={{ startAdornment: (<SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.5)', mr: 1 }} />) }}
-                        sx={{ mb: {xs:2.5, md:3.5}, ...textFieldSx(false, false, searchTerm) }}
-                        ownerState={{ textValue: searchTerm, multiline: false }}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                        InputProps={{startAdornment: (<SearchIcon sx={{color: 'rgba(255, 255, 255, 0.5)', mr: 1}}/>)}}
+                        sx={{mb: {xs: 2.5, md: 3.5}, ...textFieldSx(false, false, searchTerm)}}
+                        ownerState={{textValue: searchTerm, multiline: false}}
                     />
 
                     {loading ? (
-                        <Typography sx={{textAlign:'center', color:'rgba(255,255,255,0.6)', p:3}}>Завантаження постів...</Typography>
+                        <Typography sx={{textAlign: 'center', color: 'rgba(255,255,255,0.6)', p: 3}}>Завантаження
+                            постів...</Typography>
                     ) : posts.length > 0 ? posts.map(post => (
-                        <PostCardStyled key={post.id} id={`post-${post.id}`} sx={{ mb: {xs: 2.5, sm: 3} }}>
+                        <PostCardStyled key={post.id} id={`post-${post.id}`} sx={{mb: {xs: 2.5, sm: 3}}}>
                             <CardHeader
-                                avatar={<Avatar src={post.isAnonymous ? "/static/images/avatar/anonymous.png" : post.author?.avatarUrl || "/static/images/avatar/default.jpg"} sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.2), color: theme.palette.secondary.main, border: `1px solid ${alpha(theme.palette.secondary.main, 0.4)}` }}>{post.isAnonymous ? 'A' : post.author?.name?.charAt(0)}</Avatar>}
-                                action={isAuthenticated && <IconButton aria-label="post-menu" onClick={(e) => handleOpenPostMenu(e, post)} sx={{color: 'rgba(255,255,255,0.6)', '&:hover': {backgroundColor: 'rgba(255,255,255,0.1)'}}}><MoreVertIcon /></IconButton>}
-                                title={<Box sx={{display: 'flex', alignItems: 'center', marginLeft: -1}}>{getPostTypeIconElement(post.type)}<Typography variant="subtitle1" component="span" sx={{fontWeight: '600', color: 'white'}}>{post.author?.name || (post.isAnonymous ? "Анонім" : "Користувач")}</Typography></Box>}
-                                subheader={<Typography variant="caption" sx={{color: 'rgba(255,255,255,0.5)', marginLeft: -0.7}}>{formatTimestamp(post.timestamp)}</Typography>}
-                                sx={{ pb: 1, pl: 0.5, alignItems: 'center' }}/>
-                            <CardContent sx={{ pt: 0, pb: 1, pl: 0.5 }}>
-                                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', color: 'rgba(230, 220, 255, 0.9)', lineHeight: 1.65, mb: post.media || (post.tags && post.tags.length > 0) ? 1.5 : 0, wordBreak: 'break-word' }}>{post.text}</Typography>
+                                avatar={<Avatar
+                                    src={post.isAnonymous ? "/static/images/avatar/anonymous.png" : post.author?.avatarUrl || "/static/images/avatar/default.jpg"}
+                                    sx={{
+                                        bgcolor: alpha(theme.palette.secondary.main, 0.2),
+                                        color: theme.palette.secondary.main,
+                                        border: `1px solid ${alpha(theme.palette.secondary.main, 0.4)}`
+                                    }}>{post.isAnonymous ? 'A' : post.author?.name?.charAt(0)}</Avatar>}
+                                action={isAuthenticated &&
+                                    <IconButton aria-label="post-menu" onClick={(e) => handleOpenPostMenu(e, post)}
+                                                sx={{
+                                                    color: 'rgba(255,255,255,0.6)',
+                                                    '&:hover': {backgroundColor: 'rgba(255,255,255,0.1)'}
+                                                }}><MoreVertIcon/></IconButton>}
+                                title={<Box sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    marginLeft: -1
+                                }}>{getPostTypeIconElement(post.type)}<Typography variant="subtitle1" component="span"
+                                                                                  sx={{
+                                                                                      fontWeight: '600',
+                                                                                      color: 'white'
+                                                                                  }}>{post.author?.name || (post.isAnonymous ? "Анонім" : "Користувач")}</Typography></Box>}
+                                subheader={<Typography variant="caption" sx={{
+                                    color: 'rgba(255,255,255,0.5)',
+                                    marginLeft: -0.7
+                                }}>{formatTimestamp(post.timestamp)}</Typography>}
+                                sx={{pb: 1, pl: 0.5, alignItems: 'center'}}/>
+                            <CardContent sx={{pt: 0, pb: 1, pl: 0.5}}>
+                                <Typography variant="body1" sx={{
+                                    whiteSpace: 'pre-wrap',
+                                    color: 'rgba(230, 220, 255, 0.9)',
+                                    lineHeight: 1.65,
+                                    mb: post.media || (post.tags && post.tags.length > 0) ? 1.5 : 0,
+                                    wordBreak: 'break-word'
+                                }}>{post.text}</Typography>
                                 {post.tags && post.tags.length > 0 && (
-                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt:1 }}>
-                                        {post.tags.map(tag => <Chip key={tag} label={`#${tag}`} size="small" onClick={() => {setSearchTerm(tag); setCurrentPage(1);}} sx={{backgroundColor: alpha(theme.palette.secondary.main,0.15), color: alpha(theme.palette.secondary.light,0.9), fontSize: '0.75rem', '&:hover':{backgroundColor: alpha(theme.palette.secondary.main,0.25), cursor:'pointer'}}} />)}
+                                    <Box sx={{display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1}}>
+                                        {post.tags.map(tag => <Chip key={tag} label={`#${tag}`} size="small"
+                                                                    onClick={() => {
+                                                                        setSearchTerm(tag);
+                                                                        setCurrentPage(1);
+                                                                    }} sx={{
+                                            backgroundColor: alpha(theme.palette.secondary.main, 0.15),
+                                            color: alpha(theme.palette.secondary.light, 0.9),
+                                            fontSize: '0.75rem',
+                                            '&:hover': {
+                                                backgroundColor: alpha(theme.palette.secondary.main, 0.25),
+                                                cursor: 'pointer'
+                                            }
+                                        }}/>)}
                                     </Box>
                                 )}
                             </CardContent>
                             {post.media && (
-                                <Box sx={{ mx: {xs: 2, sm: 2.5}, mb: 1.5, display: 'flex', justifyContent: 'center' }}>
+                                <Box sx={{mx: {xs: 2, sm: 2.5}, mb: 1.5, display: 'flex', justifyContent: 'center'}}>
                                     {post.media.type?.startsWith('image/') ? (
-                                        <CardMedia component='img' sx={{ width: 'auto', maxWidth: '100%', maxHeight: {xs: 300, sm: 400, md: 500 }, objectFit: 'contain', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)'}} image={post.media.url} alt="Post media" />
+                                        <CardMedia component='img' sx={{
+                                            width: 'auto',
+                                            maxWidth: '100%',
+                                            maxHeight: {xs: 300, sm: 400, md: 500},
+                                            objectFit: 'contain',
+                                            borderRadius: '8px',
+                                            border: '1px solid rgba(255,255,255,0.1)'
+                                        }} image={post.media.url} alt="Post media"/>
                                     ) : post.media.type?.startsWith('video/') ? (
-                                        <video src={post.media.url} controls style={{width: '100%', maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)'}} />
+                                        <video src={post.media.url} controls style={{
+                                            width: '100%',
+                                            maxWidth: '100%',
+                                            maxHeight: '400px',
+                                            borderRadius: '8px',
+                                            border: '1px solid rgba(255,255,255,0.1)'
+                                        }}/>
                                     ) : null}
                                 </Box>
                             )}
-                            <CardActions disableSpacing sx={{ justifyContent: 'space-around', alignItems: 'center', px:1, py: 0.75, borderTop: `1px solid rgba(255,255,255,0.08)` }}>
-                                <Button aria-label="like" onClick={() => isAuthenticated && handleLikePost(post.id)} disabled={!isAuthenticated} startIcon={post.likedByUser ? <FavoriteIcon sx={{color: theme.palette.error.light}}/> : <FavoriteBorderIcon />} sx={{color: post.likedByUser ? theme.palette.error.light : 'rgba(255,255,255,0.7)', textTransform:'none', '&:hover': {backgroundColor: alpha(post.likedByUser ? theme.palette.error.light : '#fff', 0.1)}, '&.Mui-disabled': {color: 'rgba(255,255,255,0.4)'}}}>{post.likes}</Button>
-                                <Button aria-label="comment" onClick={() => handleOpenComments(post)} startIcon={<ChatBubbleOutlineIcon />} sx={{color: 'rgba(255,255,255,0.7)', textTransform:'none', '&:hover': {backgroundColor: alpha('#fff', 0.1)}}}>{post.commentsCount}</Button>
-                                <Button aria-label="share" onClick={() => handleSharePost(post.id)} startIcon={<ShareIcon />} sx={{color: 'rgba(255,255,255,0.7)', textTransform:'none', '&:hover': {backgroundColor: alpha('#fff', 0.1)}}}>Поділитись</Button>
+                            <CardActions disableSpacing sx={{
+                                justifyContent: 'space-around',
+                                alignItems: 'center',
+                                px: 1,
+                                py: 0.75,
+                                borderTop: `1px solid rgba(255,255,255,0.08)`
+                            }}>
+                                <Button aria-label="like" onClick={() => isAuthenticated && handleLikePost(post.id)}
+                                        disabled={!isAuthenticated} startIcon={post.likedByUser ?
+                                    <FavoriteIcon sx={{color: theme.palette.error.light}}/> : <FavoriteBorderIcon/>}
+                                        sx={{
+                                            color: post.likedByUser ? theme.palette.error.light : 'rgba(255,255,255,0.7)',
+                                            textTransform: 'none',
+                                            '&:hover': {backgroundColor: alpha(post.likedByUser ? theme.palette.error.light : '#fff', 0.1)},
+                                            '&.Mui-disabled': {color: 'rgba(255,255,255,0.4)'}
+                                        }}>{post.likes}</Button>
+                                <Button aria-label="comment" onClick={() => handleOpenComments(post)}
+                                        startIcon={<ChatBubbleOutlineIcon/>} sx={{
+                                    color: 'rgba(255,255,255,0.7)',
+                                    textTransform: 'none',
+                                    '&:hover': {backgroundColor: alpha('#fff', 0.1)}
+                                }}>{post.commentsCount}</Button>
+                                <Button aria-label="share" onClick={() => handleSharePost(post.id)}
+                                        startIcon={<ShareIcon/>} sx={{
+                                    color: 'rgba(255,255,255,0.7)',
+                                    textTransform: 'none',
+                                    '&:hover': {backgroundColor: alpha('#fff', 0.1)}
+                                }}>Поділитись</Button>
                             </CardActions>
                         </PostCardStyled>
                     )) : (
-                        !loading && isAuthenticated && <Typography sx={{textAlign:'center', color:'rgba(255,255,255,0.6)', p:3}}>За вашим запитом постів не знайдено. Спробуйте змінити пошук або створіть новий пост!</Typography>
+                        !loading && isAuthenticated &&
+                        <Typography sx={{textAlign: 'center', color: 'rgba(255,255,255,0.6)', p: 3}}>За вашим запитом
+                            постів не знайдено. Спробуйте змінити пошук або створіть новий пост!</Typography>
                     )}
                     {!isAuthenticated && !loading && (
-                        <Typography sx={{textAlign:'center', color:'rgba(255,255,255,0.6)', p:3}}>Увійдіть, щоб переглядати та створювати пости.</Typography>
+                        <Typography sx={{textAlign: 'center', color: 'rgba(255,255,255,0.6)', p: 3}}>Увійдіть, щоб
+                            переглядати та створювати пости.</Typography>
                     )}
 
 
                     {totalPages > 1 && isAuthenticated &&
-                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, mb: 2 }}>
-                            <Pagination count={totalPages} page={currentPage} onChange={(e, value) => setCurrentPage(value)}
-                                        sx={{ '& .MuiPaginationItem-root': { color: 'rgba(255,255,255,0.7)', '&:hover': {backgroundColor: alpha(theme.palette.secondary.main,0.1)}, '&.Mui-selected': {backgroundColor: alpha(theme.palette.secondary.main,0.25), color: 'white', fontWeight:'bold'} }}}
+                        <Box sx={{display: 'flex', justifyContent: 'center', mt: 3, mb: 2}}>
+                            <Pagination count={totalPages} page={currentPage}
+                                        onChange={(e, value) => setCurrentPage(value)}
+                                        sx={{
+                                            '& .MuiPaginationItem-root': {
+                                                color: 'rgba(255,255,255,0.7)',
+                                                '&:hover': {backgroundColor: alpha(theme.palette.secondary.main, 0.1)},
+                                                '&.Mui-selected': {
+                                                    backgroundColor: alpha(theme.palette.secondary.main, 0.25),
+                                                    color: 'white',
+                                                    fontWeight: 'bold'
+                                                }
+                                            }
+                                        }}
                             />
                         </Box>
                     }
@@ -695,17 +921,17 @@ function CommunityPage(props) {
                             {selectedPostForMenu.author?.id === currentUser.userId ? (
                                 <MenuItem
                                     onClick={() => handleDeletePost(selectedPostForMenu.id)}
-                                    sx={{ '&:hover': { backgroundColor: alpha(theme.palette.error.dark, 0.25) } }}
+                                    sx={{'&:hover': {backgroundColor: alpha(theme.palette.error.dark, 0.25)}}}
                                 >
-                                    <DeleteIcon sx={{ mr: 1, color: alpha(theme.palette.error.light, 0.8) }} />
+                                    <DeleteIcon sx={{mr: 1, color: alpha(theme.palette.error.light, 0.8)}}/>
                                     Видалити пост
                                 </MenuItem>
                             ) : (
                                 <MenuItem
                                     onClick={() => handleReportPost(selectedPostForMenu?.id)}
-                                    sx={{ '&:hover': { backgroundColor: alpha(theme.palette.warning.dark, 0.25) } }}
+                                    sx={{'&:hover': {backgroundColor: alpha(theme.palette.warning.dark, 0.25)}}}
                                 >
-                                    <FlagIcon sx={{ mr: 1, color: alpha(theme.palette.warning.light, 0.8) }} />
+                                    <FlagIcon sx={{mr: 1, color: alpha(theme.palette.warning.light, 0.8)}}/>
                                     Поскаржитись
                                 </MenuItem>
                             )}
@@ -714,35 +940,79 @@ function CommunityPage(props) {
                 </Menu>
 
                 {selectedPostForComment && (
-                    <Modal open={openCommentsModal} onClose={handleCloseCommentsModal} aria-labelledby="comments-modal-title">
+                    <Modal open={openCommentsModal} onClose={handleCloseCommentsModal}
+                           aria-labelledby="comments-modal-title">
                         <ModalContentBox>
-                            <Box sx={{ p: {xs:2, sm:2.5}, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
-                                <Typography id="comments-modal-title" variant="h6" component="h2" sx={{fontWeight: 'bold'}}>Коментарі</Typography>
-                                <IconButton onClick={handleCloseCommentsModal} sx={{color: 'white', '&:hover':{backgroundColor:'rgba(255,255,255,0.1)'}}}><CloseIcon /></IconButton>
+                            <Box sx={{
+                                p: {xs: 2, sm: 2.5},
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                borderBottom: `1px solid rgba(255,255,255,0.1)`
+                            }}>
+                                <Typography id="comments-modal-title" variant="h6" component="h2"
+                                            sx={{fontWeight: 'bold'}}>Коментарі</Typography>
+                                <IconButton onClick={handleCloseCommentsModal} sx={{
+                                    color: 'white',
+                                    '&:hover': {backgroundColor: 'rgba(255,255,255,0.1)'}
+                                }}><CloseIcon/></IconButton>
                             </Box>
-                            <Box sx={{ overflowY: 'auto', p: {xs:1.5, sm:2.5}, flexGrow: 1 }}>
+                            <Box sx={{overflowY: 'auto', p: {xs: 1.5, sm: 2.5}, flexGrow: 1}}>
                                 {(comments[selectedPostForComment.id] || []).length > 0 ? (comments[selectedPostForComment.id] || []).map(comment => (
-                                    <Paper key={comment.id} sx={{ p: {xs:1.5, sm:2}, mb: 1.5, background: 'hsl(220, 30%, 6%)', borderRadius: '10px', border: '1px solid rgba(138, 43, 226, 0.15)' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, justifyContent:'space-between' }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center'}}>
-                                                <Avatar src={comment.isAnonymous ? "/static/images/avatar/anonymous.png" : comment.author?.avatarUrl || "/static/images/avatar/default.jpg"} sx={{ width: 32, height: 32, mr: 1.5, fontSize: '0.9rem' }}>{comment.isAnonymous ? 'A' : comment.author?.name?.charAt(0)}</Avatar>
+                                    <Paper key={comment.id} sx={{
+                                        p: {xs: 1.5, sm: 2},
+                                        mb: 1.5,
+                                        background: 'hsl(220, 30%, 6%)',
+                                        borderRadius: '10px',
+                                        border: '1px solid rgba(138, 43, 226, 0.15)'
+                                    }}>
+                                        <Box sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            mb: 1,
+                                            justifyContent: 'space-between'
+                                        }}>
+                                            <Box sx={{display: 'flex', alignItems: 'center'}}>
+                                                <Avatar
+                                                    src={comment.isAnonymous ? "/static/images/avatar/anonymous.png" : comment.author?.avatarUrl || "/static/images/avatar/default.jpg"}
+                                                    sx={{
+                                                        width: 32,
+                                                        height: 32,
+                                                        mr: 1.5,
+                                                        fontSize: '0.9rem'
+                                                    }}>{comment.isAnonymous ? 'A' : comment.author?.name?.charAt(0)}</Avatar>
                                                 <Box>
-                                                    <Typography variant="subtitle2" sx={{ fontWeight: '600', color: alpha(theme.palette.secondary.light,0.9) }}>{comment.isAnonymous ? 'Анонім' : comment.author?.name}</Typography>
-                                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>{formatTimestamp(comment.timestamp)}</Typography>
+                                                    <Typography variant="subtitle2" sx={{
+                                                        fontWeight: '600',
+                                                        color: alpha(theme.palette.secondary.light, 0.9)
+                                                    }}>{comment.isAnonymous ? 'Анонім' : comment.author?.name}</Typography>
+                                                    <Typography variant="caption"
+                                                                sx={{color: 'rgba(255,255,255,0.5)'}}>{formatTimestamp(comment.timestamp)}</Typography>
                                                 </Box>
                                             </Box>
                                             {isAuthenticated && currentUser && comment.author?.id === currentUser.userId &&
-                                                <IconButton size="small" onClick={() => handleDeleteComment(selectedPostForComment.id, comment.id)} sx={{color:alpha(theme.palette.error.light,0.7), '&:hover':{backgroundColor:alpha(theme.palette.error.dark,0.15)}}}> <DeleteIcon fontSize="small"/> </IconButton>
+                                                <IconButton size="small"
+                                                            onClick={() => handleDeleteComment(selectedPostForComment.id, comment.id)}
+                                                            sx={{
+                                                                color: alpha(theme.palette.error.light, 0.7),
+                                                                '&:hover': {backgroundColor: alpha(theme.palette.error.dark, 0.15)}
+                                                            }}> <DeleteIcon fontSize="small"/> </IconButton>
                                             }
                                         </Box>
-                                        <Typography variant="body2" sx={{ color: 'rgba(230, 220, 255, 0.85)', whiteSpace: 'pre-wrap', wordBreak:'break-word' }}>{comment.text}</Typography>
+                                        <Typography variant="body2" sx={{
+                                            color: 'rgba(230, 220, 255, 0.85)',
+                                            whiteSpace: 'pre-wrap',
+                                            wordBreak: 'break-word'
+                                        }}>{comment.text}</Typography>
                                     </Paper>
-                                )) : <Typography sx={{textAlign: 'center', color: 'rgba(255,255,255,0.6)', p:3}}>Коментарів ще немає. Будьте першим!</Typography>}
+                                )) : <Typography sx={{textAlign: 'center', color: 'rgba(255,255,255,0.6)', p: 3}}>Коментарів
+                                    ще немає. Будьте першим!</Typography>}
                             </Box>
                             {isAuthenticated && (
-                                <Box sx={{ p: {xs:1.5, sm:2}, borderTop: `1px solid rgba(255,255,255,0.1)`}}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                        <Avatar src={currentUser?.avatarUrl || "/static/images/avatar/default.jpg"} sx={{ width: 40, height: 40 }} />
+                                <Box sx={{p: {xs: 1.5, sm: 2}, borderTop: `1px solid rgba(255,255,255,0.1)`}}>
+                                    <Box sx={{display: 'flex', alignItems: 'center', gap: 1.5}}>
+                                        <Avatar src={currentUser?.avatarUrl || "/static/images/avatar/default.jpg"}
+                                                sx={{width: 40, height: 40}}/>
                                         <StyledTextField
                                             multiline
                                             rows={1}
@@ -752,7 +1022,11 @@ function CommunityPage(props) {
                                             onChange={(e) => setNewCommentText(e.target.value)}
                                             variant="outlined"
                                             size="small"
-                                            ownerState={{ isCommentField: true, textValue: newCommentText, multiline: true }}
+                                            ownerState={{
+                                                isCommentField: true,
+                                                textValue: newCommentText,
+                                                multiline: true
+                                            }}
                                             sx={textFieldSx(true, true, newCommentText)}
                                         />
                                         <IconButton
@@ -762,13 +1036,16 @@ function CommunityPage(props) {
                                                 color: theme.palette.secondary.main,
                                                 height: '40px',
                                                 width: '40px',
-                                                p:0,
+                                                p: 0,
                                                 backgroundColor: alpha(theme.palette.secondary.main, 0.1),
                                                 '&:hover': {backgroundColor: alpha(theme.palette.secondary.main, 0.2)},
-                                                '&.Mui-disabled': {color: 'rgba(255,255,255,0.3)', backgroundColor: 'transparent'}
+                                                '&.Mui-disabled': {
+                                                    color: 'rgba(255,255,255,0.3)',
+                                                    backgroundColor: 'transparent'
+                                                }
                                             }}
                                         >
-                                            <SendIcon />
+                                            <SendIcon/>
                                         </IconButton>
                                     </Box>
                                 </Box>
@@ -776,7 +1053,7 @@ function CommunityPage(props) {
                         </ModalContentBox>
                     </Modal>
                 )}
-                <Footer />
+                <Footer/>
             </Box>
         </AppTheme>
     );

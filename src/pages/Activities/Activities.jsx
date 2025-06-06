@@ -1,38 +1,58 @@
-
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import CssBaseline from '@mui/material/CssBaseline';
 import Divider from '@mui/material/Divider';
-import { keyframes, alpha, styled } from '@mui/material/styles';
+import {keyframes, alpha, styled} from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import AppTheme from '../../shared-theme/AppTheme';
 import Footer from '../../components/Footer';
 
 
-
-import { mockInfoCards } from './components/mockDb';
+import {mockInfoCards} from './components/mockDb';
 import Zones from './components/Zones';
 import Equipment from './components/Equipment';
 import Classes from './components/Classes';
 import BookingSection from './components/BookingSection';
 import InfoCardsSection from './components/InfoCardsSection';
-import { parse } from "date-fns";
 
 
-const gridLineGlow = keyframes`0% { opacity: 0.04; } 50% { opacity: 0.08; } 100% { opacity: 0.04; }`;
+const gridLineGlow = keyframes`0% {
+                                   opacity: 0.04;
+                               }
+                                   50% {
+                                       opacity: 0.08;
+                                   }
+                                   100% {
+                                       opacity: 0.04;
+                                   }`;
 
 const titleTextPopIn = keyframes`
-    0% { opacity: 0; transform: translateY(30px) scale(0.9); }
-    60% { opacity: 0.8; transform: translateY(-8px) scale(1.05); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
+    0% {
+        opacity: 0;
+        transform: translateY(30px) scale(0.9);
+    }
+    60% {
+        opacity: 0.8;
+        transform: translateY(-8px) scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 `;
 
 const subTextFadeInSmooth = keyframes`
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 `;
 
 const pageGlobalBackgroundStyles = {
@@ -57,14 +77,14 @@ const sectionStyles = (isPrimary = true) => ({
     backgroundColor: isPrimary ? 'rgba(18, 9, 29, 0.88)' : 'rgba(26, 18, 46, 0.88)',
     backdropFilter: 'blur(8px)',
     borderRadius: '32px',
-    mb: { xs: 5, md: 7 },
-    p: { xs: 0.5, sm:1, md: 1.5 },
+    mb: {xs: 5, md: 7},
+    p: {xs: 0.5, sm: 1, md: 1.5},
     boxShadow: `0 18px 55px ${alpha('#000000', 0.2)}, inset 0 0 25px ${alpha('#8A2BE2', 0.08)}`,
     border: `1px solid ${alpha('#8A2BE2', 0.15)}`,
     overflow: 'hidden',
 });
 
-const GrindSpan = styled('span')(({ theme }) => ({
+const GrindSpan = styled('span')(() => ({
     color: '#c67eff',
     textShadow: '0 0 12px rgba(198,126,255,0.7)',
     fontStyle: 'italic',
@@ -119,19 +139,18 @@ function ActivitiesPage(props) {
     }, []);
 
     const handleBookEquipment = (equipmentItem) => {
-        setBookingTarget({ type: 'equipment', item: equipmentItem });
-        document.getElementById('booking-section-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setBookingTarget({type: 'equipment', item: equipmentItem});
+        document.getElementById('booking-section-anchor')?.scrollIntoView({behavior: 'smooth', block: 'center'});
     };
 
     const handleBookClass = (classItem) => {
-        setBookingTarget({ type: 'class', item: classItem });
-        document.getElementById('booking-section-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setBookingTarget({type: 'class', item: classItem});
+        document.getElementById('booking-section-anchor')?.scrollIntoView({behavior: 'smooth', block: 'center'});
     };
 
     const handleBookingConfirmed = (bookingDetails) => {
         console.log("Бронювання підтверджено (ActivitiesPage):", bookingDetails);
         if (bookingDetails.type === 'class') {
-
 
 
             const fetchClassesAgain = async () => {
@@ -155,10 +174,16 @@ function ActivitiesPage(props) {
     if (isLoading) {
         return (
             <AppTheme {...props}>
-                <CssBaseline enableColorScheme />
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'background.default' }}>
-                    <CircularProgress size={60} />
-                    <Typography variant="h6" sx={{ ml: 2, color: 'text.secondary' }}>Завантаження даних...</Typography>
+                <CssBaseline enableColorScheme/>
+                <Box sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: '100vh',
+                    bgcolor: 'background.default'
+                }}>
+                    <CircularProgress size={60}/>
+                    <Typography variant="h6" sx={{ml: 2, color: 'text.secondary'}}>Завантаження даних...</Typography>
                 </Box>
             </AppTheme>
         );
@@ -167,11 +192,20 @@ function ActivitiesPage(props) {
     if (error) {
         return (
             <AppTheme {...props}>
-                <CssBaseline enableColorScheme />
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', flexDirection: 'column', p:3, bgcolor: 'background.default' }}>
+                <CssBaseline enableColorScheme/>
+                <Box sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: '100vh',
+                    flexDirection: 'column',
+                    p: 3,
+                    bgcolor: 'background.default'
+                }}>
                     <Typography variant="h5" color="error" gutterBottom>Помилка завантаження даних</Typography>
                     <Typography color="error.light" sx={{textAlign: 'center'}}>{error}</Typography>
-                    <Button variant="contained" onClick={() => window.location.reload()} sx={{mt: 3}}>Спробувати ще раз</Button>
+                    <Button variant="contained" onClick={() => window.location.reload()} sx={{mt: 3}}>Спробувати ще
+                        раз</Button>
                 </Box>
             </AppTheme>
         );
@@ -179,14 +213,14 @@ function ActivitiesPage(props) {
 
     return (
         <AppTheme {...props}>
-            <CssBaseline enableColorScheme />
-            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
-                <Box sx={pageGlobalBackgroundStyles} />
+            <CssBaseline enableColorScheme/>
+            <Box sx={{display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative'}}>
+                <Box sx={pageGlobalBackgroundStyles}/>
 
-                <Container maxWidth="xl" sx={{ pt: { xs: 6, md: 9 }, pb: {xs:4, md:6}, position: 'relative', zIndex: 1 }}>
+                <Container maxWidth="xl" sx={{pt: {xs: 6, md: 9}, pb: {xs: 4, md: 6}, position: 'relative', zIndex: 1}}>
                     <Box sx={{
                         textAlign: 'center',
-                        mb: { xs: 7, md: 10 },
+                        mb: {xs: 7, md: 10},
                         position: 'relative',
                         '&::before': {
                             content: '""',
@@ -206,7 +240,7 @@ function ActivitiesPage(props) {
                             position: 'relative',
                             zIndex: 0,
                             fontWeight: 'bold',
-                            fontSize: { xs: '3rem', sm: '3.8rem', md: '4.5rem' },
+                            fontSize: {xs: '3rem', sm: '3.8rem', md: '4.5rem'},
                             lineHeight: 1.2,
                             background: 'linear-gradient(125deg, #fdeaff 0%, #e9d8ff 30%, #d8bfff 60%, #c6aeff 100%)',
                             WebkitBackgroundClip: 'text',
@@ -223,7 +257,7 @@ function ActivitiesPage(props) {
                             color: 'rgba(230, 220, 255, 0.9)',
                             maxWidth: '700px',
                             mx: 'auto',
-                            fontSize: { xs: '1.15rem', sm: '1.3rem', md: '1.45rem' },
+                            fontSize: {xs: '1.15rem', sm: '1.3rem', md: '1.45rem'},
                             lineHeight: 1.75,
                             fontWeight: 600,
                             letterSpacing: '0.2px',
@@ -235,12 +269,13 @@ function ActivitiesPage(props) {
                     </Box>
 
                     {/* Передаємо завантажені дані в компоненти */}
-                    <Box sx={sectionStyles(true)}> <Zones zones={zones} allEquipment={equipment} /> </Box>
-                    <StyledDivider />
-                    <Box sx={sectionStyles(false)}> <Equipment zones={zones} equipment={equipment} onBookEquipment={handleBookEquipment}/> </Box>
+                    <Box sx={sectionStyles(true)}> <Zones zones={zones} allEquipment={equipment}/> </Box>
+                    <StyledDivider/>
+                    <Box sx={sectionStyles(false)}> <Equipment zones={zones} equipment={equipment}
+                                                               onBookEquipment={handleBookEquipment}/> </Box>
 
                     <div id="booking-section-anchor" style={{scrollMarginTop: '100px'}}></div>
-                    <StyledDivider />
+                    <StyledDivider/>
                     <Box sx={sectionStyles(true)}>
                         <BookingSection
                             allEquipment={equipment}
@@ -251,13 +286,14 @@ function ActivitiesPage(props) {
                             onClearTarget={() => setBookingTarget(null)}
                         />
                     </Box>
-                    <StyledDivider />
-                    <Box sx={sectionStyles(true)}> <Classes groupClasses={upcomingClasses} onBookClass={handleBookClass} /> </Box>
-                    <StyledDivider />
+                    <StyledDivider/>
+                    <Box sx={sectionStyles(true)}> <Classes groupClasses={upcomingClasses}
+                                                            onBookClass={handleBookClass}/> </Box>
+                    <StyledDivider/>
                     {/* mockInfoCards залишаються, якщо вони не через API */}
-                    <Box sx={sectionStyles(true)}> <InfoCardsSection infoCards={mockInfoCards} /> </Box>
+                    <Box sx={sectionStyles(true)}> <InfoCardsSection infoCards={mockInfoCards}/> </Box>
                 </Container>
-                <Footer />
+                <Footer/>
             </Box>
         </AppTheme>
     );
@@ -265,11 +301,11 @@ function ActivitiesPage(props) {
 
 const StyledDivider = () => (
     <Divider sx={{
-        my: { xs: 5, md: 8 },
+        my: {xs: 5, md: 8},
         borderColor: alpha('#8A2BE2', 0.15),
         borderWidth: '1px', width: '60%', mx: 'auto',
-        '&::before, &::after': { borderColor: alpha('#8A2BE2', 0.1) }
-    }} />
+        '&::before, &::after': {borderColor: alpha('#8A2BE2', 0.1)}
+    }}/>
 );
 
 export default ActivitiesPage;

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import Slider from "react-slick";
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -13,7 +12,7 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
-import { styled } from '@mui/material/styles';
+import {styled} from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 
 
@@ -21,15 +20,10 @@ import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import EventSeatIcon from '@mui/icons-material/EventSeat';
 
-import { Global, keyframes, css } from '@emotion/react';
+import {Global, css} from '@emotion/react';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-
-const cardHoverShine = keyframes`
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-`;
 
 const slickDotsStyles = css`
     .slick-dots li button:before {
@@ -38,16 +32,18 @@ const slickDotsStyles = css`
         opacity: 0.75;
         transition: all 0.3s ease;
     }
+
     .slick-dots li.slick-active button:before {
         color: #b388ff;
         opacity: 1;
     }
+
     .slick-dots {
         bottom: -45px;
     }
 `;
 
-const StyledBookButton = styled(Button)(({ theme }) => ({
+const StyledBookButton = styled(Button)(({theme}) => ({
     background: 'linear-gradient(45deg, #b388ff 30%, #7c4dff 90%)',
     border: 0,
     borderRadius: '12px',
@@ -66,7 +62,7 @@ const StyledBookButton = styled(Button)(({ theme }) => ({
     },
 }));
 
-const EquipmentCard = ({ equipment, onBookClick }) => {
+const EquipmentCard = ({equipment, onBookClick}) => {
     const cardMinHeight = 430;
 
     const cardStyles = {
@@ -101,9 +97,16 @@ const EquipmentCard = ({ equipment, onBookClick }) => {
     };
 
     return (
-        <Box sx={{ p: {xs: 0.5, sm: 1}, height: '100%' }}>
+        <Box sx={{p: {xs: 0.5, sm: 1}, height: '100%'}}>
             <Card sx={cardStyles}>
-                <Box sx={{ height: '200px', overflow: 'hidden', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', position:'relative', zIndex: 2 }}>
+                <Box sx={{
+                    height: '200px',
+                    overflow: 'hidden',
+                    borderTopLeftRadius: '20px',
+                    borderTopRightRadius: '20px',
+                    position: 'relative',
+                    zIndex: 2
+                }}>
                     <CardMedia
                         className="equipment-image"
                         component="img"
@@ -122,7 +125,7 @@ const EquipmentCard = ({ equipment, onBookClick }) => {
                     p: {xs: 2, sm: 2.5},
                     display: 'flex',
                     flexDirection: 'column',
-                    position:'relative', zIndex: 2,
+                    position: 'relative', zIndex: 2,
                 }}>
                     <Typography variant="h6" component="div" sx={{
                         fontWeight: '600', color: 'white', fontSize: '1.1rem', mb: 1.5,
@@ -142,10 +145,10 @@ const EquipmentCard = ({ equipment, onBookClick }) => {
                         {equipment.description}
                     </Typography>
                 </CardContent>
-                <CardActions sx={{ p: {xs: 1.5, sm: 2}, pt: 0, marginTop: 'auto', position:'relative', zIndex: 2 }}>
+                <CardActions sx={{p: {xs: 1.5, sm: 2}, pt: 0, marginTop: 'auto', position: 'relative', zIndex: 2}}>
                     <StyledBookButton
                         onClick={() => onBookClick(equipment)}
-                        startIcon={<EventSeatIcon />}
+                        startIcon={<EventSeatIcon/>}
                         fullWidth
                     >
                         Обрати для бронювання
@@ -156,7 +159,7 @@ const EquipmentCard = ({ equipment, onBookClick }) => {
     );
 };
 
-const CustomArrow = ({ direction, onClick }) => {
+const CustomArrow = ({direction, onClick}) => {
     return (
         <IconButton
             onClick={onClick}
@@ -164,24 +167,28 @@ const CustomArrow = ({ direction, onClick }) => {
                 position: 'absolute',
                 top: 'calc(50% - 40px)',
                 transform: 'translateY(-50%)',
-                ...(direction === 'prev' ? { left: {xs: -10, sm:-15, md:-25} } : { right: {xs: -10, sm:-15, md:-25} }),
+                ...(direction === 'prev' ? {left: {xs: -10, sm: -15, md: -25}} : {right: {xs: -10, sm: -15, md: -25}}),
                 zIndex: 2,
                 bgcolor: 'rgba(35, 28, 55, 0.9)',
                 color: '#c67eff',
                 border: '1px solid rgba(138, 43, 226, 0.3)',
                 boxShadow: '0 0 12px rgba(138, 43, 226, 0.15)',
                 width: {xs: 40, sm: 48}, height: {xs: 40, sm: 48},
-                '&:hover': { bgcolor: 'rgba(50, 40, 70, 0.95)', transform: 'scale(1.1) translateY(-50%)', boxShadow: '0 0 15px rgba(138, 43, 226, 0.25)' },
+                '&:hover': {
+                    bgcolor: 'rgba(50, 40, 70, 0.95)',
+                    transform: 'scale(1.1) translateY(-50%)',
+                    boxShadow: '0 0 15px rgba(138, 43, 226, 0.25)'
+                },
                 transition: 'all 0.25s ease'
             }}
         >
-            {direction === 'prev' ? <ArrowBackIosNewIcon /> : <ArrowForwardIosIcon />}
+            {direction === 'prev' ? <ArrowBackIosNewIcon/> : <ArrowForwardIosIcon/>}
         </IconButton>
     );
 };
 
 
-const Equipment = ({ zones, equipment, onBookEquipment }) => {
+const Equipment = ({zones, equipment, onBookEquipment}) => {
     const [selectedZoneId, setSelectedZoneId] = useState('');
     const [filteredEquipment, setFilteredEquipment] = useState([]);
     const sliderRef = useRef(null);
@@ -234,8 +241,8 @@ const Equipment = ({ zones, equipment, onBookEquipment }) => {
         cssEase: 'cubic-bezier(0.25, 0.1, 0.25, 1.0)',
         centerMode: enableCenterMode,
         centerPadding: enableCenterMode ? '80px' : '0px',
-        nextArrow: <CustomArrow direction="next" />,
-        prevArrow: <CustomArrow direction="prev" />,
+        nextArrow: <CustomArrow direction="next"/>,
+        prevArrow: <CustomArrow direction="prev"/>,
         responsive: [
             {
                 breakpoint: 1400,
@@ -275,12 +282,11 @@ const Equipment = ({ zones, equipment, onBookEquipment }) => {
     };
 
 
-
     if (!zones || zones.length === 0 || !equipment) {
 
         return (
-            <Box sx={{ textAlign: 'center', py: 5 }}>
-                <CircularProgress />
+            <Box sx={{textAlign: 'center', py: 5}}>
+                <CircularProgress/>
                 <Typography sx={{mt: 2, color: 'text.secondary'}}>Завантаження обладнання...</Typography>
             </Box>
         );
@@ -296,34 +302,44 @@ const Equipment = ({ zones, equipment, onBookEquipment }) => {
 
 
     return (
-        <Box component="section" sx={{ py: { xs: 4, md: 6 }, position: 'relative', overflow: 'hidden', ...sliderContainerBackground }}>
-            <Global styles={slickDotsStyles} />
+        <Box component="section"
+             sx={{py: {xs: 4, md: 6}, position: 'relative', overflow: 'hidden', ...sliderContainerBackground}}>
+            <Global styles={slickDotsStyles}/>
             <Typography variant="h2" component="h2" sx={{
                 textAlign: 'center', fontWeight: 'bold', color: 'white', mb: 1,
                 textShadow: '0 0 20px rgba(198, 126, 255, 0.4)',
-                fontSize: { xs: '2.2rem', sm: '2.8rem', md: '3.2rem' },
+                fontSize: {xs: '2.2rem', sm: '2.8rem', md: '3.2rem'},
                 background: 'linear-gradient(120deg, #e6ceff 0%, #c67eff 60%, #a96cff 100%)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>
                 Наші Тренажери
             </Typography>
-            <Typography variant="h6" sx={{ textAlign: 'center', color: 'rgba(230, 220, 255, 0.8)', mb: { xs: 4, md: 6 }, fontWeight: 400, fontSize: {xs: '1rem', sm: '1.1rem'} }}>
+            <Typography variant="h6" sx={{
+                textAlign: 'center',
+                color: 'rgba(230, 220, 255, 0.8)',
+                mb: {xs: 4, md: 6},
+                fontWeight: 400,
+                fontSize: {xs: '1rem', sm: '1.1rem'}
+            }}>
                 Оберіть зону, щоб переглянути доступне обладнання
             </Typography>
 
-            <Box sx={{ display: 'flex', justifyContent: 'center', mb: {xs: 7, sm: 8} }}>
+            <Box sx={{display: 'flex', justifyContent: 'center', mb: {xs: 7, sm: 8}}}>
                 <FormControl variant="outlined" sx={{
                     minWidth: {xs: '85%', sm: 320, md: 380},
-                    '& .MuiInputLabel-root': { color: 'rgba(230, 220, 255, 0.8)', fontWeight: 500 },
+                    '& .MuiInputLabel-root': {color: 'rgba(230, 220, 255, 0.8)', fontWeight: 500},
                     '& .MuiOutlinedInput-root': {
-                        '& fieldset': { borderColor: 'rgba(138, 43, 226, 0.4)', borderWidth: '1px' },
-                        '&:hover fieldset': { borderColor: '#a96cff' },
-                        '&.Mui-focused fieldset': { borderColor: '#c67eff', boxShadow: '0 0 10px rgba(169, 108, 255, 0.4)' },
+                        '& fieldset': {borderColor: 'rgba(138, 43, 226, 0.4)', borderWidth: '1px'},
+                        '&:hover fieldset': {borderColor: '#a96cff'},
+                        '&.Mui-focused fieldset': {
+                            borderColor: '#c67eff',
+                            boxShadow: '0 0 10px rgba(169, 108, 255, 0.4)'
+                        },
                         color: 'white', borderRadius: '14px',
                         backgroundColor: 'rgba(40, 30, 60, 0.85)',
                         fontSize: '1.1rem'
                     },
-                    '& .MuiSelect-icon': { color: '#c67eff' }
+                    '& .MuiSelect-icon': {color: '#c67eff'}
                 }}>
                     <InputLabel id="zone-select-label-equipment">Виберіть Зону</InputLabel>
                     <Select
@@ -339,8 +355,8 @@ const Equipment = ({ zones, equipment, onBookEquipment }) => {
                                     maxHeight: 300,
                                     '& .MuiMenuItem-root': {
                                         fontSize: '1rem',
-                                        '&:hover': { backgroundColor: 'rgba(138, 43, 226, 0.3)' },
-                                        '&.Mui-selected': { backgroundColor: 'rgba(138, 43, 226, 0.5) !important' }
+                                        '&:hover': {backgroundColor: 'rgba(138, 43, 226, 0.3)'},
+                                        '&.Mui-selected': {backgroundColor: 'rgba(138, 43, 226, 0.5) !important'}
                                     }
                                 },
                             },
@@ -399,12 +415,19 @@ const Equipment = ({ zones, equipment, onBookEquipment }) => {
                 }}>
                     <Slider ref={sliderRef} {...sliderSettings}>
                         {filteredEquipment.map((eqItem) => (
-                            <EquipmentCard key={eqItem.id} equipment={eqItem} onBookClick={onBookEquipment} />
+                            <EquipmentCard key={eqItem.id} equipment={eqItem} onBookClick={onBookEquipment}/>
                         ))}
                     </Slider>
                 </Box>
             ) : (
-                <Typography sx={{ textAlign: 'center', color: 'rgba(230, 220, 255, 0.75)', mt: 4, fontStyle: 'italic', fontSize: '1.1rem', pb: 5 }}>
+                <Typography sx={{
+                    textAlign: 'center',
+                    color: 'rgba(230, 220, 255, 0.75)',
+                    mt: 4,
+                    fontStyle: 'italic',
+                    fontSize: '1.1rem',
+                    pb: 5
+                }}>
                     {selectedZoneId ? `В обраній зоні поки немає тренажерів для онлайн бронювання.` : "Будь ласка, оберіть зону."}
                 </Typography>
             )}

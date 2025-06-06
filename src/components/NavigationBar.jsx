@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import {Link, useNavigate, useLocation} from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -26,15 +26,15 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import PeopleIcon from '@mui/icons-material/People';
 
 const DEFAULT_PAGES_NAV = [
-    { title: 'Профіль', path: '/profile', icon: <DashboardIcon fontSize="small" /> },
-    { title: 'Активності', path: '/activities', icon: <FitnessCenterIcon fontSize="small" /> },
-    { title: 'Харчування', path: '/food', icon: <RestaurantIcon fontSize="small" /> },
-    { title: 'Спільнота', path: '/community', icon: <PeopleIcon fontSize="small" /> }
+    {title: 'Профіль', path: '/profile', icon: <DashboardIcon fontSize="small"/>},
+    {title: 'Активності', path: '/activities', icon: <FitnessCenterIcon fontSize="small"/>},
+    {title: 'Харчування', path: '/food', icon: <RestaurantIcon fontSize="small"/>},
+    {title: 'Спільнота', path: '/community', icon: <PeopleIcon fontSize="small"/>}
 ];
 const DEFAULT_SETTINGS_MENU = [
-    { text: 'Профіль', icon: <AccountCircleIcon fontSize="small" />, action: 'Профіль' },
-    { text: 'Налаштування', icon: <SettingsIcon fontSize="small" />, action: 'Налаштування' },
-    { text: 'Вихід', icon: <LogoutIcon fontSize="small" />, action: 'Вихід' }
+    {text: 'Профіль', icon: <AccountCircleIcon fontSize="small"/>, action: 'Профіль'},
+    {text: 'Налаштування', icon: <SettingsIcon fontSize="small"/>, action: 'Налаштування'},
+    {text: 'Вихід', icon: <LogoutIcon fontSize="small"/>, action: 'Вихід'}
 ];
 
 const ACCENT_COLOR_MAIN = '#00A9FF';
@@ -153,7 +153,7 @@ function NavigationBar({
             sx={{
                 background: 'linear-gradient(90deg, rgba(30, 35, 50, 0.8) 0%, rgba(50, 55, 75, 0.9) 100%)',
                 backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-                borderBottomLeftRadius: { sm: '20px' }, borderBottomRightRadius: { sm: '20px' },
+                borderBottomLeftRadius: {sm: '20px'}, borderBottomRightRadius: {sm: '20px'},
                 boxShadow: '0 5px 25px rgba(0, 0, 0, 0.25)',
                 borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                 zIndex: 1200,
@@ -161,15 +161,7 @@ function NavigationBar({
             }}
         >
             <Container maxWidth="xl">
-                {/*
-                    Toolbar є flex-контейнером.
-                    1. Логотип (Desktop)
-                    2. Мобільне меню (іконка)
-                    3. Мобільне лого (текст)
-                    4. Блок навігації (Desktop) - ЦЕЙ БЛОК МАЄ РОЗТЯГУВАТИСЯ І ЦЕНТРУВАТИ СВІЙ ВМІСТ
-                    5. Блок авторизації/користувача (Desktop/Mobile Avatar)
-                */}
-                <Toolbar disableGutters sx={{ minHeight: { xs: 56, sm: 68 } }}>
+                <Toolbar disableGutters sx={{minHeight: {xs: 56, sm: 68}}}>
                     {/* Desktop Logo */}
                     <Typography
                         variant="h6"
@@ -178,21 +170,19 @@ function NavigationBar({
                         to="/"
                         sx={{
 
-                            display: { xs: 'none', md: 'flex' },
+                            display: {xs: 'none', md: 'flex'},
                             alignItems: 'center',
                             fontFamily: 'inherit',
                             fontWeight: 700,
                             letterSpacing: '.15rem',
                             color: 'white',
                             textDecoration: 'none',
-                            textShadow: `0 0 8px rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1,3),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3,5),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5,7),16)}, 0.5)`,
+                            textShadow: `0 0 8px rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1, 3), 16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3, 5), 16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5, 7), 16)}, 0.5)`,
                             transition: 'transform 0.3s ease, text-shadow 0.3s ease',
                             '&:hover': {
                                 transform: 'scale(1.02)',
-                                textShadow: `0 0 12px rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1,3),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3,5),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5,7),16)}, 0.7)`,
+                                textShadow: `0 0 12px rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1, 3), 16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3, 5), 16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5, 7), 16)}, 0.7)`,
                             },
-
-
 
 
                         }}
@@ -200,21 +190,20 @@ function NavigationBar({
                         GRINDZONE
                     </Typography>
 
-                    {/* Mobile: Burger Icon + Menu */}
-                    <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center' /* flexGrow: 1, якщо логотип теж flexGrow: 1 */ }}>
+                    <Box sx={{display: {xs: 'flex', md: 'none'}, alignItems: 'center'}}>
                         <IconButton
                             size="large"
                             onClick={handleOpenNavMenu}
-                            sx={{ color: 'white', '&:hover': { background: 'rgba(255,255,255,0.1)'} }}
+                            sx={{color: 'white', '&:hover': {background: 'rgba(255,255,255,0.1)'}}}
                         >
-                            <MenuIcon />
+                            <MenuIcon/>
                         </IconButton>
                         <Menu
                             id="menu-appbar-mobile"
                             anchorEl={anchorElNav}
-                            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                            anchorOrigin={{vertical: 'bottom', horizontal: 'left'}}
                             keepMounted
-                            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                            transformOrigin={{vertical: 'top', horizontal: 'left'}}
                             open={Boolean(anchorElNav)}
                             onClose={handleCloseNavMenu}
                             PaperProps={{
@@ -227,36 +216,53 @@ function NavigationBar({
                                     minWidth: '220px', mt: 1,
                                 }
                             }}
-                            MenuListProps={{ sx: { padding: '8px' } }}
+                            MenuListProps={{sx: {padding: '8px'}}}
                         >
                             {isAuthenticated
                                 ? pagesNav.map((page) => (
-                                    <MenuItem key={page.title} onClick={() => handleMobileLinkClick(page.path)} sx={{ borderRadius: '8px', margin: '4px 0', color: 'rgba(255, 255, 255, 0.9)', '&:hover': { background: 'rgba(255, 255, 255, 0.15)', color: 'white' } }}>
-                                        {page.icon && <ListItemIcon sx={{ color: 'inherit', minWidth: '36px' }}>{page.icon}</ListItemIcon>}
+                                    <MenuItem key={page.title} onClick={() => handleMobileLinkClick(page.path)} sx={{
+                                        borderRadius: '8px',
+                                        margin: '4px 0',
+                                        color: 'rgba(255, 255, 255, 0.9)',
+                                        '&:hover': {background: 'rgba(255, 255, 255, 0.15)', color: 'white'}
+                                    }}>
+                                        {page.icon && <ListItemIcon
+                                            sx={{color: 'inherit', minWidth: '36px'}}>{page.icon}</ListItemIcon>}
                                         <Typography textAlign="left">{page.title}</Typography>
                                     </MenuItem>
                                 ))
                                 : [
-                                    <MenuItem key="signin" onClick={() => handleMobileLinkClick('/signin')} sx={{ borderRadius: '8px', margin: '4px 0', color: 'rgba(255, 255, 255, 0.9)', '&:hover': { background: 'rgba(255, 255, 255, 0.15)', color: 'white' } }}>
-                                        <ListItemIcon sx={{ color: 'inherit', minWidth: '36px' }}><LoginIcon fontSize="small" /></ListItemIcon>
+                                    <MenuItem key="signin" onClick={() => handleMobileLinkClick('/signin')} sx={{
+                                        borderRadius: '8px',
+                                        margin: '4px 0',
+                                        color: 'rgba(255, 255, 255, 0.9)',
+                                        '&:hover': {background: 'rgba(255, 255, 255, 0.15)', color: 'white'}
+                                    }}>
+                                        <ListItemIcon sx={{color: 'inherit', minWidth: '36px'}}><LoginIcon
+                                            fontSize="small"/></ListItemIcon>
                                         <Typography textAlign="left">Увійти</Typography>
                                     </MenuItem>,
-                                    <MenuItem key="signup" onClick={() => handleMobileLinkClick('/signup')} sx={{ borderRadius: '8px', margin: '4px 0', color: 'rgba(255, 255, 255, 0.9)', '&:hover': { background: 'rgba(255, 255, 255, 0.15)', color: 'white' } }}>
-                                        <ListItemIcon sx={{ color: 'inherit', minWidth: '36px' }}><PersonAddAlt1Icon fontSize="small" /></ListItemIcon>
+                                    <MenuItem key="signup" onClick={() => handleMobileLinkClick('/signup')} sx={{
+                                        borderRadius: '8px',
+                                        margin: '4px 0',
+                                        color: 'rgba(255, 255, 255, 0.9)',
+                                        '&:hover': {background: 'rgba(255, 255, 255, 0.15)', color: 'white'}
+                                    }}>
+                                        <ListItemIcon sx={{color: 'inherit', minWidth: '36px'}}><PersonAddAlt1Icon
+                                            fontSize="small"/></ListItemIcon>
                                         <Typography textAlign="left">Зареєструватися</Typography>
                                     </MenuItem>
                                 ]}
                         </Menu>
                     </Box>
 
-                    {/* Mobile Logo (centered) */}
                     <Typography
                         variant="h5"
                         noWrap
                         component={Link}
                         to="/"
                         sx={{
-                            display: { xs: 'flex', md: 'none' },
+                            display: {xs: 'flex', md: 'none'},
                             flexGrow: 1,
                             justifyContent: 'center',
                             alignItems: 'center',
@@ -264,8 +270,7 @@ function NavigationBar({
                             letterSpacing: '.15rem',
                             color: 'white',
                             textDecoration: 'none',
-                            textShadow: `0 0 8px rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1,3),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3,5),16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5,7),16)}, 0.5)`,
-
+                            textShadow: `0 0 8px rgba(${parseInt(ACCENT_COLOR_MAIN.slice(1, 3), 16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(3, 5), 16)}, ${parseInt(ACCENT_COLOR_MAIN.slice(5, 7), 16)}, 0.5)`,
 
 
                         }}
@@ -273,13 +278,12 @@ function NavigationBar({
                         GRINDZONE
                     </Typography>
 
-                    {/* Desktop Navigation Links - ЦЕНТРАЛЬНИЙ БЛОК */}
                     <Box
                         sx={{
                             position: 'absolute',
                             left: '50%',
                             transform: 'translateX(-50%)',
-                            display: { xs: 'none', md: 'flex' },
+                            display: {xs: 'none', md: 'flex'},
                             justifyContent: 'center',
                             alignItems: 'center',
                             gap: 0.5,
@@ -297,16 +301,15 @@ function NavigationBar({
                         ))}
                     </Box>
 
-                    {/* Auth buttons / User Menu - ПРАВИЙ БЛОК */}
                     <Box
                         sx={{
-                            position: { md: 'absolute' },
-                            right: { md: 0 },
-                            top: { md: '50%' },
-                            transform: { md: 'translateY(-50%)' },
+                            position: {md: 'absolute'},
+                            right: {md: 0},
+                            top: {md: '50%'},
+                            transform: {md: 'translateY(-50%)'},
                             display: 'flex',
                             alignItems: 'center',
-                            gap: { xs: 1, md: 1.5 },
+                            gap: {xs: 1, md: 1.5},
 
                         }}
                     >
@@ -346,9 +349,9 @@ function NavigationBar({
                                 <Menu
                                     id="menu-appbar-user"
                                     anchorEl={anchorElUser}
-                                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                    anchorOrigin={{vertical: 'top', horizontal: 'right'}}
                                     keepMounted
-                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                    transformOrigin={{vertical: 'top', horizontal: 'right'}}
                                     open={Boolean(anchorElUser)}
                                     onClose={handleCloseUserMenu}
                                     PaperProps={{
@@ -363,7 +366,7 @@ function NavigationBar({
                                             minWidth: '200px',
                                         },
                                     }}
-                                    MenuListProps={{ sx: { padding: '8px' } }}
+                                    MenuListProps={{sx: {padding: '8px'}}}
                                 >
                                     {settingsMenu.map((setting) => (
                                         <MenuItem
@@ -380,11 +383,11 @@ function NavigationBar({
                                             }}
                                         >
                                             {setting.icon && (
-                                                <ListItemIcon sx={{ color: 'inherit', minWidth: '36px' }}>
+                                                <ListItemIcon sx={{color: 'inherit', minWidth: '36px'}}>
                                                     {setting.icon}
                                                 </ListItemIcon>
                                             )}
-                                            <Typography textAlign="left" sx={{ flexGrow: 1 }}>
+                                            <Typography textAlign="left" sx={{flexGrow: 1}}>
                                                 {setting.text}
                                             </Typography>
                                         </MenuItem>
@@ -393,7 +396,7 @@ function NavigationBar({
                             </Box>
                         ) : (
                             <Box
-                                sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1.5 }}
+                                sx={{display: {xs: 'none', md: 'flex'}, alignItems: 'center', gap: 1.5}}
                             >
                                 <Button component={Link} to="/signin" sx={signInButtonStyles}>
                                     Увійти

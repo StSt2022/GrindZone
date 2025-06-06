@@ -1,9 +1,8 @@
-
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, {createContext, useState, useEffect, useContext} from 'react';
 
 const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
+export const AuthProvider = ({children}) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [isLoadingAuth, setIsLoadingAuth] = useState(true);
@@ -11,7 +10,7 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
 
         const storedUser = localStorage.getItem('currentUser');
-        const token = localStorage.getItem('authToken');
+
 
         if (storedUser) {
             try {
@@ -55,7 +54,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, currentUser, isLoadingAuth, login, logout }}>
+        <AuthContext.Provider value={{isAuthenticated, currentUser, isLoadingAuth, login, logout}}>
             {children}
         </AuthContext.Provider>
     );

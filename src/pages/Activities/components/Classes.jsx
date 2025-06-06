@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
@@ -10,7 +9,7 @@ import Button from '@mui/material/Button';
 import Pagination from '@mui/material/Pagination';
 import LinearProgress from '@mui/material/LinearProgress';
 import Chip from '@mui/material/Chip';
-import { keyframes, styled, alpha } from '@mui/material/styles';
+import {keyframes, styled, alpha} from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -30,7 +29,6 @@ import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
 import SpaIcon from '@mui/icons-material/Spa';
 import SportsKabaddiIcon from '@mui/icons-material/SportsKabaddi';
 import AccessibilityNewIcon from '@mui/icons-material/AccessibilityNew';
-
 
 
 const iconComponents = {
@@ -53,11 +51,17 @@ const scanLineThickness = '1px';
 const scanLineSpacing = '3px';
 
 const cardPopIn = keyframes`
-    0% { opacity: 0; transform: translateY(25px) scale(0.98); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
+    0% {
+        opacity: 0;
+        transform: translateY(25px) scale(0.98);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 `;
 
-const StyledClassButton = styled(Button)(({ theme, disabled, isfull }) => ({
+const StyledClassButton = styled(Button)(({theme, isfull}) => ({
     padding: theme.spacing(1.2, 2.5),
     borderRadius: '12px',
     fontWeight: '600',
@@ -92,7 +96,7 @@ const StyledClassButton = styled(Button)(({ theme, disabled, isfull }) => ({
     },
 }));
 
-const ClassCard = styled(Card)(({ theme, isFull }) => {
+const ClassCard = styled(Card)(({theme, isFull}) => {
     const cardAnimationDelay = `${theme.transitions.duration.standard}ms`;
     return {
         width: '100%',
@@ -112,7 +116,7 @@ const ClassCard = styled(Card)(({ theme, isFull }) => {
             transform: 'translateY(-6px) scale(1.01)',
             boxShadow: `0 18px 45px ${isFull ? alpha('#B71C1C', 0.35) : alpha('#a96cff', 0.35)}, 0 0 25px ${alpha('#a96cff', 0.2)}`,
             borderColor: isFull ? alpha('#E53935', 0.7) : alpha('#c67eff', 0.55),
-            '&::before': { opacity: 0.9, height: '5px' },
+            '&::before': {opacity: 0.9, height: '5px'},
         },
         '&::before': {
             content: '""',
@@ -130,27 +134,27 @@ const ClassCard = styled(Card)(({ theme, isFull }) => {
     };
 });
 
-const Classes = ({ groupClasses, onBookClass }) => {
+const Classes = ({groupClasses, onBookClass}) => {
     const [page, setPage] = useState(1);
     const classesPerPage = 4;
 
 
     if (groupClasses === undefined || groupClasses === null) {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 5 }}>
-                <CircularProgress />
-                <Typography sx={{ ml: 2, color: 'text.secondary' }}>Завантаження розкладу...</Typography>
+            <Box sx={{display: 'flex', justifyContent: 'center', alignItems: 'center', py: 5}}>
+                <CircularProgress/>
+                <Typography sx={{ml: 2, color: 'text.secondary'}}>Завантаження розкладу...</Typography>
             </Box>
         );
     }
 
     if (groupClasses.length === 0) {
         return (
-            <Box sx={{ textAlign: 'center', my: 4, py: 5 }}>
-                <Typography variant="h5" sx={{ color: 'rgba(230, 220, 255, 0.8)' }}>
+            <Box sx={{textAlign: 'center', my: 4, py: 5}}>
+                <Typography variant="h5" sx={{color: 'rgba(230, 220, 255, 0.8)'}}>
                     Наразі немає доступних групових занять.
                 </Typography>
-                <Typography sx={{ color: 'rgba(230, 220, 255, 0.6)', mt: 1 }}>
+                <Typography sx={{color: 'rgba(230, 220, 255, 0.6)', mt: 1}}>
                     Будь ласка, перевірте розклад пізніше.
                 </Typography>
             </Box>
@@ -161,7 +165,7 @@ const Classes = ({ groupClasses, onBookClass }) => {
         setPage(newPage);
         const sectionElement = document.getElementById('group-classes-section-title');
         if (sectionElement) {
-            sectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            sectionElement.scrollIntoView({behavior: 'smooth', block: 'start'});
         }
     };
 
@@ -173,7 +177,7 @@ const Classes = ({ groupClasses, onBookClass }) => {
 
     return (
         <Box sx={{
-            py: { xs: 4, md: 6 },
+            py: {xs: 4, md: 6},
             position: 'relative',
             overflow: 'hidden',
             '&::before': {
@@ -193,7 +197,7 @@ const Classes = ({ groupClasses, onBookClass }) => {
                 )`,
             }
         }}>
-            <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1, px: { xs: 2, sm: 3 } }}>
+            <Container maxWidth="xl" sx={{position: 'relative', zIndex: 1, px: {xs: 2, sm: 3}}}>
                 <Typography
                     variant="h2"
                     component="h2"
@@ -202,9 +206,9 @@ const Classes = ({ groupClasses, onBookClass }) => {
                         textAlign: 'center',
                         fontWeight: 'bold',
                         color: 'white',
-                        mb: { xs: 5, md: 7 },
+                        mb: {xs: 5, md: 7},
                         textShadow: '0 0 25px rgba(198, 126, 255, 0.45)',
-                        fontSize: { xs: '2.3rem', sm: '2.9rem', md: '3.3rem' },
+                        fontSize: {xs: '2.3rem', sm: '2.9rem', md: '3.3rem'},
                         background: 'linear-gradient(120deg, #e6ceff 0%, #c67eff 60%, #a96cff 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
@@ -214,7 +218,7 @@ const Classes = ({ groupClasses, onBookClass }) => {
                 </Typography>
                 <Grid
                     container
-                    spacing={{ xs: 3, sm: 3, md: 4 }}
+                    spacing={{xs: 3, sm: 3, md: 4}}
                     justifyContent="center"
                     alignItems="stretch"
                 >
@@ -262,24 +266,37 @@ const Classes = ({ groupClasses, onBookClass }) => {
                                     </Box>
                                     <CardContent sx={{
                                         flexGrow: 1,
-                                        p: { xs: 2, sm: 2.5, md: 3 },
+                                        p: {xs: 2, sm: 2.5, md: 3},
                                         display: 'flex',
                                         flexDirection: 'column',
                                         justifyContent: 'space-between',
 
                                     }}>
                                         <Box> {/* Верхня частина контенту */}
-                                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5, minHeight: '60px' }}>
-                                                <IconComponent sx={{ color: isFull ? alpha('#E53935', 0.8) : secondaryPurple, mr: 2, fontSize: '2.2rem' }} />
+                                            <Box sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                mb: 1.5,
+                                                minHeight: '60px'
+                                            }}>
+                                                <IconComponent sx={{
+                                                    color: isFull ? alpha('#E53935', 0.8) : secondaryPurple,
+                                                    mr: 2,
+                                                    fontSize: '2.2rem'
+                                                }}/>
                                                 <Typography variant="h6" component="div" sx={{
-                                                    fontWeight: 'bold', color: 'white', fontSize: '1.25rem', lineHeight: '1.4',
+                                                    fontWeight: 'bold',
+                                                    color: 'white',
+                                                    fontSize: '1.25rem',
+                                                    lineHeight: '1.4',
                                                     textShadow: isFull ? `0 0 6px ${alpha('#E53935', 0.6)}` : 'none',
                                                 }}>
                                                     {sClass.title}
                                                 </Typography>
                                             </Box>
                                             <Chip
-                                                icon={<BarChartIcon sx={{ fontSize: '1rem', color: alpha('#e0c6ff', 0.8) }} />}
+                                                icon={<BarChartIcon
+                                                    sx={{fontSize: '1rem', color: alpha('#e0c6ff', 0.8)}}/>}
                                                 label={`Складність: ${sClass.difficulty || 'N/A'}`}
                                                 size="small"
                                                 sx={{
@@ -292,21 +309,46 @@ const Classes = ({ groupClasses, onBookClass }) => {
                                                     borderRadius: '12px'
                                                 }}
                                             />
-                                            <Grid container spacing={1} sx={{ mb: 2.5 }}>
-                                                <Grid item xs={12} sx={{ display: 'flex', alignItems: 'center' }}>
-                                                    <CalendarTodayIcon sx={{ fontSize: '1.1rem', mr: 1, opacity: 0.8, color: lightText }} />
-                                                    <Typography variant="body2" sx={{ fontSize: '0.88rem', color: 'rgba(235, 230, 245, 0.95)' }}>
-                                                        {new Date(sClass.date).toLocaleDateString('uk-UA', { weekday: 'long', day: '2-digit', month: 'long' })}
+                                            <Grid container spacing={1} sx={{mb: 2.5}}>
+                                                <Grid item xs={12} sx={{display: 'flex', alignItems: 'center'}}>
+                                                    <CalendarTodayIcon sx={{
+                                                        fontSize: '1.1rem',
+                                                        mr: 1,
+                                                        opacity: 0.8,
+                                                        color: lightText
+                                                    }}/>
+                                                    <Typography variant="body2" sx={{
+                                                        fontSize: '0.88rem',
+                                                        color: 'rgba(235, 230, 245, 0.95)'
+                                                    }}>
+                                                        {new Date(sClass.date).toLocaleDateString('uk-UA', {
+                                                            weekday: 'long',
+                                                            day: '2-digit',
+                                                            month: 'long'
+                                                        })}
                                                     </Typography>
                                                 </Grid>
-                                                <Grid item xs={12} sx={{ display: 'flex', alignItems: 'center' }}>
-                                                    <AccessTimeIcon sx={{ fontSize: '1.1rem', mr: 1, opacity: 0.8, color: lightText }} />
-                                                    <Typography variant="body2" sx={{ fontSize: '0.88rem', color: 'rgba(235, 230, 245, 0.95)' }}>
+                                                <Grid item xs={12} sx={{display: 'flex', alignItems: 'center'}}>
+                                                    <AccessTimeIcon sx={{
+                                                        fontSize: '1.1rem',
+                                                        mr: 1,
+                                                        opacity: 0.8,
+                                                        color: lightText
+                                                    }}/>
+                                                    <Typography variant="body2" sx={{
+                                                        fontSize: '0.88rem',
+                                                        color: 'rgba(235, 230, 245, 0.95)'
+                                                    }}>
                                                         {sClass.startTime} - {sClass.endTime} ({sClass.durationMinutes} хв)
                                                     </Typography>
                                                 </Grid>
-                                                <Grid item xs={12} sx={{ display: 'flex', alignItems: 'center' }}>
-                                                    <PeopleAltIcon sx={{ fontSize: '1.1rem', mr: 1, opacity: 0.8, color: lightText }} />
+                                                <Grid item xs={12} sx={{display: 'flex', alignItems: 'center'}}>
+                                                    <PeopleAltIcon sx={{
+                                                        fontSize: '1.1rem',
+                                                        mr: 1,
+                                                        opacity: 0.8,
+                                                        color: lightText
+                                                    }}/>
                                                     <Typography variant="body2" sx={{
                                                         fontSize: '0.88rem',
                                                         color: 'rgba(235, 230, 245, 0.95)',
@@ -318,9 +360,12 @@ const Classes = ({ groupClasses, onBookClass }) => {
                                                     </Typography>
                                                 </Grid>
                                             </Grid>
-                                            <Tooltip title={`${sClass.bookedUserIds.length} з ${sClass.maxCapacity} місць зайнято`} placement="top">
-                                                <Box sx={{ width: '100%', mb: 2 }}>
-                                                    <Typography variant="caption" color={alpha(lightText, 0.8)} sx={{ mb: 0.5, fontSize: '0.8rem', display: 'block' }}>
+                                            <Tooltip
+                                                title={`${sClass.bookedUserIds.length} з ${sClass.maxCapacity} місць зайнято`}
+                                                placement="top">
+                                                <Box sx={{width: '100%', mb: 2}}>
+                                                    <Typography variant="caption" color={alpha(lightText, 0.8)}
+                                                                sx={{mb: 0.5, fontSize: '0.8rem', display: 'block'}}>
                                                         Зайнято: {sClass.bookedUserIds.length} / {sClass.maxCapacity}
                                                     </Typography>
                                                     <LinearProgress
@@ -337,17 +382,27 @@ const Classes = ({ groupClasses, onBookClass }) => {
                                                     />
                                                 </Box>
                                             </Tooltip>
-                                            <Typography variant="body2" color={alpha(lightText, 0.85)} sx={{ fontSize: '0.85rem', lineHeight: 1.6, mb: 3, minHeight: '60px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                                            <Typography variant="body2" color={alpha(lightText, 0.85)} sx={{
+                                                fontSize: '0.85rem',
+                                                lineHeight: 1.6,
+                                                mb: 3,
+                                                minHeight: '60px',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 3,
+                                                WebkitBoxOrient: 'vertical'
+                                            }}>
                                                 {sClass.description}
                                             </Typography>
                                         </Box>
-                                        <Box sx={{ mt: 'auto' }}> {/* Кнопка завжди внизу */}
+                                        <Box sx={{mt: 'auto'}}> {/* Кнопка завжди внизу */}
                                             <StyledClassButton
                                                 onClick={() => onBookClass(sClass)}
                                                 disabled={isFull}
                                                 isfull={isFull.toString()}
-                                                startIcon={isFull ? <EventBusyIcon /> : <EventAvailableIcon />}
-                                                sx={{ width: '100%' }}
+                                                startIcon={isFull ? <EventBusyIcon/> : <EventAvailableIcon/>}
+                                                sx={{width: '100%'}}
                                             >
                                                 {isFull ? 'Немає місць' : 'Забронювати участь'}
                                             </StyledClassButton>
@@ -359,11 +414,11 @@ const Classes = ({ groupClasses, onBookClass }) => {
                     })}
                     {/* Заповнювачі для рівномірного розподілу, якщо останній ряд неповний */}
                     {currentClasses.length > 0 && currentClasses.length % 2 !== 0 && (classesPerPage === 4 || classesPerPage === 2) && (
-                        <Grid item xs={12} sm={6} md={6} lg={6} sx={{ display: { xs: 'none', sm: 'block' } }} />
+                        <Grid item xs={12} sm={6} md={6} lg={6} sx={{display: {xs: 'none', sm: 'block'}}}/>
                     )}
                 </Grid>
                 {count > 1 && (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: { xs: 6, md: 8 } }}>
+                    <Box sx={{display: 'flex', justifyContent: 'center', mt: {xs: 6, md: 8}}}>
                         <Pagination
                             count={count}
                             page={page}
