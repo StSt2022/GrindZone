@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { VolumeUp, VolumeOff } from '@mui/icons-material';
+import React, {useState, useRef, useEffect} from 'react';
+import {VolumeUp, VolumeOff} from '@mui/icons-material';
 import CloseIcon from '@mui/icons-material/Close';
 
 const YOUR_SITE_CONTEXT_FOR_BACKEND = `
@@ -29,7 +29,11 @@ const YOUR_SITE_CONTEXT_FOR_BACKEND = `
 const ChatWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
-        { id: Date.now(), text: "Привіт! Я твій асистент GRINDZONE. Готовий допомогти досягти твоїх цілей.", sender: "bot" }
+        {
+            id: Date.now(),
+            text: "Привіт! Я твій асистент GRINDZONE. Готовий допомогти досягти твоїх цілей.",
+            sender: "bot"
+        }
     ]);
     const [inputText, setInputText] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +53,7 @@ const ChatWidget = () => {
     }, [isTtsEnabled]);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({behavior: "smooth"});
     };
 
     useEffect(() => {
@@ -89,7 +93,7 @@ const ChatWidget = () => {
         const trimmedInput = inputText.trim();
         if (trimmedInput === "" || isLoading) return;
 
-        const newUserMessage = { id: Date.now(), text: trimmedInput, sender: "user" };
+        const newUserMessage = {id: Date.now(), text: trimmedInput, sender: "user"};
         const currentMessages = [...messages, newUserMessage];
         setMessages(currentMessages);
         setInputText("");
@@ -122,14 +126,18 @@ const ChatWidget = () => {
             const data = await response.json();
 
             if (data.text) {
-                const botMessage = { id: Date.now() + 1, text: data.text, sender: "bot" };
+                const botMessage = {id: Date.now() + 1, text: data.text, sender: "bot"};
                 setMessages(prevMessages => [...prevMessages, botMessage]);
 
                 if (data.audioData && isTtsEnabled) {
                     playAudio(data.audioData);
                 }
             } else {
-                const errorMessage = { id: Date.now() + 1, text: "Вибач, не вдалося отримати змістовну відповідь.", sender: "bot" };
+                const errorMessage = {
+                    id: Date.now() + 1,
+                    text: "Вибач, не вдалося отримати змістовну відповідь.",
+                    sender: "bot"
+                };
                 setMessages(prevMessages => [...prevMessages, errorMessage]);
             }
 
@@ -138,7 +146,7 @@ const ChatWidget = () => {
             const errorMessageText = error.message.includes("Failed to fetch")
                 ? "Не вдалося з'єднатися з сервером. Перевір, чи він запущений, та налаштування CORS."
                 : error.message.startsWith("HTTP помилка!") ? error.message : "Вибач, сталася помилка. Спробуй пізніше.";
-            const errorMessage = { id: Date.now() + 1, text: errorMessageText, sender: "bot" };
+            const errorMessage = {id: Date.now() + 1, text: errorMessageText, sender: "bot"};
             setMessages(prevMessages => [...prevMessages, errorMessage]);
         } finally {
             setIsLoading(false);
@@ -158,13 +166,18 @@ const ChatWidget = () => {
             )}
 
             {isOpen && (
-                <div className="fixed bottom-6 right-6 w-[calc(100vw-48px)] sm:w-[420px] h-[75vh] max-h-[600px] bg-[#140D23F8] rounded-2xl shadow-2xl shadow-purple-900/60 flex flex-col z-[1000] border border-[#4A3F6A99] overflow-hidden">
-                    <div className="bg-[#1F1533] text-white p-3 sm:p-4 rounded-t-2xl flex justify-between items-center border-b border-[#4A3F6A99]">
+                <div
+                    className="fixed bottom-6 right-6 w-[calc(100vw-48px)] sm:w-[420px] h-[75vh] max-h-[600px] bg-[#140D23F8] rounded-2xl shadow-2xl shadow-purple-900/60 flex flex-col z-[1000] border border-[#4A3F6A99] overflow-hidden">
+                    <div
+                        className="bg-[#1F1533] text-white p-3 sm:p-4 rounded-t-2xl flex justify-between items-center border-b border-[#4A3F6A99]">
                         <h3 className="font-semibold text-base sm:text-lg">
-                            <span className="uppercase tracking-[.1em] font-bold" style={{ color: '#C996FF', textShadow: '0 0 8px rgba(201, 150, 255, 0.5)'}}>GRINDZONE</span>
+                            <span className="uppercase tracking-[.1em] font-bold" style={{
+                                color: '#C996FF',
+                                textShadow: '0 0 8px rgba(201, 150, 255, 0.5)'
+                            }}>GRINDZONE</span>
                             <span className="text-slate-300"> асистент</span>
                         </h3>
-                        <div className="flex items-center space-x-1"> {/* Додав space-x-1 для невеликого відступу */}
+                        <div className="flex items-center space-x-1">
                             <button
                                 onClick={toggleTts}
                                 className={`p-1.5 rounded-full transition-colors duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#1F1533] ${
@@ -172,19 +185,20 @@ const ChatWidget = () => {
                                         ? 'text-purple-300 hover:bg-purple-700/50 focus:ring-purple-500'
                                         : 'text-slate-500 hover:bg-slate-700/50 focus:ring-slate-500'
                                 }`}
-                                style={{ width: '28px', height: '28px' }}
+                                style={{width: '28px', height: '28px'}}
                                 aria-label={isTtsEnabled ? "Вимкнути озвучування" : "Увімкнути озвучування"}
                                 title={isTtsEnabled ? "Вимкнути озвучування" : "Увімкнути озвучування"}
                             >
-                                {isTtsEnabled ? <VolumeUp sx={{ fontSize: '18px' }} /> : <VolumeOff sx={{ fontSize: '18px' }} />}
+                                {isTtsEnabled ? <VolumeUp sx={{fontSize: '18px'}}/> :
+                                    <VolumeOff sx={{fontSize: '18px'}}/>}
                             </button>
                             <button
                                 onClick={toggleChat}
                                 className="p-1.5 rounded-full text-slate-400 hover:text-slate-200 transition-colors duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#1F1533] focus:ring-slate-500"
                                 aria-label="Закрити чат"
-                                style={{ width: '28px', height: '28px' }}
+                                style={{width: '28px', height: '28px'}}
                             >
-                                <span><CloseIcon /></span>
+                                <span><CloseIcon/></span>
                             </button>
                         </div>
                     </div>
@@ -201,16 +215,17 @@ const ChatWidget = () => {
                                 </div>
                             </div>
                         ))}
-                        {isLoading && messages[messages.length -1]?.sender === 'user' && (
+                        {isLoading && messages[messages.length - 1]?.sender === 'user' && (
                             <div className="flex justify-start">
                                 <div className="bg-[#2C2045F5] text-slate-200 rounded-xl p-2.5 sm:p-3 max-w-[85%]">
                                     <span className="italic text-purple-400">GRINDZONE думає...</span>
                                 </div>
                             </div>
                         )}
-                        <div ref={messagesEndRef} />
+                        <div ref={messagesEndRef}/>
                     </div>
-                    <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-[#4A3F6A99] bg-[#1F1533F5]">
+                    <form onSubmit={handleSendMessage}
+                          className="p-3 sm:p-4 border-t border-[#4A3F6A99] bg-[#1F1533F5]">
                         <div className="flex items-center space-x-2">
                             <input
                                 type="text"
@@ -227,9 +242,12 @@ const ChatWidget = () => {
                                 disabled={!inputText.trim() || isLoading}
                             >
                                 {isLoading ? (
-                                    <svg className="animate-spin h-5 w-5 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    <svg className="animate-spin h-5 w-5 text-white mx-auto"
+                                         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                                strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor"
+                                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
                                 ) : "GRIND!"}
                             </button>

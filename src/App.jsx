@@ -18,29 +18,33 @@ import ChatWidget from "./widgets/ChatWidget.jsx";
 import NavigationBar from './components/NavigationBar';
 import ScrollToTop from './components/ScrollToTop';
 
-import { AuthProvider, useAuth } from './context/AuthContext';
+import {AuthProvider, useAuth} from './context/AuthContext';
 
-const ProtectedRoute = ({ children }) => {
-    const { isAuthenticated, isLoadingAuth } = useAuth();
-    if (isLoadingAuth) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Перевірка автентифікації...</div>;
+const ProtectedRoute = ({children}) => {
+    const {isAuthenticated, isLoadingAuth} = useAuth();
+    if (isLoadingAuth) return <div
+        style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>Перевірка
+        автентифікації...</div>;
     if (!isAuthenticated) {
-        return <Navigate to="/signin" replace />;
+        return <Navigate to="/signin" replace/>;
     }
     return children;
 };
 
-const GuestRoute = ({ children }) => {
-    const { isAuthenticated, isLoadingAuth } = useAuth();
-    if (isLoadingAuth) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Перевірка автентифікації...</div>;
+const GuestRoute = ({children}) => {
+    const {isAuthenticated, isLoadingAuth} = useAuth();
+    if (isLoadingAuth) return <div
+        style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>Перевірка
+        автентифікації...</div>;
     if (isAuthenticated) {
-        return <Navigate to="/" replace />;
+        return <Navigate to="/" replace/>;
     }
     return children;
 };
 
-const LayoutWithConditionalNav = ({ children }) => {
+const LayoutWithConditionalNav = ({children}) => {
     const location = useLocation();
-    const { isAuthenticated, currentUser, logout } = useAuth();
+    const {isAuthenticated, currentUser, logout} = useAuth();
     const hideNavOnRoutes = ['/signin', '/signup'];
     const shouldShowNav = !hideNavOnRoutes.includes(location.pathname);
 
@@ -58,29 +62,31 @@ const LayoutWithConditionalNav = ({ children }) => {
     );
 };
 
-const AuthFormWrapper = ({ children }) => {
-    const { login } = useAuth();
-    return React.cloneElement(children, { onLoginSuccess: login });
+const AuthFormWrapper = ({children}) => {
+    const {login} = useAuth();
+    return React.cloneElement(children, {onLoginSuccess: login});
 };
 
 
 function AppContent() {
-    const { isAuthenticated, isLoadingAuth } = useAuth();
+    const {isAuthenticated, isLoadingAuth} = useAuth();
 
     if (isLoadingAuth) {
-        return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Завантаження додатку...</div>;
+        return <div
+            style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>Завантаження
+            додатку...</div>;
     }
 
     return (
         <LayoutWithConditionalNav>
             <Routes>
-                <Route path="/" element={<Home />} />
+                <Route path="/" element={<Home/>}/>
 
                 <Route
                     path="/signup"
                     element={
                         <GuestRoute>
-                            <AuthFormWrapper><SignUp /></AuthFormWrapper>
+                            <AuthFormWrapper><SignUp/></AuthFormWrapper>
                         </GuestRoute>
                     }
                 />
@@ -88,7 +94,7 @@ function AppContent() {
                     path="/signin"
                     element={
                         <GuestRoute>
-                            <AuthFormWrapper><SignIn /></AuthFormWrapper>
+                            <AuthFormWrapper><SignIn/></AuthFormWrapper>
                         </GuestRoute>
                     }
                 />
@@ -96,7 +102,7 @@ function AppContent() {
                     path="/profile"
                     element={
                         <ProtectedRoute>
-                            <Profile />
+                            <Profile/>
                         </ProtectedRoute>
                     }
                 />
@@ -104,7 +110,7 @@ function AppContent() {
                     path="/activities"
                     element={
                         <ProtectedRoute>
-                            <Activities />
+                            <Activities/>
                         </ProtectedRoute>
                     }
                 />
@@ -112,7 +118,7 @@ function AppContent() {
                     path="/food"
                     element={
                         <ProtectedRoute>
-                            <Food />
+                            <Food/>
                         </ProtectedRoute>
                     }
                 />
@@ -120,14 +126,14 @@ function AppContent() {
                     path="/community"
                     element={
                         <ProtectedRoute>
-                            <Community />
+                            <Community/>
                         </ProtectedRoute>
                     }
                 />
 
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="/" replace/>}/>
             </Routes>
-            {isAuthenticated && <ChatWidget />}
+            {isAuthenticated && <ChatWidget/>}
         </LayoutWithConditionalNav>
     );
 }
@@ -136,9 +142,9 @@ function App() {
     return (
         <AppTheme>
             <Router>
-                <ScrollToTop />
+                <ScrollToTop/>
                 <AuthProvider>
-                    <AppContent />
+                    <AppContent/>
                 </AuthProvider>
             </Router>
         </AppTheme>

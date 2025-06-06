@@ -1,23 +1,36 @@
-
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, {useEffect, useRef, useState} from 'react';
+import {Link, useNavigate} from 'react-router-dom';
 import {
-    Box, Typography, Container, Button, CssBaseline, Card, CardContent,
-    Grid, Avatar, Paper, IconButton, Divider, Tooltip, LinearProgress,
-    TextField, Alert, Tabs, Tab, CircularProgress, Chip, Select, MenuItem, FormControl, InputLabel
+    Alert,
+    Avatar,
+    Box,
+    Button,
+    Card,
+    Chip,
+    CircularProgress,
+    Container,
+    CssBaseline,
+    FormControl,
+    Grid,
+    InputLabel,
+    LinearProgress,
+    MenuItem,
+    Paper,
+    Select,
+    Tab,
+    Tabs,
+    TextField,
+    Tooltip,
+    Typography
 } from '@mui/material';
-import { styled, alpha } from '@mui/material/styles';
-import { keyframes } from '@emotion/react';
-import { format, formatDistanceToNow, parseISO, differenceInYears, isValid as isValidDateFn } from 'date-fns';
-import { uk } from 'date-fns/locale';
+import {alpha, styled} from '@mui/material/styles';
+import {keyframes} from '@emotion/react';
+import {differenceInYears, format, formatDistanceToNow, isValid as isValidDateFn, parseISO} from 'date-fns';
+import {uk} from 'date-fns/locale';
 
 import AppTheme from '../../shared-theme/AppTheme';
 import Footer from "../../components/Footer";
-import { useAuth } from '../../context/AuthContext';
-
-
-
-
+import {useAuth} from '../../context/AuthContext';
 
 
 import EditIcon from '@mui/icons-material/Edit';
@@ -59,23 +72,61 @@ import LoyaltyIcon from '@mui/icons-material/Loyalty';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 
 
-
-const gridLineGlow = keyframes`0% { opacity: 0.03; } 50% { opacity: 0.07; } 100% { opacity: 0.03; }`;
-const textFadeInUp = keyframes`from {opacity: 0; transform: translateY(15px) translateZ(0);} to {opacity: 1; transform: translateY(0) translateZ(0);}`;
+const gridLineGlow = keyframes`0% {
+                                   opacity: 0.03;
+                               }
+                                   50% {
+                                       opacity: 0.07;
+                                   }
+                                   100% {
+                                       opacity: 0.03;
+                                   }`;
+const textFadeInUp = keyframes`from {
+                                   opacity: 0;
+                                   transform: translateY(15px) translateZ(0);
+                               }
+                                   to {
+                                       opacity: 1;
+                                       transform: translateY(0) translateZ(0);
+                                   }`;
 const pulseEffect = keyframes`
-    0% { box-shadow: 0 0 0 0 rgba(169, 108, 255, 0.4); }
-    70% { box-shadow: 0 0 0 8px rgba(169, 108, 255, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(169, 108, 255, 0); }
+    0% {
+        box-shadow: 0 0 0 0 rgba(169, 108, 255, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(169, 108, 255, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(169, 108, 255, 0);
+    }
 `;
 
 const gridBackgroundStyles = {
     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: -1, backgroundSize: '50px 50px',
     backgroundImage: `linear-gradient(to right, rgba(138, 43, 226, 0.025) 1px, transparent 1px), linear-gradient(to bottom, rgba(138, 43, 226, 0.025) 1px, transparent 1px)`,
-    '&::before': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 20% 20%, rgba(138, 43, 226, 0.05), transparent 50%), radial-gradient(circle at 80% 70%, rgba(100, 100, 255, 0.05), transparent 50%)', animation: `${gridLineGlow} 7s infinite ease-in-out`},
-    '&::after': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(180deg, rgba(10, 5, 18, 0.98) 0%, rgba(6, 3, 10, 1) 100%)', zIndex: -2},
+    '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(circle at 20% 20%, rgba(138, 43, 226, 0.05), transparent 50%), radial-gradient(circle at 80% 70%, rgba(100, 100, 255, 0.05), transparent 50%)',
+        animation: `${gridLineGlow} 7s infinite ease-in-out`
+    },
+    '&::after': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'linear-gradient(180deg, rgba(10, 5, 18, 0.98) 0%, rgba(6, 3, 10, 1) 100%)',
+        zIndex: -2
+    },
 };
 
-const StyledTabs = styled(Tabs)(({ theme }) => ({
+const StyledTabs = styled(Tabs)(({theme}) => ({
     marginBottom: theme.spacing(3),
     borderBottom: `1px solid rgba(138, 43, 226, 0.3)`,
     '& .MuiTabs-indicator': {
@@ -85,7 +136,7 @@ const StyledTabs = styled(Tabs)(({ theme }) => ({
     },
 }));
 
-const StyledTab = styled(Tab)(({ theme }) => ({
+const StyledTab = styled(Tab)(({theme}) => ({
     textTransform: 'none',
     fontWeight: theme.typography.fontWeightRegular,
     fontSize: theme.typography.pxToRem(16),
@@ -106,7 +157,7 @@ const StyledTab = styled(Tab)(({ theme }) => ({
     },
 }));
 
-const ProfileSectionCard = styled(Card)(({ theme }) => ({
+const ProfileSectionCard = styled(Card)(({theme}) => ({
     background: 'rgba(25, 18, 40, 0.85)',
     backdropFilter: 'blur(15px)',
     borderRadius: '18px',
@@ -117,7 +168,7 @@ const ProfileSectionCard = styled(Card)(({ theme }) => ({
     animation: `${textFadeInUp} 0.7s ease-out backwards`,
 }));
 
-const EditableTextField = styled(TextField)(({theme}) => ({
+const EditableTextField = styled(TextField)(() => ({
     '& label.Mui-focused': {
         color: '#a96cff',
     },
@@ -175,10 +226,10 @@ const AvatarOverlay = styled(Box)({
     justifyContent: 'center',
     opacity: 0,
     transition: 'opacity 0.3s ease-in-out',
-    '&:hover': { opacity: 1 },
+    '&:hover': {opacity: 1},
 });
 
-const PrimaryButton = styled(Button)(({ theme }) => ({
+const PrimaryButton = styled(Button)(({theme}) => ({
     background: 'linear-gradient(45deg, #c67eff 0%, #a96cff 100%)',
     color: 'white',
     fontWeight: 'bold',
@@ -193,7 +244,7 @@ const PrimaryButton = styled(Button)(({ theme }) => ({
     },
 }));
 
-const SecondaryButton = styled(Button)(({ theme }) => ({
+const SecondaryButton = styled(Button)(({theme}) => ({
     borderColor: 'rgba(169, 108, 255, 0.7)',
     color: '#e0c7ff',
     fontWeight: 'bold',
@@ -253,7 +304,7 @@ const activityLevelDescriptions = {
 
 
 function TabPanel(props) {
-    const { children, value, index, ...other } = props;
+    const {children, value, index, ...other} = props;
     return (
         <div
             role="tabpanel"
@@ -279,7 +330,7 @@ function a11yProps(index) {
 
 function ProfilePage(props) {
     const navigate = useNavigate();
-    const { currentUser: authenticatedUser, logout, isLoadingAuth } = useAuth();
+    const {currentUser: authenticatedUser, logout, isLoadingAuth} = useAuth();
 
     const [userProfile, setUserProfile] = useState(null);
     const [editableProfile, setEditableProfile] = useState(null);
@@ -374,14 +425,13 @@ function ProfilePage(props) {
         try {
             const response = await fetch(`/api/profile/${authenticatedUser.userId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(profileUpdates),
             });
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.message || `Помилка збереження профілю: ${response.statusText}`);
             }
-
 
 
             const updatedProfileData = data.user || {
@@ -415,15 +465,15 @@ function ProfilePage(props) {
     };
 
     const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setEditableProfile(prev => ({ ...prev, [name]: value }));
+        const {name, value} = e.target;
+        setEditableProfile(prev => ({...prev, [name]: value}));
     };
 
     const handleNumericInputChange = (e) => {
-        const { name, value } = e.target;
+        const {name, value} = e.target;
         const numValue = value === '' ? '' : parseInt(value, 10);
         if (value === '' || (!isNaN(numValue) && numValue >= 0 && numValue <= 300)) {
-            setEditableProfile(prev => ({ ...prev, [name]: numValue }));
+            setEditableProfile(prev => ({...prev, [name]: numValue}));
         }
     };
 
@@ -444,13 +494,13 @@ function ProfilePage(props) {
                     throw new Error(errData.message || 'Помилка завантаження аватарки');
                 }
                 const data = await response.json();
-                setEditableProfile(prev => ({ ...prev, avatarUrl: data.avatarUrl }));
-                setUserProfile(prev => ({ ...prev, avatarUrl: data.avatarUrl }));
+                setEditableProfile(prev => ({...prev, avatarUrl: data.avatarUrl}));
+                setUserProfile(prev => ({...prev, avatarUrl: data.avatarUrl}));
                 if (data.unlockedAchievements && data.unlockedAchievements.length > 0) {
                     setUserProfile(prev => ({
                         ...prev,
                         achievements: prev.achievements.map(ach =>
-                            data.unlockedAchievements.includes(ach.id) ? { ...ach, unlocked: true } : ach
+                            data.unlockedAchievements.includes(ach.id) ? {...ach, unlocked: true} : ach
                         ),
                     }));
                 }
@@ -471,11 +521,20 @@ function ProfilePage(props) {
     if (isLoadingAuth || isLoadingData) {
         return (
             <AppTheme {...props}>
-                <CssBaseline enableColorScheme />
-                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', alignItems: 'center', justifyContent: 'center', background: 'rgba(10, 5, 18, 0.98)' }}>
-                    <Box sx={gridBackgroundStyles} />
+                <CssBaseline enableColorScheme/>
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: '100vh',
+                    position: 'relative',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(10, 5, 18, 0.98)'
+                }}>
+                    <Box sx={gridBackgroundStyles}/>
                     <CircularProgress sx={{color: '#a96cff', mb: 2}} size={60} thickness={4}/>
-                    <Typography variant="h5" sx={{color: 'rgba(230, 220, 255, 0.8)', animation: `${textFadeInUp} 1s ease-out`}}>
+                    <Typography variant="h5"
+                                sx={{color: 'rgba(230, 220, 255, 0.8)', animation: `${textFadeInUp} 1s ease-out`}}>
                         {isLoadingAuth ? "Автентифікація..." : "Завантаження профілю..."}
                     </Typography>
                 </Box>
@@ -486,11 +545,20 @@ function ProfilePage(props) {
     if (error) {
         return (
             <AppTheme {...props}>
-                <CssBaseline enableColorScheme />
-                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', alignItems: 'center', justifyContent: 'center', p:3 }}>
-                    <Box sx={gridBackgroundStyles} />
+                <CssBaseline enableColorScheme/>
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: '100vh',
+                    position: 'relative',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    p: 3
+                }}>
+                    <Box sx={gridBackgroundStyles}/>
                     <Alert severity="error" sx={{mb: 2, width: '100%', maxWidth: '600px'}}>Помилка: {error}</Alert>
-                    <Button variant="contained" onClick={() => window.location.reload()}>Перезавантажити сторінку</Button>
+                    <Button variant="contained" onClick={() => window.location.reload()}>Перезавантажити
+                        сторінку</Button>
                 </Box>
             </AppTheme>
         );
@@ -499,11 +567,20 @@ function ProfilePage(props) {
     if (!authenticatedUser || !userProfile) {
         return (
             <AppTheme {...props}>
-                <CssBaseline enableColorScheme />
-                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', alignItems: 'center', justifyContent: 'center', p:3 }}>
-                    <Box sx={gridBackgroundStyles} />
+                <CssBaseline enableColorScheme/>
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: '100vh',
+                    position: 'relative',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    p: 3
+                }}>
+                    <Box sx={gridBackgroundStyles}/>
                     <Typography variant="h6" sx={{color: 'rgba(230,220,255,0.7)'}}>
-                        Профіль недоступний. Будь ласка, спробуйте <Button component={Link} to="/signin">увійти</Button> знову.
+                        Профіль недоступний. Будь ласка, спробуйте <Button component={Link}
+                                                                           to="/signin">увійти</Button> знову.
                     </Typography>
                 </Box>
             </AppTheme>
@@ -512,7 +589,7 @@ function ProfilePage(props) {
 
     const displayName = userProfile.name || 'Користувач';
     const displayEmail = userProfile.email || 'Не вказано';
-    const displayJoinDate = userProfile.joinDate ? format(parseISO(userProfile.joinDate), 'd MMMM yyyy', { locale: uk }) : 'Невідомо';
+    const displayJoinDate = userProfile.joinDate ? format(parseISO(userProfile.joinDate), 'd MMMM yyyy', {locale: uk}) : 'Невідомо';
 
 
     const {
@@ -523,7 +600,10 @@ function ProfilePage(props) {
 
 
     const displayProfileUpdatesCount = userProfile.profileUpdatesCount || 0;
-    const displayLastGoalUpdate = userProfile.lastGoalUpdate ? formatDistanceToNow(parseISO(userProfile.lastGoalUpdate), { addSuffix: true, locale: uk }) : 'Не оновлювалось';
+    const displayLastGoalUpdate = userProfile.lastGoalUpdate ? formatDistanceToNow(parseISO(userProfile.lastGoalUpdate), {
+        addSuffix: true,
+        locale: uk
+    }) : 'Не оновлювалось';
 
 
     const currentMotivationalMessage = getMotivationalMessage(userProfile.goal, userProfile.goalKeywords);
@@ -531,18 +611,36 @@ function ProfilePage(props) {
 
     return (
         <AppTheme {...props}>
-            <CssBaseline enableColorScheme />
-            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', background: 'rgba(10, 5, 18, 1)' }}>
-                <Box sx={gridBackgroundStyles} />
+            <CssBaseline enableColorScheme/>
+            <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                minHeight: '100vh',
+                position: 'relative',
+                background: 'rgba(10, 5, 18, 1)'
+            }}>
+                <Box sx={gridBackgroundStyles}/>
 
-                <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 }, mt: {xs:1, md:3}, position: 'relative', zIndex: 2 }}>
-                    <Box sx={{ display: 'flex', flexDirection: {xs: 'column', sm: 'row'}, justifyContent: 'space-between', alignItems: 'center', mb: {xs: 2, md: 3}, animation: `${textFadeInUp} 0.5s ease-out` }}>
+                <Container maxWidth="lg" sx={{py: {xs: 3, md: 5}, mt: {xs: 1, md: 3}, position: 'relative', zIndex: 2}}>
+                    <Box sx={{
+                        display: 'flex',
+                        flexDirection: {xs: 'column', sm: 'row'},
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        mb: {xs: 2, md: 3},
+                        animation: `${textFadeInUp} 0.5s ease-out`
+                    }}>
                         <Box sx={{display: 'flex', alignItems: 'center', mb: {xs: 2, sm: 0}}}>
                             <AvatarUploader onClick={() => isEditing && fileInputRef.current.click()}>
                                 <Avatar
                                     alt={displayName}
                                     src={avatarUrl || '/default-avatar.png'}
-                                    sx={{ width: '100%', height: '100%', border: `4px solid ${isEditing ? '#ffc107' : 'rgba(138, 43, 226, 0.7)'}`, animation: isEditing ? 'none' : `${pulseEffect} 2.5s infinite` }}
+                                    sx={{
+                                        width: '100%',
+                                        height: '100%',
+                                        border: `4px solid ${isEditing ? '#ffc107' : 'rgba(138, 43, 226, 0.7)'}`,
+                                        animation: isEditing ? 'none' : `${pulseEffect} 2.5s infinite`
+                                    }}
                                 />
                                 {isEditing && (
                                     <AvatarOverlay>
@@ -550,83 +648,127 @@ function ProfilePage(props) {
                                         <Typography variant="caption">Змінити</Typography>
                                     </AvatarOverlay>
                                 )}
-                                <input type="file" ref={fileInputRef} onChange={handleAvatarFileChange} accept="image/*" style={{ display: 'none' }}/>
+                                <input type="file" ref={fileInputRef} onChange={handleAvatarFileChange} accept="image/*"
+                                       style={{display: 'none'}}/>
                             </AvatarUploader>
                             <Box sx={{ml: 3}}>
-                                <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'white', fontSize: { xs: '1.8rem', sm: '2.2rem', md: '2.5rem' } }}>
+                                <Typography variant="h4" component="h1" sx={{
+                                    fontWeight: 'bold',
+                                    color: 'white',
+                                    fontSize: {xs: '1.8rem', sm: '2.2rem', md: '2.5rem'}
+                                }}>
                                     {displayName}
                                 </Typography>
-                                <Chip icon={<EmailIcon />} label={displayEmail} size="small" sx={{ color: 'rgba(230, 220, 255, 0.7)', borderColor: 'rgba(138, 43, 226, 0.3)', mt: 0.5, background: 'rgba(255,255,255,0.05)' }}/>
+                                <Chip icon={<EmailIcon/>} label={displayEmail} size="small" sx={{
+                                    color: 'rgba(230, 220, 255, 0.7)',
+                                    borderColor: 'rgba(138, 43, 226, 0.3)',
+                                    mt: 0.5,
+                                    background: 'rgba(255,255,255,0.05)'
+                                }}/>
                             </Box>
                         </Box>
                         <Box sx={{display: 'flex', gap: 1.5, mt: {xs: 2, sm: 0}}}>
                             {isEditing ? (
                                 <>
-                                    <PrimaryButton startIcon={isSaving ? <CircularProgress size={20} color="inherit"/> : <SaveIcon />} onClick={handleSave} disabled={isSaving}>
+                                    <PrimaryButton startIcon={isSaving ? <CircularProgress size={20} color="inherit"/> :
+                                        <SaveIcon/>} onClick={handleSave} disabled={isSaving}>
                                         {isSaving ? "Збереження..." : "Зберегти"}
                                     </PrimaryButton>
-                                    <SecondaryButton startIcon={<CancelIcon />} onClick={handleEditToggle} variant="outlined" disabled={isSaving}>
+                                    <SecondaryButton startIcon={<CancelIcon/>} onClick={handleEditToggle}
+                                                     variant="outlined" disabled={isSaving}>
                                         Скасувати
                                     </SecondaryButton>
                                 </>
                             ) : (
-                                <PrimaryButton startIcon={<EditIcon />} onClick={handleEditToggle}>Редагувати профіль</PrimaryButton>
+                                <PrimaryButton startIcon={<EditIcon/>} onClick={handleEditToggle}>Редагувати
+                                    профіль</PrimaryButton>
                             )}
                         </Box>
                     </Box>
 
                     {currentMotivationalMessage && !isEditing && (
-                        <Alert icon={<LightbulbIcon fontSize="inherit" />} severity="info" sx={{ mb: 3, backgroundColor: 'rgba(138, 43, 226, 0.1)', color: '#e0c7ff', border: '1px solid rgba(138, 43, 226, 0.3)', '.MuiAlert-icon': { color: '#c67eff' }, animation: `${textFadeInUp} 0.7s ease-out 0.2s backwards`, fontSize: '1rem' }}>
+                        <Alert icon={<LightbulbIcon fontSize="inherit"/>} severity="info" sx={{
+                            mb: 3,
+                            backgroundColor: 'rgba(138, 43, 226, 0.1)',
+                            color: '#e0c7ff',
+                            border: '1px solid rgba(138, 43, 226, 0.3)',
+                            '.MuiAlert-icon': {color: '#c67eff'},
+                            animation: `${textFadeInUp} 0.7s ease-out 0.2s backwards`,
+                            fontSize: '1rem'
+                        }}>
                             {currentMotivationalMessage}
                         </Alert>
                     )}
 
                     <ProfileSectionCard sx={{animationDelay: '0.1s'}}>
-                        <StyledTabs value={tabValue} onChange={handleTabChange} aria-label="профільні вкладки" variant="scrollable" scrollButtons="auto">
-                            <StyledTab label="Загальне" icon={<PersonIcon />} iconPosition="start" {...a11yProps(0)} />
-                            <StyledTab label="Фізичні дані" icon={<FitnessCenterIcon />} iconPosition="start" {...a11yProps(1)} />
-                            <StyledTab label="Прогрес та Статистика" icon={<AssessmentIcon />} iconPosition="start" {...a11yProps(2)} />
-                            <StyledTab label="Режим дня" icon={<WatchLaterIcon />} iconPosition="start" {...a11yProps(3)} />
+                        <StyledTabs value={tabValue} onChange={handleTabChange} aria-label="профільні вкладки"
+                                    variant="scrollable" scrollButtons="auto">
+                            <StyledTab label="Загальне" icon={<PersonIcon/>} iconPosition="start" {...a11yProps(0)} />
+                            <StyledTab label="Фізичні дані" icon={<FitnessCenterIcon/>}
+                                       iconPosition="start" {...a11yProps(1)} />
+                            <StyledTab label="Прогрес та Статистика" icon={<AssessmentIcon/>}
+                                       iconPosition="start" {...a11yProps(2)} />
+                            <StyledTab label="Режим дня" icon={<WatchLaterIcon/>}
+                                       iconPosition="start" {...a11yProps(3)} />
                         </StyledTabs>
 
                         <TabPanel value={tabValue} index={0}>
                             <Grid container spacing={3}>
                                 <Grid item xs={12} md={7}>
-                                    <Typography variant="h6" gutterBottom sx={{color: '#e0c7ff', mb: 2}}>Основна інформація</Typography>
-                                    <InfoDisplay label="В GrindЗоні з" value={displayJoinDate} icon={<CalendarMonthIcon />}/>
-                                    {/* Тепер використовуємо displayProfileUpdatesCount та displayLastGoalUpdate */}
-                                    <InfoDisplay label="Оновлень профілю" value={displayProfileUpdatesCount.toString()} icon={<UpdateIcon />}/>
-                                    <InfoDisplay label="Останнє оновлення цілей" value={displayLastGoalUpdate} icon={<TrendingUpIcon />}/>
+                                    <Typography variant="h6" gutterBottom sx={{color: '#e0c7ff', mb: 2}}>Основна
+                                        інформація</Typography>
+                                    <InfoDisplay label="В GrindЗоні з" value={displayJoinDate}
+                                                 icon={<CalendarMonthIcon/>}/>
+                                    <InfoDisplay label="Оновлень профілю" value={displayProfileUpdatesCount.toString()}
+                                                 icon={<UpdateIcon/>}/>
+                                    <InfoDisplay label="Останнє оновлення цілей" value={displayLastGoalUpdate}
+                                                 icon={<TrendingUpIcon/>}/>
                                     <Box mt={2.5}>
-                                        <EditableItem label="Моя головна ціль" name="goal" value={goal} onChange={handleInputChange} isEditing={isEditing} icon={<FlagIcon />} InputProps={{ sx: { overflowY: 'auto', maxHeight: '30px' } }}/>
+                                        <EditableItem label="Моя головна ціль" name="goal" value={goal}
+                                                      onChange={handleInputChange} isEditing={isEditing}
+                                                      icon={<FlagIcon/>}
+                                                      InputProps={{sx: {overflowY: 'auto', maxHeight: '30px'}}}/>
                                     </Box>
                                 </Grid>
                                 <Grid item xs={12} md={5}>
-                                    <Typography variant="h6" gutterBottom sx={{color: '#e0c7ff', mb: 2}}>Мої досягнення ({userProfile.achievements.filter(a=>a.unlocked).length}/{userProfile.achievements.length})</Typography>
+                                    <Typography variant="h6" gutterBottom sx={{color: '#e0c7ff', mb: 2}}>Мої досягнення
+                                        ({userProfile.achievements.filter(a => a.unlocked).length}/{userProfile.achievements.length})</Typography>
                                     <AchievementsList achievements={userProfile.achievements}/>
                                 </Grid>
                             </Grid>
                         </TabPanel>
 
-                        {/* ... (решта TabPanel залишається такою ж, як у твоєму коді,
-                                але переконайся, що використовуєш змінні `birthDate`, `height` і т.д.
-                                з деструктуризації, а не напряму з userProfile/editableProfile, якщо ти їх вже витягнув) ... */}
                         <TabPanel value={tabValue} index={1}>
-                            <Typography variant="h6" gutterBottom sx={{color: '#e0c7ff', mb: 2}}>Мої параметри</Typography>
+                            <Typography variant="h6" gutterBottom sx={{color: '#e0c7ff', mb: 2}}>Мої
+                                параметри</Typography>
                             <Grid container spacing={isEditing ? 2 : 3} direction="column">
                                 <Grid item xs={12} md={isEditing ? 12 : 6} lg={isEditing ? 6 : 4}>
-                                    <EditableItem label="Дата народження" name="birthDate" value={birthDate ? format(parseISO(birthDate), 'yyyy-MM-dd') : ''} onChange={handleInputChange} isEditing={isEditing} icon={<CakeIcon />} type="date" />
-                                    {!isEditing && age !== null && <Typography variant="caption" sx={{color: 'rgba(230,220,255,0.6)', display: 'block', mt: -1.5, ml: '40px' }}>Повних років: {age}</Typography>}
+                                    <EditableItem label="Дата народження" name="birthDate"
+                                                  value={birthDate ? format(parseISO(birthDate), 'yyyy-MM-dd') : ''}
+                                                  onChange={handleInputChange} isEditing={isEditing} icon={<CakeIcon/>}
+                                                  type="date"/>
+                                    {!isEditing && age !== null && <Typography variant="caption" sx={{
+                                        color: 'rgba(230,220,255,0.6)',
+                                        display: 'block',
+                                        mt: -1.5,
+                                        ml: '40px'
+                                    }}>Повних років: {age}</Typography>}
                                 </Grid>
                                 <Grid item xs={12} md={isEditing ? 12 : 6} lg={isEditing ? 6 : 4}>
-                                    <EditableItem label="Зріст (см)" name="height" value={height || ''} onChange={handleNumericInputChange} isEditing={isEditing} icon={<HeightIcon />} unit="см" type="number"/>
+                                    <EditableItem label="Зріст (см)" name="height" value={height || ''}
+                                                  onChange={handleNumericInputChange} isEditing={isEditing}
+                                                  icon={<HeightIcon/>} unit="см" type="number"/>
                                 </Grid>
                                 <Grid item xs={12} md={isEditing ? 12 : 6} lg={isEditing ? 6 : 4}>
-                                    <EditableItem label="Вага (кг)" name="weight" value={weight || ''} onChange={handleNumericInputChange} isEditing={isEditing} icon={<ScaleIcon />} unit="кг" type="number"/>
+                                    <EditableItem label="Вага (кг)" name="weight" value={weight || ''}
+                                                  onChange={handleNumericInputChange} isEditing={isEditing}
+                                                  icon={<ScaleIcon/>} unit="кг" type="number"/>
                                 </Grid>
                                 <Grid item xs={12} md={isEditing ? 12 : 6} lg={isEditing ? 6 : 6}>
-                                    <EditableItemSelect label="Тип дієти" name="dietType" value={dietType} onChange={handleInputChange} isEditing={isEditing} icon={<RestaurantMenuIcon />}
-                                                        options={["Збалансована", "Високобілкова", "Низьковуглеводна", "Вегетаріанська", "Веганська", "Кето", "Інша"]} />
+                                    <EditableItemSelect label="Тип дієти" name="dietType" value={dietType}
+                                                        onChange={handleInputChange} isEditing={isEditing}
+                                                        icon={<RestaurantMenuIcon/>}
+                                                        options={["Збалансована", "Високобілкова", "Низьковуглеводна", "Вегетаріанська", "Веганська", "Кето", "Інша"]}/>
                                 </Grid>
                                 <Grid item xs={12} md={isEditing ? 12 : 6} lg={isEditing ? 12 : 6}>
                                     <EditableItemSelect
@@ -635,11 +777,16 @@ function ProfilePage(props) {
                                         value={activityLevel}
                                         onChange={handleInputChange}
                                         isEditing={isEditing}
-                                        icon={<DirectionsRunIcon />}
+                                        icon={<DirectionsRunIcon/>}
                                         options={Object.keys(activityLevelDescriptions)}
                                     />
                                     {!isEditing && activityLevelDescriptions[activityLevel] && (
-                                        <Typography variant="caption" sx={{color: 'rgba(230,220,255,0.6)', display: 'block', mt: -1.5, ml: '40px' }}>
+                                        <Typography variant="caption" sx={{
+                                            color: 'rgba(230,220,255,0.6)',
+                                            display: 'block',
+                                            mt: -1.5,
+                                            ml: '40px'
+                                        }}>
                                             {activityLevelDescriptions[activityLevel]}
                                         </Typography>
                                     )}
@@ -650,59 +797,139 @@ function ProfilePage(props) {
                         <TabPanel value={tabValue} index={2}>
                             <Grid container spacing={3} alignItems="stretch">
                                 <Grid item xs={12} md={6}>
-                                    <Card sx={{background: alpha('#82eefd', 0.05), p:2.5, borderRadius: '12px', border: `1px solid ${alpha('#82eefd', 0.2)}`, height: '100%'}}>
-                                        <Typography variant="h6" gutterBottom sx={{color: '#c0f5ff', fontWeight: 500, mb:2}}>Прогрес Рівня ({userProfile.level || 1})</Typography>
-                                        <LinearProgress variant="determinate" value={userProfile.progressToNextLevel || 0} sx={{height: 12, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.1)', mb: 0.5, '& .MuiLinearProgress-bar': {backgroundColor: '#82eefd'}}} />
-                                        <Typography variant="caption" sx={{color: 'rgba(192, 245, 255, 0.8)', display: 'block', textAlign: 'right'}}>{userProfile.progressToNextLevel || 0}% до рівня {(userProfile.level || 1) + 1}</Typography>
+                                    <Card sx={{
+                                        background: alpha('#82eefd', 0.05),
+                                        p: 2.5,
+                                        borderRadius: '12px',
+                                        border: `1px solid ${alpha('#82eefd', 0.2)}`,
+                                        height: '100%'
+                                    }}>
+                                        <Typography variant="h6" gutterBottom
+                                                    sx={{color: '#c0f5ff', fontWeight: 500, mb: 2}}>Прогрес Рівня
+                                            ({userProfile.level || 1})</Typography>
+                                        <LinearProgress variant="determinate"
+                                                        value={userProfile.progressToNextLevel || 0} sx={{
+                                            height: 12,
+                                            borderRadius: 6,
+                                            backgroundColor: 'rgba(255,255,255,0.1)',
+                                            mb: 0.5,
+                                            '& .MuiLinearProgress-bar': {backgroundColor: '#82eefd'}
+                                        }}/>
+                                        <Typography variant="caption" sx={{
+                                            color: 'rgba(192, 245, 255, 0.8)',
+                                            display: 'block',
+                                            textAlign: 'right'
+                                        }}>{userProfile.progressToNextLevel || 0}% до
+                                            рівня {(userProfile.level || 1) + 1}</Typography>
                                     </Card>
                                 </Grid>
                                 <Grid item xs={12} md={6}>
-                                    <Card sx={{background: alpha('#ffab91', 0.05), p:2.5, borderRadius: '12px', border: `1px solid ${alpha('#ffab91', 0.2)}`, height: '100%'}}>
-                                        <Typography variant="h6" gutterBottom sx={{color: '#ffe0d3', fontWeight: 500, mb:2}}>Статистика Тренувань</Typography>
-                                        <InfoDisplay label="Завершено тренувань" value={(userProfile.trainingsCompleted || 0).toString()} icon={<FitnessCenterIcon sx={{color: '#ffab91 !important'}} />}/>
-                                        <InfoDisplay label="Загальний час в Grind" value={userProfile.totalTimeSpent || '0 год'} icon={<WatchLaterIcon sx={{color: '#ffab91 !important'}} />}/>
+                                    <Card sx={{
+                                        background: alpha('#ffab91', 0.05),
+                                        p: 2.5,
+                                        borderRadius: '12px',
+                                        border: `1px solid ${alpha('#ffab91', 0.2)}`,
+                                        height: '100%'
+                                    }}>
+                                        <Typography variant="h6" gutterBottom
+                                                    sx={{color: '#ffe0d3', fontWeight: 500, mb: 2}}>Статистика
+                                            Тренувань</Typography>
+                                        <InfoDisplay label="Завершено тренувань"
+                                                     value={(userProfile.trainingsCompleted || 0).toString()}
+                                                     icon={<FitnessCenterIcon sx={{color: '#ffab91 !important'}}/>}/>
+                                        <InfoDisplay label="Загальний час в Grind"
+                                                     value={userProfile.totalTimeSpent || '0 год'}
+                                                     icon={<WatchLaterIcon sx={{color: '#ffab91 !important'}}/>}/>
                                     </Card>
                                 </Grid>
                             </Grid>
                         </TabPanel>
 
                         <TabPanel value={tabValue} index={3}>
-                            <Typography variant="h6" gutterBottom sx={{color: '#e0c7ff', mb: 2}}>Мій типовий розклад</Typography>
+                            <Typography variant="h6" gutterBottom sx={{color: '#e0c7ff', mb: 2}}>Мій типовий
+                                розклад</Typography>
                             <Grid container spacing={isEditing ? 2 : 3} direction="column" alignItems="center">
-                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem label="Час підйому" name="wakeUpTime" value={wakeUpTime} onChange={handleInputChange} isEditing={isEditing} icon={<WbSunnyIcon />} type="time" /></Grid>
-                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem label="Перший прийом їжі" name="firstMealTime" value={firstMealTime} onChange={handleInputChange} isEditing={isEditing} icon={<FastfoodIcon />} type="time" /></Grid>
-                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem label="Нагадування пити воду" name="hydrationReminderTime" value={hydrationReminderTime} onChange={handleInputChange} isEditing={isEditing} icon={<LocalDrinkIcon />} type="time" /></Grid>
-                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem label="Час тренування" name="trainingTime" value={trainingTime} onChange={handleInputChange} isEditing={isEditing} icon={<FitnessCenterIcon />} type="time" /></Grid>
-                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem label="Останній прийом їжі" name="lastMealTime" value={lastMealTime} onChange={handleInputChange} isEditing={isEditing} icon={<FastfoodIcon sx={{transform: 'scaleX(-1)'}} />} type="time" /></Grid>
-                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem label="Особистий час / Релакс" name="personalTime" value={personalTime} onChange={handleInputChange} isEditing={isEditing} icon={<SelfImprovementIcon />} type="time" /></Grid>
-                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem label="Час сну" name="sleepTime" value={sleepTime} onChange={handleInputChange} isEditing={isEditing} icon={<BedtimeIcon />} type="time" /></Grid>
+                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem label="Час підйому"
+                                                                                                     name="wakeUpTime"
+                                                                                                     value={wakeUpTime}
+                                                                                                     onChange={handleInputChange}
+                                                                                                     isEditing={isEditing}
+                                                                                                     icon={
+                                                                                                         <WbSunnyIcon/>}
+                                                                                                     type="time"/></Grid>
+                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem
+                                    label="Перший прийом їжі" name="firstMealTime" value={firstMealTime}
+                                    onChange={handleInputChange} isEditing={isEditing} icon={<FastfoodIcon/>}
+                                    type="time"/></Grid>
+                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem
+                                    label="Нагадування пити воду" name="hydrationReminderTime"
+                                    value={hydrationReminderTime} onChange={handleInputChange} isEditing={isEditing}
+                                    icon={<LocalDrinkIcon/>} type="time"/></Grid>
+                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem
+                                    label="Час тренування" name="trainingTime" value={trainingTime}
+                                    onChange={handleInputChange} isEditing={isEditing} icon={<FitnessCenterIcon/>}
+                                    type="time"/></Grid>
+                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem
+                                    label="Останній прийом їжі" name="lastMealTime" value={lastMealTime}
+                                    onChange={handleInputChange} isEditing={isEditing}
+                                    icon={<FastfoodIcon sx={{transform: 'scaleX(-1)'}}/>} type="time"/></Grid>
+                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem
+                                    label="Особистий час / Релакс" name="personalTime" value={personalTime}
+                                    onChange={handleInputChange} isEditing={isEditing} icon={<SelfImprovementIcon/>}
+                                    type="time"/></Grid>
+                                <Grid item xs={12} sm={10} md={8} sx={{width: '100%'}}><EditableItem label="Час сну"
+                                                                                                     name="sleepTime"
+                                                                                                     value={sleepTime}
+                                                                                                     onChange={handleInputChange}
+                                                                                                     isEditing={isEditing}
+                                                                                                     icon={
+                                                                                                         <BedtimeIcon/>}
+                                                                                                     type="time"/></Grid>
                             </Grid>
                         </TabPanel>
 
                     </ProfileSectionCard>
 
                     <Box sx={{mt: 3, display: 'flex', justifyContent: 'flex-end'}}>
-                        <SecondaryButton startIcon={<ExitToAppIcon />} onClick={handleLogoutClick} variant="outlined">
+                        <SecondaryButton startIcon={<ExitToAppIcon/>} onClick={handleLogoutClick} variant="outlined">
                             Вийти з GrindZone
                         </SecondaryButton>
                     </Box>
 
                 </Container>
-                <Footer />
+                <Footer/>
             </Box>
         </AppTheme>
     );
 }
 
-const InfoDisplay = ({ label, value, icon, sx }) => (
-    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.8, '&:last-child': {mb: 0}, ...sx }}>
-        {React.cloneElement(icon, { sx: { mr: 1.5, color: '#a96cff', fontSize: '1.3rem' } })}
-        <Typography variant="body2" sx={{ color: 'rgba(230, 220, 255, 0.7)' }}>{label}:</Typography>
-        <Typography variant="body1" sx={{ fontWeight: '500', color: 'white', ml: 1, wordBreak: 'break-word' }}>{value || 'Не вказано'}</Typography>
+const InfoDisplay = ({label, value, icon, sx}) => (
+    <Box sx={{display: 'flex', alignItems: 'center', mb: 1.8, '&:last-child': {mb: 0}, ...sx}}>
+        {React.cloneElement(icon, {sx: {mr: 1.5, color: '#a96cff', fontSize: '1.3rem'}})}
+        <Typography variant="body2" sx={{color: 'rgba(230, 220, 255, 0.7)'}}>{label}:</Typography>
+        <Typography variant="body1" sx={{
+            fontWeight: '500',
+            color: 'white',
+            ml: 1,
+            wordBreak: 'break-word'
+        }}>{value || 'Не вказано'}</Typography>
     </Box>
 );
 
-const EditableItem = ({ label, name, value, onChange, isEditing, icon, unit = '', multiline = false, rows = 1, type = "text", InputProps, sx }) => {
+const EditableItem = ({
+                          label,
+                          name,
+                          value,
+                          onChange,
+                          isEditing,
+                          icon,
+                          unit = '',
+                          multiline = false,
+                          rows = 1,
+                          type = "text",
+                          InputProps,
+                          sx
+                      }) => {
     if (isEditing) {
         return (
             <EditableTextField
@@ -716,19 +943,24 @@ const EditableItem = ({ label, name, value, onChange, isEditing, icon, unit = ''
                 multiline={multiline}
                 rows={rows}
                 type={type}
-                InputLabelProps={type === 'date' || type === 'time' || (multiline && value) ? { shrink: true } : {}}
+                InputLabelProps={type === 'date' || type === 'time' || (multiline && value) ? {shrink: true} : {}}
                 InputProps={{
                     ...InputProps,
-                    startAdornment: type !== 'date' && type !== 'time' ? React.cloneElement(icon, { sx: { mr: 1, color: 'rgba(230,220,255,0.5)' } }) : null,
+                    startAdornment: type !== 'date' && type !== 'time' ? React.cloneElement(icon, {
+                        sx: {
+                            mr: 1,
+                            color: 'rgba(230,220,255,0.5)'
+                        }
+                    }) : null,
                 }}
                 sx={{mb: 2, ...sx}}
             />
         );
     }
-    return <InfoDisplay label={label} value={value ? `${value}${unit}`: 'Не вказано'} icon={icon} sx={sx}/>;
+    return <InfoDisplay label={label} value={value ? `${value}${unit}` : 'Не вказано'} icon={icon} sx={sx}/>;
 };
 
-const EditableItemSelect = ({ label, name, value, onChange, isEditing, icon, options = [], sx }) => {
+const EditableItemSelect = ({label, name, value, onChange, isEditing, icon, options = [], sx}) => {
     if (isEditing) {
         return (
             <FormControl fullWidth variant="outlined" size="small" sx={{mb: 2, ...sx}}>
@@ -739,16 +971,19 @@ const EditableItemSelect = ({ label, name, value, onChange, isEditing, icon, opt
                     value={value || ''}
                     onChange={onChange}
                     label={label}
-                    startAdornment={React.cloneElement(icon, { sx: { mr: 1, ml:1, color: 'rgba(230,220,255,0.5)' } })}
+                    startAdornment={React.cloneElement(icon, {sx: {mr: 1, ml: 1, color: 'rgba(230,220,255,0.5)'}})}
                     sx={{
                         color: 'rgba(230,220,255,0.9)',
                         backgroundColor: 'rgba(255,255,255,0.03)',
                         borderRadius: '10px',
-                        '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(138, 43, 226, 0.4)' },
-                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(169, 108, 255, 0.7)' },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#a96cff', boxShadow: `0 0 0 2px ${alpha('#a96cff', 0.2)}`},
-                        '.MuiSelect-icon': { color: 'rgba(230,220,255,0.7)'},
-                        '.MuiSelect-select': { paddingLeft: '14px' }
+                        '.MuiOutlinedInput-notchedOutline': {borderColor: 'rgba(138, 43, 226, 0.4)'},
+                        '&:hover .MuiOutlinedInput-notchedOutline': {borderColor: 'rgba(169, 108, 255, 0.7)'},
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#a96cff',
+                            boxShadow: `0 0 0 2px ${alpha('#a96cff', 0.2)}`
+                        },
+                        '.MuiSelect-icon': {color: 'rgba(230,220,255,0.7)'},
+                        '.MuiSelect-select': {paddingLeft: '14px'}
                     }}
                     MenuProps={{
                         PaperProps: {
@@ -769,18 +1004,58 @@ const EditableItemSelect = ({ label, name, value, onChange, isEditing, icon, opt
     return <InfoDisplay label={label} value={value || 'Не вказано'} icon={icon} sx={sx}/>;
 };
 
-const AchievementsList = ({ achievements }) => (
+const AchievementsList = ({achievements}) => (
     <Grid container spacing={1.5}>
         {achievements.map(ach => {
             const AchievementIcon = iconMap[ach.iconName] || InfoIcon;
             return (
                 <Grid item xs={6} sm={4} md={6} lg={4} key={ach.id}>
                     <Tooltip title={`${ach.name}: ${ach.description}`} placement="top" arrow
-                             componentsProps={{ tooltip: { sx: { backgroundColor: 'rgba(20,10,35,0.95)', backdropFilter: 'blur(5px)', border: '1px solid #a96cff', color: 'white', fontSize: '0.8rem', padding: '6px 10px', textAlign: 'center' }}, arrow: { sx: { color: '#a96cff' }} }}
+                             componentsProps={{
+                                 tooltip: {
+                                     sx: {
+                                         backgroundColor: 'rgba(20,10,35,0.95)',
+                                         backdropFilter: 'blur(5px)',
+                                         border: '1px solid #a96cff',
+                                         color: 'white',
+                                         fontSize: '0.8rem',
+                                         padding: '6px 10px',
+                                         textAlign: 'center'
+                                     }
+                                 }, arrow: {sx: {color: '#a96cff'}}
+                             }}
                     >
-                        <Paper sx={{ p: 1.5, textAlign: 'center', background: ach.unlocked ? alpha(ach.color, 0.2) : 'rgba(255,255,255,0.04)', border: `1px solid ${ach.unlocked ? ach.color : 'rgba(138,43,226,0.15)'}`, borderRadius: '12px', opacity: ach.unlocked ? 1 : 0.6, filter: ach.unlocked ? 'none' : 'grayscale(30%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 90, transition: 'all 0.2s ease-in-out', '&:hover': {transform: ach.unlocked ? 'scale(1.05)' : 'none', boxShadow: ach.unlocked ? `0 0 10px ${alpha(ach.color, 0.3)}`: 'none' }}}>
-                            <AchievementIcon sx={{ fontSize: '2rem', mb: 0.5, color: ach.unlocked ? ach.color : 'rgba(255,255,255,0.5)' }} />
-                            <Typography variant="caption" sx={{ color: ach.unlocked ? 'white' : 'rgba(255,255,255,0.6)', lineHeight: 1.2, fontSize: '0.75rem', fontWeight: ach.unlocked ? 500 : 400 }}>{ach.name}</Typography>
+                        <Paper sx={{
+                            p: 1.5,
+                            textAlign: 'center',
+                            background: ach.unlocked ? alpha(ach.color, 0.2) : 'rgba(255,255,255,0.04)',
+                            border: `1px solid ${ach.unlocked ? ach.color : 'rgba(138,43,226,0.15)'}`,
+                            borderRadius: '12px',
+                            opacity: ach.unlocked ? 1 : 0.6,
+                            filter: ach.unlocked ? 'none' : 'grayscale(30%)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            height: '100%',
+                            minHeight: 90,
+                            transition: 'all 0.2s ease-in-out',
+                            '&:hover': {
+                                transform: ach.unlocked ? 'scale(1.05)' : 'none',
+                                boxShadow: ach.unlocked ? `0 0 10px ${alpha(ach.color, 0.3)}` : 'none'
+                            }
+                        }}>
+                            <AchievementIcon sx={{
+                                fontSize: '2rem',
+                                mb: 0.5,
+                                color: ach.unlocked ? ach.color : 'rgba(255,255,255,0.5)'
+                            }}/>
+                            <Typography variant="caption" sx={{
+                                color: ach.unlocked ? 'white' : 'rgba(255,255,255,0.6)',
+                                lineHeight: 1.2,
+                                fontSize: '0.75rem',
+                                fontWeight: ach.unlocked ? 500 : 400
+                            }}>{ach.name}</Typography>
                         </Paper>
                     </Tooltip>
                 </Grid>

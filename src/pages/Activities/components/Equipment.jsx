@@ -362,7 +362,6 @@ const Equipment = ({zones, equipment, onBookEquipment}) => {
                             },
                         }}
                     >
-                        {/* Перевіряємо, чи zones існує і є масивом перед map */}
                         {zones && zones.map((zone) => (
                             <MenuItem key={zone.id} value={zone.id}>{zone.name}</MenuItem>
                         ))}

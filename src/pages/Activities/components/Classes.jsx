@@ -272,7 +272,7 @@ const Classes = ({groupClasses, onBookClass}) => {
                                         justifyContent: 'space-between',
 
                                     }}>
-                                        <Box> {/* Верхня частина контенту */}
+                                        <Box>
                                             <Box sx={{
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -396,7 +396,7 @@ const Classes = ({groupClasses, onBookClass}) => {
                                                 {sClass.description}
                                             </Typography>
                                         </Box>
-                                        <Box sx={{mt: 'auto'}}> {/* Кнопка завжди внизу */}
+                                        <Box sx={{mt: 'auto'}}>
                                             <StyledClassButton
                                                 onClick={() => onBookClass(sClass)}
                                                 disabled={isFull}
@@ -412,7 +412,6 @@ const Classes = ({groupClasses, onBookClass}) => {
                             </Grid>
                         );
                     })}
-                    {/* Заповнювачі для рівномірного розподілу, якщо останній ряд неповний */}
                     {currentClasses.length > 0 && currentClasses.length % 2 !== 0 && (classesPerPage === 4 || classesPerPage === 2) && (
                         <Grid item xs={12} sm={6} md={6} lg={6} sx={{display: {xs: 'none', sm: 'block'}}}/>
                     )}

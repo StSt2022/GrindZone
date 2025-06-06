@@ -268,7 +268,6 @@ function ActivitiesPage(props) {
                         </Typography>
                     </Box>
 
-                    {/* Передаємо завантажені дані в компоненти */}
                     <Box sx={sectionStyles(true)}> <Zones zones={zones} allEquipment={equipment}/> </Box>
                     <StyledDivider/>
                     <Box sx={sectionStyles(false)}> <Equipment zones={zones} equipment={equipment}
@@ -290,7 +289,6 @@ function ActivitiesPage(props) {
                     <Box sx={sectionStyles(true)}> <Classes groupClasses={upcomingClasses}
                                                             onBookClass={handleBookClass}/> </Box>
                     <StyledDivider/>
-                    {/* mockInfoCards залишаються, якщо вони не через API */}
                     <Box sx={sectionStyles(true)}> <InfoCardsSection infoCards={mockInfoCards}/> </Box>
                 </Container>
                 <Footer/>

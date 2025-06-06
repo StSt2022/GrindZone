@@ -162,7 +162,6 @@ function NavigationBar({
         >
             <Container maxWidth="xl">
                 <Toolbar disableGutters sx={{minHeight: {xs: 56, sm: 68}}}>
-                    {/* Desktop Logo */}
                     <Typography
                         variant="h6"
                         noWrap

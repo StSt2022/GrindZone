@@ -66,8 +66,7 @@ const trainingTypes = [
 
 
 function Home(props) {
-    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-    const [currentUser, setCurrentUser] = React.useState(null);
+    const [isAuthenticated] = React.useState(false);
     const navigate = useNavigate();
 
     const [sliderValue, setSliderValue] = React.useState(30);
@@ -79,11 +78,6 @@ function Home(props) {
         if (currentStage) {
             setCurrentGrowthIcon(currentStage.icon);
         }
-    };
-
-    const handleLogout = () => {
-        setIsAuthenticated(false);
-        setCurrentUser(null);
     };
 
     const commonCardStyles = {
