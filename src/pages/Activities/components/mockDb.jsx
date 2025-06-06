@@ -1,16 +1,14 @@
-// src/data/mockDb.js
-
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import SelfImprovementIcon from '@mui/icons-material/SelfImprovement';
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
-import SpaIcon from '@mui/icons-material/Spa'; // Yoga
-import SportsKabaddiIcon from '@mui/icons-material/SportsKabaddi'; // CrossFit / HIIT
+import SpaIcon from '@mui/icons-material/Spa';
+import SportsKabaddiIcon from '@mui/icons-material/SportsKabaddi';
 import CheckroomIcon from '@mui/icons-material/Checkroom';
 import RuleFolderIcon from '@mui/icons-material/RuleFolder';
 import DevicesIcon from '@mui/icons-material/Devices';
-import AccessibilityNewIcon from '@mui/icons-material/AccessibilityNew'; // Pilates/Yoga specific
+import AccessibilityNewIcon from '@mui/icons-material/AccessibilityNew';
 
-// --- ZONES ---
+
 export const mockZones = [
     {
         id: 'zone1',
@@ -54,7 +52,7 @@ export const mockZones = [
     }
 ];
 
-// --- EQUIPMENT ---
+
 export const mockEquipment = [
     {
         id: 'eq1', name: "Бігова доріжка LifeFitness Pro", zoneId: "zone1",
@@ -206,7 +204,7 @@ export const mockInfoCards = [
     },
 ];
 
-// --- AVAILABLE TIME SLOTS (для бронювання тренажерів) ---
+
 export const mockAvailableTimeSlots = [
     '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
     '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
